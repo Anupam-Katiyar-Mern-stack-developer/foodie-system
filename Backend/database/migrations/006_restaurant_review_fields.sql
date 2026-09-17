@@ -1,0 +1,10 @@
+ALTER TABLE restaurants
+ADD COLUMN IF NOT EXISTS reviewed_by BIGINT
+REFERENCES admins(id)
+ON DELETE SET NULL;
+
+ALTER TABLE restaurants 
+ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
+
+ALTER TABLE restaurants
+ADD COLUMN IF NOT EXISTS rejection_reason TEXT;

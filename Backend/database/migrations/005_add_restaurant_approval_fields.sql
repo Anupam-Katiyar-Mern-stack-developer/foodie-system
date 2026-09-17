@@ -1,0 +1,9 @@
+ALTER TABLE restaurants
+ADD COLUMN IF NOT EXISTS approved_by BIGINT
+REFERENCES admins(id);
+
+ALTER TABLE restaurants
+ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+
+ALTER TABLE restaurants
+ADD COLUMN IF NOT EXISTS rejection_reason TEXT;

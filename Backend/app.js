@@ -6,7 +6,8 @@ import morgan from "morgan";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import addressRoutes from "./routes/address.routes.js";
-
+import restaurantRoutes from "./routes/restaurant.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 import { success } from "zod";
 
 const app = express();
@@ -27,6 +28,8 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/user/addresses", addressRoutes);
+app.use("/api/restaurant", restaurantRoutes);
+app.use("/api/admin", adminRoutes);
 
 //Error handler
 

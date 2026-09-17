@@ -12,7 +12,7 @@ const runMigrations = async () => {
   try {
     const migrationFolder = path.join(
       __dirname,
-      "migrationS"
+      "migrations"
     );
 
     const files = fs
