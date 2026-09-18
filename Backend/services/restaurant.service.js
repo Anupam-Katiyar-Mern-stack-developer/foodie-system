@@ -2,9 +2,8 @@ import bcrypt from "bcryptjs";
 import pool from "../config/database.js";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../utils/sendEmail.js";
-import {
-  restaurantRegisteredTemplate,
-} from "../templates/restaurant/restaurantRegistered.template.js";
+import { restaurantRegisteredTemplate } from "../templates/restaurant/restaurantRegistered.template.js";
+import { generateSlug } from "../utils/generateSlug.js";
 
 export const registerRestaurantService = async ({
   ownerName,
@@ -56,11 +55,14 @@ export const registerRestaurantService = async ({
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
+  const slug = generateSlug(restaurantName, city);
+
   const result = await pool.query(
     `
         INSERT INTO restaurants(
         owner_name,
         restaurant_name,
+        slug,
         email,
         phone,
         password,
@@ -75,13 +77,14 @@ export const registerRestaurantService = async ({
         )
         VALUES(
         $1, $2, $3, $4, $5, $6,
-        $7, $8, $9, $10, $11, $12
+        $7, $8, $9, $10, $11, $12,$13
         )
 
         RETURNING
         id,
         owner_name AS "ownerName",
         restaurant_name AS "restaurantName",
+        slug,
         email,
         phone,
         description,
@@ -100,6 +103,7 @@ export const registerRestaurantService = async ({
     [
       ownerName.trim(),
       restaurantName.trim(),
+      slug,
       normalizedEmail,
       normalizedPhone,
       hashedPassword,
@@ -116,28 +120,22 @@ export const registerRestaurantService = async ({
   const restaurant = result.rows[0];
 
   const template = restaurantRegisteredTemplate({
-    ownerName:restaurant.ownerName,
-    restaurantName:restaurant.restaurantName,
-    email:restaurant.email,
+    ownerName: restaurant.ownerName,
+    restaurantName: restaurant.restaurantName,
+    email: restaurant.email,
   });
 
-  try{
+  try {
     await sendEmail({
-        to:restaurant.email, 
-        ...template
+      to: restaurant.email,
+      ...template,
     });
-      console.log(
-    "Restaurant registration email sent:",
-    restaurant.email
-  );
+    console.log("Restaurant registration email sent:", restaurant.email);
   } catch (error) {
-  console.error(
-    "Restaurant registration email failed:",
-    error.message
-  );
-}
+    console.error("Restaurant registration email failed:", error.message);
+  }
 
-return restaurant;
+  return restaurant;
 };
 
 //login services
@@ -247,46 +245,184 @@ export const loginRestaurantService = async ({ email, password }) => {
   };
 };
 
-// get restaurant profile
+// get restaurant profile service
 
 export const getRestaurantProfileService = async ({ restaurantId }) => {
+  console.log("restaurantId in service :", restaurantId);
+
   const result = await pool.query(
     `
-        SELECT
-         id,
-         owner_name AS "ownerName",
-         restaurant_name AS "restaurantName",
-         email,
-         phone,
-         description,
-         logo,
-         banner,
-         address_line, AS "addressLine",
-         city,
-         state,
-         pincode,
-         latitude,
-         longitude,
-         opening_time AS "openingTime",
-         closing_time AS "closingTime",
-         is_open AS "isOpen",
-         approval_status AS "approvalStatus",
-         email_veriefied AS "emailVerified",
-         is_blocked AS "isblocked",
-         created_at AS "createdAt",
-         updated_at AS "updatedAt",
-         FROM restaurants 
-          WHERE id =$1
-          LIMIT 1
-
-        `,
+      SELECT
+        id,
+        owner_name AS "ownerName",
+        restaurant_name AS "restaurantName",
+        slug,
+        email,
+        phone,
+        description,
+        logo,
+        banner,
+        address_line AS "addressLine",
+        city,
+        state,
+        pincode,
+        latitude,
+        longitude,
+        opening_time AS "openingTime",
+        closing_time AS "closingTime",
+        is_open AS "isOpen",
+        approval_status AS "approvalStatus",
+        email_verified AS "emailVerified",
+        is_blocked AS "isBlocked",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
+      FROM restaurants
+      WHERE id = $1
+      LIMIT 1
+    `,
     [restaurantId],
   );
 
   if (result.rows.length === 0) {
     const error = new Error("Restaurant not found");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  return result.rows[0];
+};
+
+
+//update profile  service
+export const updateRestaurantProfileService = async ({
+  restaurantId,
+  data,
+}) => {
+  const allowedFields = {
+    ownerName: "owner_name",
+    restaurantName: "restaurant_name",
+    description: "description",
+    addressLine: "address_line",
+    city: "city",
+    state: "state",
+    pincode: "pincode",
+    latitude: "latitude",
+    longitude: "longitude",
+    openingTime: "opening_time",
+    closingTime: "closing_time",
+  };
+
+  const updates = [];
+  const values = [];
+
+  for (const [key, column] of Object.entries(allowedFields)) {
+    if (data[key] !== undefined) {
+      values.push(data[key]);
+
+      updates.push(`${column} = $${values.length}`);
+    }
+  }
+
+  if (updates.length === 0) {
+    const error = new Error("No valid profile fields provided");
+
+    error.statusCode = 400;
+    throw error;
+  }
+
+  values.push(restaurantId);
+
+  const restaurantIdPosition = values.length;
+
+  const result = await pool.query(
+    `
+      UPDATE restaurants
+
+      SET
+        ${updates.join(", ")},
+        updated_at = CURRENT_TIMESTAMP
+
+      WHERE id = $${restaurantIdPosition}
+
+      RETURNING
+        owner_name AS "ownerName",
+        restaurant_name AS "restaurantName",
+        slug,
+        email,
+        phone,
+        description,
+        logo,
+        banner,
+        address_line AS "addressLine",
+        city,
+        state,
+        pincode,
+        latitude,
+        longitude,
+        opening_time AS "openingTime",
+        closing_time AS "closingTime",
+        is_open AS "isOpen",
+        approval_status AS "approvalStatus",
+        email_verified AS "emailVerified",
+        is_blocked AS "isBlocked",
+        updated_at AS "updatedAt"
+    `,
+    values,
+  );
+
+  if (result.rows.length === 0) {
+    const error = new Error("Restaurant not found");
+
     error.statusCode = 404;
     throw error;
   }
+
+  return result.rows[0];
+};
+
+
+
+//update restaurant status service 
+
+export const updateRestaurantStatusService = async ({
+  restaurantId,
+  isOpen,
+}) => {
+  const result = await pool.query(
+    `
+      UPDATE restaurants
+
+      SET
+        is_open = $1,
+        updated_at = CURRENT_TIMESTAMP
+
+      WHERE id = $2
+        AND approval_status = 'APPROVED'
+        AND is_blocked = FALSE
+
+      RETURNING
+        restaurant_name AS "restaurantName",
+        slug,
+        is_open AS "isOpen",
+        approval_status AS "approvalStatus",
+        updated_at AS "updatedAt"
+    `,
+    [
+      isOpen,
+      restaurantId,
+    ]
+  );
+
+  if (result.rows.length === 0) {
+    const error = new Error(
+      "Approved restaurant not found or restaurant is blocked"
+    );
+
+    error.statusCode = 403;
+    throw error;
+  }
+
   return result.rows[0];
 };

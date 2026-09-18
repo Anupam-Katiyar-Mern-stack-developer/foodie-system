@@ -2,15 +2,18 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import path from "path";
 
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import addressRoutes from "./routes/address.routes.js";
 import restaurantRoutes from "./routes/restaurant.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
-import { success } from "zod";
+import categoryRoutes from "./routes/category.routes.js";
 
 const app = express();
+
+app.use("/images", express.static(path.join(process.cwd(), "images")));
 
 app.use(express.json());
 
@@ -30,6 +33,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/user/addresses", addressRoutes);
 app.use("/api/restaurant", restaurantRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/categories", categoryRoutes);
 
 //Error handler
 

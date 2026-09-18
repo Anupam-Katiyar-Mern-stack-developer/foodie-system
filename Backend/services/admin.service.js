@@ -4,8 +4,9 @@ import pool from "../config/database.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { restaurantApprovedTemplate } from "../templates/restaurant/restaurantApproved.template.js";
 import { restaurantRejectedTemplate } from "../templates/restaurant/restaurantRejected.template.js";
-// login Admin service
 
+
+// login Admin service
 export const loginAdminService = async ({ email, password }) => {
   const normalizedEmail = email.trim().toLowerCase();
 

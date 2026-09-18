@@ -8,6 +8,9 @@ import { getRestaurantProfile } from "../controllers/restaurant/getRestaurantPro
 
 import { restaurantAuthMiddleware } from "../middleware/restaurantAuth.middleware.js";
 
+import { updateRestaurantProfile } from "../controllers/restaurant/updateRestaurantProfile.controller.js";
+
+import { updateRestaurantStatus } from "../controllers/restaurant/updateRestaurantStatus.controller.js";
 const router = express.Router();
 
 router.post("/register", registerRestaurant);
@@ -16,4 +19,7 @@ router.post("/login", loginRestaurant);
 
 router.get("/profile", restaurantAuthMiddleware, getRestaurantProfile);
 
+router.patch("/profile", restaurantAuthMiddleware, updateRestaurantProfile);
+
+router.patch("/status", restaurantAuthMiddleware, updateRestaurantStatus);
 export default router;
