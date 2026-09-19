@@ -11,6 +11,12 @@ import { restaurantAuthMiddleware } from "../middleware/restaurantAuth.middlewar
 import { updateRestaurantProfile } from "../controllers/restaurant/updateRestaurantProfile.controller.js";
 
 import { updateRestaurantStatus } from "../controllers/restaurant/updateRestaurantStatus.controller.js";
+
+import { createFood } from "../controllers/food/createFood.controller.js";
+
+import { uploadImage } from "../middleware/upload.middleware.js";
+
+import { getRestaurantFoods } from "../controllers/food/getFood.controller.js";
 const router = express.Router();
 
 router.post("/register", registerRestaurant);
@@ -22,4 +28,21 @@ router.get("/profile", restaurantAuthMiddleware, getRestaurantProfile);
 router.patch("/profile", restaurantAuthMiddleware, updateRestaurantProfile);
 
 router.patch("/status", restaurantAuthMiddleware, updateRestaurantStatus);
+
+router.post(
+  "/foods",
+
+  restaurantAuthMiddleware,
+
+  uploadImage("foods", "image"),
+
+  createFood,
+);
+
+router.get(
+  "/foods",
+  restaurantAuthMiddleware,
+  getRestaurantFoods
+);
+
 export default router;

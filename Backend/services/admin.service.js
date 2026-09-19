@@ -5,7 +5,6 @@ import { sendEmail } from "../utils/sendEmail.js";
 import { restaurantApprovedTemplate } from "../templates/restaurant/restaurantApproved.template.js";
 import { restaurantRejectedTemplate } from "../templates/restaurant/restaurantRejected.template.js";
 
-
 // login Admin service
 export const loginAdminService = async ({ email, password }) => {
   const normalizedEmail = email.trim().toLowerCase();
@@ -226,3 +225,83 @@ export const rejectRestaurantService = async ({
 
   return restaurant;
 };
+
+//get all foods
+
+export const getAdminFoodsService = async ({ page, limit }) => {
+  const offset = (page - 1) * limit;
+
+  const countResult = await pool.query(
+    `
+        SELECT COUNT(*)::int AS total
+        FROM foods
+      `,
+  );
+
+  const result = await pool.query(
+    `
+        SELECT
+          f.name,
+          f.slug,
+          f.description,
+          f.price,
+          f.discount_price
+            AS "discountPrice",
+          f.image,
+          f.is_veg
+            AS "isVeg",
+          f.is_available
+            AS "isAvailable",
+          f.preparation_time
+            AS "preparationTime",
+
+          c.name
+            AS "categoryName",
+          c.slug
+            AS "categorySlug",
+
+          r.restaurant_name
+            AS "restaurantName",
+          r.slug
+            AS "restaurantSlug",
+
+          f.created_at
+            AS "createdAt",
+          f.updated_at
+            AS "updatedAt"
+
+        FROM foods f
+
+        INNER JOIN categories c
+          ON c.id = f.category_id
+
+        INNER JOIN restaurants r
+          ON r.id =
+             f.restaurant_id
+
+        ORDER BY
+          f.created_at DESC
+
+        LIMIT $1
+        OFFSET $2
+      `,
+    [limit, offset],
+  );
+
+  const total = countResult.rows[0].total;
+
+  return {
+    foods: result.rows,
+
+    pagination: {
+      page,
+      limit,
+      total,
+
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+//get food by slug
+

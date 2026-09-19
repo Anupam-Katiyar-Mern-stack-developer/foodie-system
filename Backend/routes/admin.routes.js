@@ -18,6 +18,12 @@ import { uploadImage } from "../middleware/upload.middleware.js";
 
 import { updateCategory } from "../controllers/admin/updateCategory.controller.js";
 
+import { updateCategoryStatus } from "../controllers/admin/updateCategoryStatus.controller.js";
+
+import { deleteCategory } from "../controllers/admin/deleteCategory.controller.js";
+
+
+//import {getFoodBySlug} from "../controllers/admin/getFoodBySlug.controller.js"
 const router = express.Router();
 
 router.post("/login", loginAdmin);
@@ -54,4 +60,15 @@ router.patch(
 
   updateCategory,
 );
+
+router.patch(
+  "/categories/:categorySlug/status",
+  adminAuthMiddleware,
+  updateCategoryStatus,
+);
+
+router.delete("/categories/:categorySlug", adminAuthMiddleware, deleteCategory);
+
+
+
 export default router;

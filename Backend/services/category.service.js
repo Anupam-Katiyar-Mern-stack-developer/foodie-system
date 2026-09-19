@@ -292,3 +292,89 @@ export const updateCategoryService = async ({
     throw error;
   }
 };
+
+export const updateCategoryStatusService =async({
+  categorySlug,
+  isActive,
+})=>{
+  const result =await pool.query(
+    `
+    UPDATE categories
+    SET 
+      is_active=$1,
+      updated_at = CURRENT_TIMESTAMP
+
+      WHERE slug= $2
+
+      RETURNING 
+        name ,
+         slug ,
+          image ,
+          description,
+          is_active AS "isActive",
+          updated_at AS "updatedAt"
+           
+    `,
+    [
+      isActive,
+      categorySlug,
+    ]
+  );
+
+  if(result.rows.length === 0){
+    const error =new Error(
+      "Category not found"
+    );
+
+    error.statusCode= 404;
+    throw error;
+  }
+
+  return result.rows[0];
+}
+
+
+export const deleteCategoryService =async({
+  categorySlug
+})=>{
+  const result =await pool.query(
+    `
+    DELETE FROM categories
+
+    WHERE slug =$1
+
+    RETURNING
+      name,
+      slug,
+      image
+    `,[
+      categorySlug
+    ]
+  );
+
+  if(result.rows.length === 0){
+    const error = new Error(
+      "Category not found"
+    );
+
+    error.statusCode =404;
+    throw new error;
+  }
+
+  const deletedCategory = result.rows[0];
+
+  if(deletedCategory.image){
+    try{
+      await deleteImage(
+        deletedCategory.image
+      );
+    }catch(error){
+      console.log("Category image delete failed:",error.message);
+    }
+  }
+
+  return {
+    name : deletedCategory.name,
+    slug:deletedCategory.slug,
+  }
+}
