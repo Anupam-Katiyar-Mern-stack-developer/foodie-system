@@ -16,7 +16,15 @@ import { createFood } from "../controllers/food/createFood.controller.js";
 
 import { uploadImage } from "../middleware/upload.middleware.js";
 
-import { getRestaurantFoods } from "../controllers/food/getFood.controller.js";
+import { getRestaurantFoods } from "../controllers/food/getRestaurantFoods.controller.js";
+
+import { getRestaurantFoodBySlug } from "../controllers/food/getRestaurantFoodBySlug.controller.js";
+
+import { updateFood } from "../controllers/food/updateFood.controller.js";
+
+import {deleteFood} from "../controllers/food/deleteFood.controller.js";
+
+
 const router = express.Router();
 
 router.post("/register", registerRestaurant);
@@ -39,10 +47,27 @@ router.post(
   createFood,
 );
 
+router.get("/foods", restaurantAuthMiddleware, getRestaurantFoods);
+
+// get food by slug
 router.get(
-  "/foods",
+  "/foods/:foodSlug",
   restaurantAuthMiddleware,
-  getRestaurantFoods
+  getRestaurantFoodBySlug,
 );
 
+// update food router
+router.patch(
+  "/foods/:foodSlug",
+  restaurantAuthMiddleware,
+  uploadImage("foods", "image"),
+  updateFood,
+);
+
+// delete food 
+router.delete(
+  "/foods/:foodSlug",
+  restaurantAuthMiddleware,
+  deleteFood
+);
 export default router;

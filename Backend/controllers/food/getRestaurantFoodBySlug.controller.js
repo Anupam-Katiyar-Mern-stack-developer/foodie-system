@@ -1,19 +1,28 @@
-import { getRestaurantFoodBySlugService } from "../../services/food.service.js";
+import {
+  getRestaurantFoodBySlugService,
+} from "../../services/food.service.js";
 
-export const getRestaurantFoodBySlug = async (req, res, next) => {
+export const getRestaurantFoodBySlug = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const restaurantId = req.restaurant.restaurantId;
+    const restaurantId =
+      req.restaurant.restaurantId;
 
     const { foodSlug } = req.params;
 
-    const food = await getRestaurantFoodBySlugService({
-      restaurantId,
-      foodSlug,
-    });
+    const food =
+      await getRestaurantFoodBySlugService({
+        restaurantId,
+        foodSlug,
+      });
 
     return res.status(200).json({
       success: true,
-      message: "Food fetched successfully",
+      message:
+        "Food fetched successfully",
       data: food,
     });
   } catch (error) {

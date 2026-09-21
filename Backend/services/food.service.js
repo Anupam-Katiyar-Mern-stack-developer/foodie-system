@@ -306,7 +306,6 @@ export const getRestaurantFoodsService = async ({
 };
 
 //get restaurant single food
-
 export const getRestaurantFoodBySlugService = async ({
   restaurantId,
   foodSlug,
@@ -341,11 +340,15 @@ export const getRestaurantFoodBySlugService = async ({
 
       LIMIT 1
     `,
-    [foodSlug, restaurantId],
+    [
+      foodSlug,
+      restaurantId,
+    ]
   );
 
   if (result.rows.length === 0) {
-    const error = new Error("Food not found");
+    const error =
+      new Error("Food not found");
 
     error.statusCode = 404;
     throw error;
@@ -770,7 +773,6 @@ export const updateFoodService = async ({
 };
 
 //delete food service 
-
 export const deleteFoodService = async ({
   restaurantId,
   foodSlug,
@@ -824,8 +826,97 @@ export const deleteFoodService = async ({
   };
 };
 
-//get single food 
+// get adminfood service
+export const getAdminFoodsService = async ({
+  page,
+  limit,
+}) => {
+  const offset =
+    (page - 1) * limit;
 
+  const countResult =
+    await pool.query(
+      `
+        SELECT COUNT(*)::int AS total
+        FROM foods
+      `
+    );
+
+  const result =
+    await pool.query(
+      `
+        SELECT
+          f.name,
+          f.slug,
+          f.description,
+          f.price,
+          f.discount_price
+            AS "discountPrice",
+          f.image,
+          f.is_veg
+            AS "isVeg",
+          f.is_available
+            AS "isAvailable",
+          f.preparation_time
+            AS "preparationTime",
+
+          c.name
+            AS "categoryName",
+          c.slug
+            AS "categorySlug",
+
+          r.restaurant_name
+            AS "restaurantName",
+          r.slug
+            AS "restaurantSlug",
+
+          f.created_at
+            AS "createdAt",
+          f.updated_at
+            AS "updatedAt"
+
+        FROM foods f
+
+        INNER JOIN categories c
+          ON c.id = f.category_id
+
+        INNER JOIN restaurants r
+          ON r.id =
+             f.restaurant_id
+
+        ORDER BY
+          f.created_at DESC
+
+        LIMIT $1
+        OFFSET $2
+      `,
+      [
+        limit,
+        offset,
+      ]
+    );
+
+  const total =
+    countResult.rows[0].total;
+
+  return {
+    foods:
+      result.rows,
+
+    pagination: {
+      page,
+      limit,
+      total,
+
+      totalPages:
+        Math.ceil(
+          total / limit
+        ),
+    },
+  };
+};
+
+// get single food by admin
 export const getAdminFoodBySlugService = async ({
   foodSlug,
 }) => {
