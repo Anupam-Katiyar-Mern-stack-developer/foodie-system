@@ -985,3 +985,155 @@ export const getAdminFoodBySlugService = async ({
 
   return result.rows[0];
 };
+
+// get food by category service
+
+export const getFoodsByCategoryService = async ({
+  categorySlug,
+  page,
+  limit,
+}) => {
+  const offset = (page - 1) * limit;
+
+  // Category active hai ya nahi
+  const categoryResult = await pool.query(
+    `
+      SELECT
+        id,
+        name,
+        slug,
+        image,
+        description
+
+      FROM categories
+
+      WHERE
+        slug = $1
+        AND is_active = TRUE
+
+      LIMIT 1
+    `,
+    [categorySlug]
+  );
+
+  if (categoryResult.rows.length === 0) {
+    const error = new Error(
+      "Category not found"
+    );
+
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const category =
+    categoryResult.rows[0];
+
+
+  // Total foods count
+  const countResult = await pool.query(
+    `
+      SELECT COUNT(*)::int AS total
+
+      FROM foods f
+
+      INNER JOIN restaurants r
+        ON r.id = f.restaurant_id
+
+      WHERE
+        f.category_id = $1
+        AND f.is_available = TRUE
+        AND r.approval_status = 'APPROVED'
+        AND r.is_blocked = FALSE
+    `,
+    [category.id]
+  );
+
+
+  // Actual foods
+  const result = await pool.query(
+    `
+      SELECT
+        f.name,
+        f.slug,
+        f.description,
+        f.price,
+
+        f.discount_price
+          AS "discountPrice",
+
+        f.image,
+
+        f.is_veg
+          AS "isVeg",
+
+        f.is_available
+          AS "isAvailable",
+
+        f.preparation_time
+          AS "preparationTime",
+
+        r.restaurant_name
+          AS "restaurantName",
+
+        r.slug
+          AS "restaurantSlug",
+
+        r.logo
+          AS "restaurantLogo",
+
+        r.city,
+
+        r.is_open
+          AS "restaurantIsOpen"
+
+      FROM foods f
+
+      INNER JOIN restaurants r
+        ON r.id = f.restaurant_id
+
+      WHERE
+        f.category_id = $1
+        AND f.is_available = TRUE
+        AND r.approval_status = 'APPROVED'
+        AND r.is_blocked = FALSE
+
+      ORDER BY
+        f.created_at DESC
+
+      LIMIT $2
+      OFFSET $3
+    `,
+    [
+      category.id,
+      limit,
+      offset,
+    ]
+  );
+
+
+  const total =
+    countResult.rows[0].total;
+
+  return {
+    category: {
+      name: category.name,
+      slug: category.slug,
+      image: category.image,
+      description:
+        category.description,
+    },
+
+    foods: result.rows,
+
+    pagination: {
+      page,
+      limit,
+      total,
+
+      totalPages:
+        Math.ceil(
+          total / limit
+        ),
+    },
+  };
+};
