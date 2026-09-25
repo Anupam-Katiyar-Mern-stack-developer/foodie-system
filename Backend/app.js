@@ -11,6 +11,10 @@ import restaurantRoutes from "./routes/restaurant.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 
+import publicRestaurantRoutes from "./routes/publicRestaurant.routes.js";
+import cartRoutes from "./routes/cart.routes.js";
+import orderRoutes from "./routes/order.routes.js";
+
 const app = express();
 
 app.use("/images", express.static(path.join(process.cwd(), "images")));
@@ -34,7 +38,9 @@ app.use("/api/user/addresses", addressRoutes);
 app.use("/api/restaurant", restaurantRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/categories", categoryRoutes);
-
+app.use("/api/restaurants", publicRestaurantRoutes);
+app.use("/api/user/cart", cartRoutes);
+app.use("/api", orderRoutes);
 //Error handler
 
 app.use((error, req, res, next) => {

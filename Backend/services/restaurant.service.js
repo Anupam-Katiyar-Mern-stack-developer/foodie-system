@@ -857,11 +857,8 @@ export const updateFoodService = async ({
   }
 };
 
-// delete food by restauratnt 
-export const deleteFoodService = async ({
-  restaurantId,
-  foodSlug,
-}) => {
+// delete food by restauratnt
+export const deleteFoodService = async ({ restaurantId, foodSlug }) => {
   const result = await pool.query(
     `
       DELETE FROM foods
@@ -875,33 +872,23 @@ export const deleteFoodService = async ({
         slug,
         image
     `,
-    [
-      foodSlug,
-      restaurantId,
-    ]
+    [foodSlug, restaurantId],
   );
 
   if (result.rows.length === 0) {
-    const error =
-      new Error("Food not found");
+    const error = new Error("Food not found");
 
     error.statusCode = 404;
     throw error;
   }
 
-  const deletedFood =
-    result.rows[0];
+  const deletedFood = result.rows[0];
 
   if (deletedFood.image) {
     try {
-      await deleteImage(
-        deletedFood.image
-      );
+      await deleteImage(deletedFood.image);
     } catch (error) {
-      console.error(
-        "Food image delete failed:",
-        error.message
-      );
+      console.error("Food image delete failed:", error.message);
     }
   }
 
@@ -909,4 +896,51 @@ export const deleteFoodService = async ({
     name: deletedFood.name,
     slug: deletedFood.slug,
   };
+};
+
+// get public restaurant by slug service
+
+export const getPublicRestaurantBySlugService = async ({ restaurantSlug }) => {
+  const result = await pool.query(
+    `
+      SELECT
+        restaurant_name AS "restaurantName",
+        slug,
+        description,
+        logo,
+        banner,
+
+        address_line AS "addressLine",
+        city,
+        state,
+        pincode,
+
+        latitude,
+        longitude,
+
+        opening_time AS "openingTime",
+        closing_time AS "closingTime",
+
+        is_open AS "isOpen"
+
+      FROM restaurants
+
+      WHERE
+        slug = $1
+        AND approval_status = 'APPROVED'
+        AND is_blocked = FALSE
+
+      LIMIT 1
+    `,
+    [restaurantSlug],
+  );
+
+  if (result.rows.length === 0) {
+    const error = new Error("Restaurant not found");
+
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return result.rows[0];
 };
