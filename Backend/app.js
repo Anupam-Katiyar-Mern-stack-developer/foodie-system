@@ -14,6 +14,7 @@ import categoryRoutes from "./routes/category.routes.js";
 import publicRestaurantRoutes from "./routes/publicRestaurant.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
 import orderRoutes from "./routes/order.routes.js";
+import deliveryRoutes from "./routes/delivery.routes.js";
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/restaurants", publicRestaurantRoutes);
 app.use("/api/user/cart", cartRoutes);
 app.use("/api", orderRoutes);
+app.use("/api/delivery", deliveryRoutes);
 //Error handler
 
 app.use((error, req, res, next) => {

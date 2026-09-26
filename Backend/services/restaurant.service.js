@@ -5,6 +5,7 @@ import { sendEmail } from "../utils/sendEmail.js";
 import { restaurantRegisteredTemplate } from "../templates/restaurant/restaurantRegistered.template.js";
 import { generateSlug } from "../utils/generateSlug.js";
 
+// register restaurant
 export const registerRestaurantService = async ({
   ownerName,
   restaurantName,
@@ -139,7 +140,6 @@ export const registerRestaurantService = async ({
 };
 
 //login services
-
 export const loginRestaurantService = async ({ email, password }) => {
   const normalizedEmail = email.trim().toLowerCase();
 
@@ -246,7 +246,6 @@ export const loginRestaurantService = async ({ email, password }) => {
 };
 
 // get restaurant profile service
-
 export const getRestaurantProfileService = async ({ restaurantId }) => {
   console.log("restaurantId in service :", restaurantId);
 
@@ -538,7 +537,6 @@ export const getRestaurantFoodBySlugService = async ({
 };
 
 // update food service
-
 export const updateFoodService = async ({
   restaurantId,
   foodSlug,
@@ -899,7 +897,6 @@ export const deleteFoodService = async ({ restaurantId, foodSlug }) => {
 };
 
 // get public restaurant by slug service
-
 export const getPublicRestaurantBySlugService = async ({ restaurantSlug }) => {
   const result = await pool.query(
     `

@@ -26,6 +26,11 @@ import { getFoods } from "../controllers/admin/getFoods.controller.js";
 
 import { getFoodBySlug } from "../controllers/admin/getFoodBySlug.controller.js";
 
+import { getPendingDeliveryAgents } from "../controllers/admin/getPendingDeliveryAgents.controller.js";
+
+import { approveDeliveryAgent } from "../controllers/admin/approveDeliveryAgent.controller.js";
+
+import { rejectDeliveryAgent } from "../controllers/admin/rejectDeliveryAgent.controller.js";
 const router = express.Router();
 
 // login admin
@@ -82,5 +87,24 @@ router.get("/foods", adminAuthMiddleware, getFoods);
 
 // get single food by foodslug
 router.get("/foods/:foodSlug", adminAuthMiddleware, getFoodBySlug);
+
+// delivery agent routes
+router.get(
+  "/delivery-agents/pending",
+  adminAuthMiddleware,
+  getPendingDeliveryAgents,
+);
+
+router.patch(
+  "/delivery-agents/:publicId/approve",
+  adminAuthMiddleware,
+  approveDeliveryAgent,
+);
+
+router.patch(
+  "/delivery-agents/:publicId/reject",
+  adminAuthMiddleware,
+  rejectDeliveryAgent,
+);
 
 export default router;
