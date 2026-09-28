@@ -849,3 +849,160 @@ export const updateDeliveryProfileService = async ({
     throw error;
   }
 };
+
+// update delivery status service
+
+export const updateDeliveryStatusService = async ({
+  deliveryAgentId,
+  isOnline,
+}) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // Current agent lock
+    const agentResult = await client.query(
+      `
+          SELECT
+            id,
+
+            public_id AS "publicId",
+
+            approval_status
+              AS "approvalStatus",
+
+            is_blocked
+              AS "isBlocked",
+
+            is_online
+              AS "isOnline",
+
+            is_available
+              AS "isAvailable"
+
+          FROM delivery_agents
+
+          WHERE id = $1
+
+          LIMIT 1
+
+          FOR UPDATE
+        `,
+      [deliveryAgentId],
+    );
+
+    if (agentResult.rows.length === 0) {
+      const error = new Error("Delivery agent not found");
+
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const agent = agentResult.rows[0];
+
+    if (agent.isBlocked) {
+      const error = new Error("Your delivery account has been blocked");
+
+      error.statusCode = 403;
+      throw error;
+    }
+
+    if (agent.approvalStatus !== "APPROVED") {
+      const error = new Error(
+        "Only approved delivery agents can change online status",
+      );
+
+      error.statusCode = 403;
+      throw error;
+    }
+
+    // Active delivery check
+    const activeOrderResult = await client.query(
+      `
+          SELECT
+            order_number AS "orderNumber",
+            status
+
+          FROM orders
+
+          WHERE
+            assigned_delivery_agent_id = $1
+
+            AND status IN (
+              'DELIVERY_ASSIGNED',
+              'PICKED_UP',
+              'OUT_FOR_DELIVERY'
+            )
+
+          LIMIT 1
+        `,
+      [deliveryAgentId],
+    );
+
+    const hasActiveOrder = activeOrderResult.rows.length > 0;
+
+    /*
+      Agent OFFLINE hona chahta hai
+      lekin delivery chal rahi hai.
+    */
+    if (isOnline === false && hasActiveOrder) {
+      const activeOrder = activeOrderResult.rows[0];
+
+      const error = new Error(
+        `You cannot go offline while order ${activeOrder.orderNumber} is ${activeOrder.status}`,
+      );
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    /*
+      Online + no active order
+      => available
+
+      Online + active order
+      => unavailable
+
+      Offline
+      => unavailable
+    */
+    const isAvailable = isOnline && !hasActiveOrder;
+
+    const updateResult = await client.query(
+      `
+          UPDATE delivery_agents
+
+          SET
+            is_online = $1,
+            is_available = $2,
+            updated_at =
+              CURRENT_TIMESTAMP
+
+          WHERE id = $3
+
+          RETURNING
+            public_id AS "publicId",
+
+            is_online AS "isOnline",
+
+            is_available
+              AS "isAvailable",
+
+            updated_at
+              AS "updatedAt"
+        `,
+      [isOnline, isAvailable, deliveryAgentId],
+    );
+
+    await client.query("COMMIT");
+
+    return updateResult.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+
+    throw error;
+  } finally {
+    client.release();
+  }
+};
