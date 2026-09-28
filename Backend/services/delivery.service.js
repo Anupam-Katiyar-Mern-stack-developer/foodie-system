@@ -182,7 +182,7 @@ export const registerDeliveryAgentService = async ({
 // login delivery agent
 export const loginDeliveryAgentService = async ({ email, password }) => {
   const normalizedEmail = email.trim().toLowerCase();
-  console.log("email in services =>",normalizedEmail ,password);
+  console.log("email in services =>", normalizedEmail, password);
 
   // Agent find
   const result = await pool.query(
@@ -482,4 +482,89 @@ export const rejectDeliveryAgentService = async ({ publicId, reason }) => {
   }
 
   return result.rows[0];
+};
+
+// get delivery profile service
+
+export const getDeliveryProfileService = async ({ deliveryAgentId }) => {
+  const result = await pool.query(
+    `
+        SELECT
+          public_id AS "publicId",
+
+          name,
+          email,
+          phone,
+
+          image,
+
+          vehicle_type
+            AS "vehicleType",
+
+          vehicle_number
+            AS "vehicleNumber",
+
+          address,
+
+          latitude,
+          longitude,
+
+          approval_status
+            AS "approvalStatus",
+
+          email_verified
+            AS "emailVerified",
+
+          is_online
+            AS "isOnline",
+
+          is_available
+            AS "isAvailable",
+
+          is_blocked
+            AS "isBlocked",
+
+          created_at
+            AS "createdAt",
+
+          updated_at
+            AS "updatedAt"
+
+        FROM delivery_agents
+
+        WHERE id = $1
+
+        LIMIT 1
+      `,
+    [deliveryAgentId],
+  );
+
+  if (result.rows.length === 0) {
+    const error = new Error("Delivery agent not found");
+
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const agent = result.rows[0];
+
+  if (agent.isBlocked) {
+    const error = new Error("Your delivery account has been blocked");
+
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (agent.approvalStatus !== "APPROVED") {
+    const error = new Error("Your delivery account is not approved");
+
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // isBlocked frontend ko expose karne ki
+  // zarurat nahi
+  delete agent.isBlocked;
+
+  return agent;
 };

@@ -5,6 +5,9 @@ import { registerDeliveryAgent } from "../controllers/delivery/registerDeliveryA
 import { uploadImage } from "../middleware/upload.middleware.js";
 import { loginDeliveryAgent } from "../controllers/delivery/loginDeliveryAgent.controller.js";
 
+import { deliveryAuthMiddleware } from "../middleware/deliveryAuth.middleware.js";
+import { getDeliveryProfile } from "../controllers/delivery/getDeliveryProfile.controller.js";
+
 const router = express.Router();
 
 router.post(
@@ -16,5 +19,7 @@ router.post(
 );
 
 router.post("/login", loginDeliveryAgent);
+
+router.get("/profile", deliveryAuthMiddleware, getDeliveryProfile);
 
 export default router;
