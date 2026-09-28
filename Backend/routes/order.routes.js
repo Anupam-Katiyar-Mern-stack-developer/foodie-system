@@ -34,6 +34,16 @@ import { markOrderPreparing } from "../controllers/order/markOrderPreparing.cont
 
 import { markOrderReady } from "../controllers/order/markOrderReady.controller.js";
 
+// delivery agent
+
+import { deliveryAuthMiddleware } from "../middleware/deliveryAuth.middleware.js";
+
+import { getDeliveryOrderOffer } from "../controllers/order/getDeliveryOrderOffer.controller.js";
+
+import { acceptDeliveryOrder } from "../controllers/order/acceptDeliveryOrder.controller.js";
+
+import { rejectDeliveryOrder } from "../controllers/order/rejectDeliveryOrder.controller.js";
+
 const router = express.Router();
 
 // =====================================
@@ -80,6 +90,28 @@ router.patch(
   "/restaurant/orders/:orderNumber/ready",
   restaurantAuthMiddleware,
   markOrderReady,
+);
+
+// =====================================
+// DELIVERY AGENT ORDER ROUTES
+// =====================================
+
+router.get(
+  "/delivery/orders/offers",
+  deliveryAuthMiddleware,
+  getDeliveryOrderOffer,
+);
+
+router.patch(
+  "/delivery/orders/:orderNumber/accept",
+  deliveryAuthMiddleware,
+  acceptDeliveryOrder,
+);
+
+router.patch(
+  "/delivery/orders/:orderNumber/reject",
+  deliveryAuthMiddleware,
+  rejectDeliveryOrder,
 );
 
 export default router;

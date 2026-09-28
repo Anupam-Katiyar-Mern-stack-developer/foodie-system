@@ -1,5 +1,5 @@
 import pool from "../config/database.js";
-
+import { findAndOfferDeliveryAgentService } from "./delivery.service.js";
 import {
   generateCheckoutNumber,
   generateOrderNumber,
@@ -1209,5 +1209,20 @@ export const markOrderReadyService = async ({ restaurantId, orderNumber }) => {
     throw error;
   }
 
-  return result.rows[0];
+  const order = result.rows[0];
+
+  let deliveryAssignment = null;
+
+  try {
+    deliveryAssignment = await findAndOfferDeliveryAgentService({
+      orderNumber: order.orderNumber,
+    });
+  } catch (error) {
+    console.error("Delivery assignment error:", error.message);
+  }
+
+  return {
+    ...order,
+    deliveryAssignment,
+  };
 };
