@@ -568,3 +568,284 @@ export const getDeliveryProfileService = async ({ deliveryAgentId }) => {
 
   return agent;
 };
+
+// update delievry AGENT
+export const updateDeliveryProfileService = async ({
+  deliveryAgentId,
+
+  name,
+  email,
+  phone,
+
+  vehicleType,
+  vehicleNumber,
+
+  address,
+
+  imageFile,
+  imageFolder,
+}) => {
+  // Current agent
+  const existingResult = await pool.query(
+    `
+        SELECT
+          id,
+
+          public_id AS "publicId",
+
+          name,
+          email,
+          phone,
+
+          image,
+
+          vehicle_type
+            AS "vehicleType",
+
+          vehicle_number
+            AS "vehicleNumber",
+
+          address,
+
+          approval_status
+            AS "approvalStatus",
+
+          is_blocked
+            AS "isBlocked"
+
+        FROM delivery_agents
+
+        WHERE id = $1
+
+        LIMIT 1
+      `,
+    [deliveryAgentId],
+  );
+
+  if (existingResult.rows.length === 0) {
+    const error = new Error("Delivery agent not found");
+
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const existingAgent = existingResult.rows[0];
+
+  if (existingAgent.isBlocked) {
+    const error = new Error("Your delivery account has been blocked");
+
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (existingAgent.approvalStatus !== "APPROVED") {
+    const error = new Error("Your delivery account is not approved");
+
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // =========================
+  // Final values
+  // =========================
+
+  const finalName = name !== undefined ? name.trim() : existingAgent.name;
+
+  if (!finalName) {
+    const error = new Error("Name is required");
+
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const finalEmail =
+    email !== undefined ? email.trim().toLowerCase() : existingAgent.email;
+
+  if (!finalEmail) {
+    const error = new Error("Email is required");
+
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const finalPhone = phone !== undefined ? phone.trim() : existingAgent.phone;
+
+  if (!finalPhone) {
+    const error = new Error("Phone number is required");
+
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const finalVehicleType =
+    vehicleType !== undefined ? vehicleType.trim() : existingAgent.vehicleType;
+
+  const finalVehicleNumber =
+    vehicleNumber !== undefined
+      ? vehicleNumber.trim().toUpperCase()
+      : existingAgent.vehicleNumber;
+
+  const finalAddress =
+    address !== undefined ? address.trim() || null : existingAgent.address;
+
+  // =========================
+  // Email/Phone duplicate check
+  // =========================
+
+  const duplicateResult = await pool.query(
+    `
+        SELECT
+          id,
+          email,
+          phone
+
+        FROM delivery_agents
+
+        WHERE
+          id <> $1
+
+          AND (
+            LOWER(email) = LOWER($2)
+            OR phone = $3
+          )
+
+        LIMIT 1
+      `,
+    [deliveryAgentId, finalEmail, finalPhone],
+  );
+
+  if (duplicateResult.rows.length > 0) {
+    const duplicate = duplicateResult.rows[0];
+
+    if (duplicate.email.toLowerCase() === finalEmail.toLowerCase()) {
+      const error = new Error(
+        "Email is already registered with another delivery agent",
+      );
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const error = new Error(
+      "Phone number is already registered with another delivery agent",
+    );
+
+    error.statusCode = 409;
+    throw error;
+  }
+
+  // =========================
+  // New image
+  // =========================
+
+  let newImage = null;
+
+  if (imageFile) {
+    newImage = await saveImage({
+      file: imageFile,
+      folder: imageFolder,
+    });
+  }
+
+  try {
+    const result = await pool.query(
+      `
+          UPDATE delivery_agents
+
+          SET
+            name = $1,
+            email = $2,
+            phone = $3,
+
+            vehicle_type = $4,
+            vehicle_number = $5,
+
+            address = $6,
+
+            image = $7,
+
+            updated_at =
+              CURRENT_TIMESTAMP
+
+          WHERE id = $8
+
+          RETURNING
+            public_id AS "publicId",
+
+            name,
+            email,
+            phone,
+
+            image,
+
+            vehicle_type
+              AS "vehicleType",
+
+            vehicle_number
+              AS "vehicleNumber",
+
+            address,
+
+            latitude,
+            longitude,
+
+            approval_status
+              AS "approvalStatus",
+
+            email_verified
+              AS "emailVerified",
+
+            is_online
+              AS "isOnline",
+
+            is_available
+              AS "isAvailable",
+
+            updated_at
+              AS "updatedAt"
+        `,
+      [
+        finalName,
+        finalEmail,
+        finalPhone,
+
+        finalVehicleType,
+        finalVehicleNumber,
+
+        finalAddress,
+
+        newImage || existingAgent.image,
+
+        deliveryAgentId,
+      ],
+    );
+
+    const updatedAgent = result.rows[0];
+
+    // DB successfully update hone ke baad
+    // purani image remove
+    if (newImage && existingAgent.image) {
+      try {
+        await deleteImage(existingAgent.image);
+      } catch (error) {
+        console.error("Old delivery image delete failed:", error.message);
+      }
+    }
+
+    return updatedAgent;
+  } catch (error) {
+    // DB fail hua to nayi image clean
+    if (newImage) {
+      try {
+        await deleteImage(newImage);
+      } catch (deleteError) {
+        console.error(
+          "New delivery image cleanup failed:",
+          deleteError.message,
+        );
+      }
+    }
+
+    throw error;
+  }
+};

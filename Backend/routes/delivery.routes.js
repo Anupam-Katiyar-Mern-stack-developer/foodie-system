@@ -8,6 +8,8 @@ import { loginDeliveryAgent } from "../controllers/delivery/loginDeliveryAgent.c
 import { deliveryAuthMiddleware } from "../middleware/deliveryAuth.middleware.js";
 import { getDeliveryProfile } from "../controllers/delivery/getDeliveryProfile.controller.js";
 
+import { updateDeliveryProfile } from "../controllers/delivery/updateDeliveryProfile.controller.js";
+
 const router = express.Router();
 
 router.post(
@@ -21,5 +23,15 @@ router.post(
 router.post("/login", loginDeliveryAgent);
 
 router.get("/profile", deliveryAuthMiddleware, getDeliveryProfile);
+
+router.patch(
+  "/profile",
+
+  deliveryAuthMiddleware,
+
+  uploadImage("delivery-agents", "image"),
+
+  updateDeliveryProfile,
+);
 
 export default router;

@@ -9,7 +9,7 @@ const extensionByMimeType = {
   "image/png": ".png",
   "image/webp": ".webp",
 };
-
+// save image function 
 export const saveImage = async ({ file, folder }) => {
   if (!file) {
     throw new Error("Image file is required");
@@ -39,6 +39,8 @@ export const saveImage = async ({ file, folder }) => {
   return publicPath;
 };
 
+
+// delete image function
 export const deleteImage = async (imagePath) => {
   if (!imagePath) {
     return;
