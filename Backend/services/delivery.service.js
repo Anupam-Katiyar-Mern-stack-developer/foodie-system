@@ -1006,3 +1006,88 @@ export const updateDeliveryStatusService = async ({
     client.release();
   }
 };
+
+// update location service
+
+export const updateDeliveryLocationService = async ({
+  deliveryAgentId,
+  latitude,
+  longitude,
+}) => {
+  const agentResult = await pool.query(
+    `
+        SELECT
+          id,
+
+          approval_status
+            AS "approvalStatus",
+
+          is_blocked
+            AS "isBlocked"
+
+        FROM delivery_agents
+
+        WHERE id = $1
+
+        LIMIT 1
+      `,
+    [deliveryAgentId],
+  );
+
+  if (agentResult.rows.length === 0) {
+    const error = new Error("Delivery agent not found");
+
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const agent = agentResult.rows[0];
+
+  if (agent.isBlocked) {
+    const error = new Error("Your delivery account has been blocked");
+
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (agent.approvalStatus !== "APPROVED") {
+    const error = new Error(
+      "Only approved delivery agents can update location",
+    );
+
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const result = await pool.query(
+    `
+        UPDATE delivery_agents
+
+        SET
+          latitude = $1,
+          longitude = $2,
+          updated_at =
+            CURRENT_TIMESTAMP
+
+        WHERE id = $3
+
+        RETURNING
+          public_id AS "publicId",
+
+          latitude,
+          longitude,
+
+          is_online
+            AS "isOnline",
+
+          is_available
+            AS "isAvailable",
+
+          updated_at
+            AS "updatedAt"
+      `,
+    [latitude, longitude, deliveryAgentId],
+  );
+
+  return result.rows[0];
+};

@@ -12,6 +12,8 @@ import { updateDeliveryProfile } from "../controllers/delivery/updateDeliveryPro
 
 import { updateDeliveryStatus } from "../controllers/delivery/updateDeliveryStatus.controller.js";
 
+import { updateDeliveryLocation } from "../controllers/delivery/updateDeliveryLocation.controller.js";
+
 const router = express.Router();
 
 router.post(
@@ -37,5 +39,7 @@ router.patch(
 );
 
 router.patch("/status", deliveryAuthMiddleware, updateDeliveryStatus);
+
+router.patch("/location", deliveryAuthMiddleware, updateDeliveryLocation);
 
 export default router;
