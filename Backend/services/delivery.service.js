@@ -3,7 +3,15 @@ import pool from "../config/database.js";
 import { generateDeliveryAgentPublicId } from "../utils/generateDeliveryAgentPublicId.js";
 import { saveImage, deleteImage } from "../utils/storage/imageStorage.js";
 import jwt from "jsonwebtoken";
+import {
+  generateDeliveryOtp,
+  hashDeliveryOtp,
+  verifyDeliveryOtp,
+} from "../utils/deliveryOtp.js";
 
+import { sendEmail } from "../utils/sendEmail.js";
+
+import { deliveryOtpTemplate } from "../templates/order/deliveryOtp.template.js";
 // register delivery agent
 export const registerDeliveryAgentService = async ({
   name,
@@ -2291,6 +2299,600 @@ export const pickupDeliveryOrderService = async ({
     return updateResult.rows[0];
   } catch (error) {
     await client.query("ROLLBACK");
+
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// marked order out for delivery service
+export const markOrderOutForDeliveryService = async ({
+  deliveryAgentId,
+  orderNumber,
+}) => {
+  const client = await pool.connect();
+
+  let emailData = null;
+  let generatedOtp = null;
+
+  try {
+    await client.query("BEGIN");
+
+    // ==================================
+    // 1. Agent validation
+    // ==================================
+
+    const agentResult = await client.query(
+      `
+          SELECT
+            id,
+
+            approval_status
+              AS "approvalStatus",
+
+            is_online
+              AS "isOnline",
+
+            is_blocked
+              AS "isBlocked"
+
+          FROM delivery_agents
+
+          WHERE id = $1
+
+          LIMIT 1
+
+          FOR UPDATE
+        `,
+      [deliveryAgentId],
+    );
+
+    if (agentResult.rows.length === 0) {
+      const error = new Error("Delivery agent not found");
+
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const agent = agentResult.rows[0];
+
+    if (agent.approvalStatus !== "APPROVED" || agent.isBlocked) {
+      const error = new Error("Delivery agent account is not available");
+
+      error.statusCode = 403;
+      throw error;
+    }
+
+    if (!agent.isOnline) {
+      const error = new Error("You must be online to start delivery");
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // ==================================
+    // 2. Order + Customer
+    // ==================================
+
+    const orderResult = await client.query(
+      `
+          SELECT
+            o.id,
+
+            o.status,
+
+            o.assigned_delivery_agent_id
+              AS "assignedDeliveryAgentId",
+
+            og.delivery_name
+              AS "customerName",
+
+            u.email
+              AS "customerEmail"
+
+          FROM orders o
+
+          INNER JOIN order_groups og
+            ON og.id =
+               o.order_group_id
+
+          INNER JOIN users u
+            ON u.id =
+               og.user_id
+
+          WHERE
+            o.order_number = $1
+
+          LIMIT 1
+
+          FOR UPDATE OF o
+        `,
+      [orderNumber],
+    );
+
+    if (orderResult.rows.length === 0) {
+      const error = new Error("Order not found");
+
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const order = orderResult.rows[0];
+
+    // ==================================
+    // 3. Ownership
+    // ==================================
+
+    if (Number(order.assignedDeliveryAgentId) !== Number(deliveryAgentId)) {
+      const error = new Error("This order is not assigned to you");
+
+      error.statusCode = 403;
+      throw error;
+    }
+
+    // ==================================
+    // 4. Correct status
+    // ==================================
+
+    if (order.status !== "PICKED_UP") {
+      const error = new Error(
+        `Order cannot move to out for delivery from ${order.status} status`,
+      );
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // ==================================
+    // 5. Generate OTP
+    // ==================================
+
+    generatedOtp = generateDeliveryOtp();
+
+    const otpHash = hashDeliveryOtp(generatedOtp);
+
+    // ==================================
+    // 6. Update order
+    // ==================================
+
+    const updateResult = await client.query(
+      `
+          UPDATE orders
+
+          SET
+            status =
+              'OUT_FOR_DELIVERY',
+
+            out_for_delivery_at =
+              CURRENT_TIMESTAMP,
+
+            delivery_otp_hash =
+              $1,
+
+            delivery_otp_expires_at =
+              CURRENT_TIMESTAMP
+              + INTERVAL '15 minutes',
+
+            delivery_otp_attempts = 0,
+
+            delivery_otp_verified_at =
+              NULL,
+
+            updated_at =
+              CURRENT_TIMESTAMP
+
+          WHERE
+            id = $2
+
+            AND assigned_delivery_agent_id =
+                $3
+
+            AND status =
+                'PICKED_UP'
+
+          RETURNING
+            order_number
+              AS "orderNumber",
+
+            status,
+
+            out_for_delivery_at
+              AS "outForDeliveryAt",
+
+            delivery_otp_expires_at
+              AS "otpExpiresAt"
+        `,
+      [otpHash, order.id, deliveryAgentId],
+    );
+
+    if (updateResult.rows.length === 0) {
+      const error = new Error("Order could not be moved to out for delivery");
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    emailData = {
+      customerName: order.customerName,
+
+      customerEmail: order.customerEmail,
+
+      orderNumber,
+    };
+
+    await client.query("COMMIT");
+
+    // ==================================
+    // 7. Send OTP after DB commit
+    // ==================================
+
+    let otpSent = false;
+
+    try {
+      const template = deliveryOtpTemplate({
+        customerName: emailData.customerName,
+
+        orderNumber: emailData.orderNumber,
+
+        otp: generatedOtp,
+      });
+
+      await sendEmail({
+        to: emailData.customerEmail,
+
+        subject: template.subject,
+
+        html: template.html,
+
+        text: template.text,
+      });
+
+      otpSent = true;
+    } catch (emailError) {
+      console.error("Delivery OTP email failed:", emailError.message);
+    }
+
+    return {
+      ...updateResult.rows[0],
+
+      otpSent,
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// complete delivery agent
+export const completeDeliveryOrderService = async ({
+  deliveryAgentId,
+  orderNumber,
+  otp,
+}) => {
+  const client = await pool.connect();
+
+  let transactionOpen = false;
+
+  try {
+    await client.query("BEGIN");
+
+    transactionOpen = true;
+
+    // ==========================================
+    // 1. Delivery Agent lock + validation
+    // ==========================================
+
+    const agentResult = await client.query(
+      `
+          SELECT
+            id,
+
+            public_id
+              AS "publicId",
+
+            name,
+
+            approval_status
+              AS "approvalStatus",
+
+            is_online
+              AS "isOnline",
+
+            is_blocked
+              AS "isBlocked"
+
+          FROM delivery_agents
+
+          WHERE id = $1
+
+          LIMIT 1
+
+          FOR UPDATE
+        `,
+      [deliveryAgentId],
+    );
+
+    if (agentResult.rows.length === 0) {
+      const error = new Error("Delivery agent not found");
+
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const agent = agentResult.rows[0];
+
+    if (agent.approvalStatus !== "APPROVED" || agent.isBlocked) {
+      const error = new Error("Delivery agent account is not available");
+
+      error.statusCode = 403;
+      throw error;
+    }
+
+    // ==========================================
+    // 2. Order find + lock
+    // ==========================================
+
+    const orderResult = await client.query(
+      `
+          SELECT
+            id,
+
+            status,
+
+            assigned_delivery_agent_id
+              AS "assignedDeliveryAgentId",
+
+            delivery_otp_hash
+              AS "deliveryOtpHash",
+
+            delivery_otp_expires_at
+              AS "deliveryOtpExpiresAt",
+
+            delivery_otp_attempts
+              AS "deliveryOtpAttempts"
+
+          FROM orders
+
+          WHERE order_number = $1
+
+          LIMIT 1
+
+          FOR UPDATE
+        `,
+      [orderNumber],
+    );
+
+    if (orderResult.rows.length === 0) {
+      const error = new Error("Order not found");
+
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const order = orderResult.rows[0];
+
+    // ==========================================
+    // 3. Ownership check
+    // ==========================================
+
+    if (Number(order.assignedDeliveryAgentId) !== Number(deliveryAgentId)) {
+      const error = new Error("This order is not assigned to you");
+
+      error.statusCode = 403;
+      throw error;
+    }
+
+    // ==========================================
+    // 4. Status check
+    // ==========================================
+
+    if (order.status !== "OUT_FOR_DELIVERY") {
+      const error = new Error(
+        `Order cannot be delivered from ${order.status} status`,
+      );
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // ==========================================
+    // 5. OTP exists?
+    // ==========================================
+
+    if (!order.deliveryOtpHash || !order.deliveryOtpExpiresAt) {
+      const error = new Error("Delivery OTP is not available");
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // ==========================================
+    // 6. Maximum attempts
+    // ==========================================
+
+    if (order.deliveryOtpAttempts >= 5) {
+      const error = new Error(
+        "Maximum OTP attempts exceeded. Generate a new OTP.",
+      );
+
+      error.statusCode = 429;
+      throw error;
+    }
+
+    // ==========================================
+    // 7. OTP expired?
+    // ==========================================
+
+    const otpExpired =
+      new Date(order.deliveryOtpExpiresAt).getTime() <= Date.now();
+
+    if (otpExpired) {
+      const error = new Error("Delivery OTP has expired");
+
+      error.statusCode = 410;
+      throw error;
+    }
+
+    // ==========================================
+    // 8. Verify OTP
+    // ==========================================
+
+    const otpValid = verifyDeliveryOtp({
+      otp,
+      otpHash: order.deliveryOtpHash,
+    });
+
+    // ==========================================
+    // WRONG OTP
+    // ==========================================
+
+    if (!otpValid) {
+      const attemptsResult = await client.query(
+        `
+            UPDATE orders
+
+            SET
+              delivery_otp_attempts =
+                delivery_otp_attempts + 1,
+
+              updated_at =
+                CURRENT_TIMESTAMP
+
+            WHERE id = $1
+
+            RETURNING
+              delivery_otp_attempts
+                AS "deliveryOtpAttempts"
+          `,
+        [order.id],
+      );
+
+      const attempts = attemptsResult.rows[0].deliveryOtpAttempts;
+
+      await client.query("COMMIT");
+
+      transactionOpen = false;
+
+      const remainingAttempts = Math.max(0, 5 - attempts);
+
+      const error = new Error(
+        remainingAttempts > 0
+          ? `Invalid OTP. ${remainingAttempts} attempts remaining.`
+          : "Maximum OTP attempts exceeded. Generate a new OTP.",
+      );
+
+      error.statusCode = remainingAttempts > 0 ? 400 : 429;
+
+      throw error;
+    }
+
+    // ==========================================
+    // 9. Correct OTP → DELIVERED
+    // ==========================================
+
+    const deliveredResult = await client.query(
+      `
+          UPDATE orders
+
+          SET
+            status = 'DELIVERED',
+
+            delivery_otp_verified_at =
+              CURRENT_TIMESTAMP,
+
+            delivered_at =
+              CURRENT_TIMESTAMP,
+
+            delivery_otp_hash =
+              NULL,
+
+            delivery_otp_expires_at =
+              NULL,
+
+            updated_at =
+              CURRENT_TIMESTAMP
+
+          WHERE
+            id = $1
+
+            AND assigned_delivery_agent_id =
+                $2
+
+            AND status =
+                'OUT_FOR_DELIVERY'
+
+          RETURNING
+            order_number
+              AS "orderNumber",
+
+            status,
+
+            delivered_at
+              AS "deliveredAt",
+
+            delivery_otp_verified_at
+              AS "otpVerifiedAt",
+
+            total_amount
+              AS "totalAmount"
+        `,
+      [order.id, deliveryAgentId],
+    );
+
+    if (deliveredResult.rows.length === 0) {
+      const error = new Error("Order could not be completed");
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // ==========================================
+    // 10. Agent free again
+    // ==========================================
+
+    await client.query(
+      `
+        UPDATE delivery_agents
+
+        SET
+          is_available =
+            CASE
+              WHEN is_online = TRUE
+              THEN TRUE
+              ELSE FALSE
+            END,
+
+          updated_at =
+            CURRENT_TIMESTAMP
+
+        WHERE id = $1
+      `,
+      [deliveryAgentId],
+    );
+
+    await client.query("COMMIT");
+
+    transactionOpen = false;
+
+    return {
+      ...deliveredResult.rows[0],
+
+      deliveryAgent: {
+        publicId: agent.publicId,
+
+        name: agent.name,
+
+        isAvailable: agent.isOnline ? true : false,
+      },
+    };
+  } catch (error) {
+    if (transactionOpen) {
+      await client.query("ROLLBACK");
+    }
 
     throw error;
   } finally {
