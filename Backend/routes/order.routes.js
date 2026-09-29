@@ -44,6 +44,10 @@ import { acceptDeliveryOrder } from "../controllers/order/acceptDeliveryOrder.co
 
 import { rejectDeliveryOrder } from "../controllers/order/rejectDeliveryOrder.controller.js";
 
+import { getActiveDeliveryOrder } from "../controllers/order/getActiveDeliveryOrder.controller.js";
+
+import { pickupDeliveryOrder } from "../controllers/order/pickupDeliveryOrder.controller.js";
+
 const router = express.Router();
 
 // =====================================
@@ -112,6 +116,12 @@ router.patch(
   "/delivery/orders/:orderNumber/reject",
   deliveryAuthMiddleware,
   rejectDeliveryOrder,
+);
+
+router.patch(
+  "/delivery/orders/:orderNumber/pickup",
+  deliveryAuthMiddleware,
+  pickupDeliveryOrder,
 );
 
 export default router;

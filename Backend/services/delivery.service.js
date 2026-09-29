@@ -1949,3 +1949,351 @@ export const rejectDeliveryOrderService = async ({
     nextOffer,
   };
 };
+
+// get active delivery order service
+export const getActiveDeliveryOrderService = async ({ deliveryAgentId }) => {
+  const orderResult = await pool.query(
+    `
+      SELECT
+        o.id,
+
+        o.order_number
+          AS "orderNumber",
+
+        o.status,
+
+        o.subtotal,
+
+        o.delivery_fee
+          AS "deliveryFee",
+
+        o.tax_amount
+          AS "taxAmount",
+
+        o.total_amount
+          AS "totalAmount",
+
+        o.delivery_assigned_at
+          AS "deliveryAssignedAt",
+
+        o.picked_up_at
+          AS "pickedUpAt",
+
+        o.created_at
+          AS "createdAt",
+
+
+        r.restaurant_name
+          AS "restaurantName",
+
+        r.slug
+          AS "restaurantSlug",
+
+        r.logo
+          AS "restaurantLogo",
+
+        r.phone
+          AS "restaurantPhone",
+
+        r.address_line
+          AS "restaurantAddress",
+
+        r.city
+          AS "restaurantCity",
+
+        r.state
+          AS "restaurantState",
+
+        r.pincode
+          AS "restaurantPincode",
+
+        r.latitude
+          AS "restaurantLatitude",
+
+        r.longitude
+          AS "restaurantLongitude",
+
+
+        og.delivery_name
+          AS "customerName",
+
+        og.delivery_phone
+          AS "customerPhone",
+
+        og.address_line
+          AS "deliveryAddress",
+
+        og.landmark,
+
+        og.city
+          AS "deliveryCity",
+
+        og.state
+          AS "deliveryState",
+
+        og.pincode
+          AS "deliveryPincode",
+
+        og.latitude
+          AS "deliveryLatitude",
+
+        og.longitude
+          AS "deliveryLongitude",
+
+        og.payment_method
+          AS "paymentMethod",
+
+        og.payment_status
+          AS "paymentStatus"
+
+      FROM orders o
+
+      INNER JOIN restaurants r
+        ON r.id = o.restaurant_id
+
+      INNER JOIN order_groups og
+        ON og.id = o.order_group_id
+
+      WHERE
+        o.assigned_delivery_agent_id = $1
+
+        AND o.status IN (
+          'DELIVERY_ASSIGNED',
+          'PICKED_UP',
+          'OUT_FOR_DELIVERY'
+        )
+
+      ORDER BY o.created_at DESC
+
+      LIMIT 1
+    `,
+    [deliveryAgentId],
+  );
+
+  if (orderResult.rows.length === 0) {
+    return null;
+  }
+
+  const order = orderResult.rows[0];
+
+  const itemsResult = await pool.query(
+    `
+      SELECT
+        food_name
+          AS "name",
+
+        food_slug
+          AS "slug",
+
+        food_image
+          AS "image",
+
+        unit_price
+          AS "unitPrice",
+
+        quantity,
+
+        item_total
+          AS "itemTotal"
+
+      FROM order_items
+
+      WHERE order_id = $1
+
+      ORDER BY id ASC
+    `,
+    [order.id],
+  );
+
+  delete order.id;
+
+  return {
+    ...order,
+
+    items: itemsResult.rows,
+  };
+};
+
+// pickup delivery order service
+
+export const pickupDeliveryOrderService = async ({
+  deliveryAgentId,
+  orderNumber,
+}) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // Agent lock
+    const agentResult = await client.query(
+      `
+          SELECT
+            id,
+
+            approval_status
+              AS "approvalStatus",
+
+            is_online
+              AS "isOnline",
+
+            is_available
+              AS "isAvailable",
+
+            is_blocked
+              AS "isBlocked"
+
+          FROM delivery_agents
+
+          WHERE id = $1
+
+          LIMIT 1
+
+          FOR UPDATE
+        `,
+      [deliveryAgentId],
+    );
+
+    if (agentResult.rows.length === 0) {
+      const error = new Error("Delivery agent not found");
+
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const agent = agentResult.rows[0];
+
+    if (agent.approvalStatus !== "APPROVED" || agent.isBlocked) {
+      const error = new Error("Delivery agent account is not available");
+
+      error.statusCode = 403;
+      throw error;
+    }
+
+    if (!agent.isOnline) {
+      const error = new Error("You must be online to pickup an order");
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // Order lock
+    const orderResult = await client.query(
+      `
+          SELECT
+            id,
+            status,
+
+            assigned_delivery_agent_id
+              AS "assignedDeliveryAgentId"
+
+          FROM orders
+
+          WHERE
+            order_number = $1
+
+          LIMIT 1
+
+          FOR UPDATE
+        `,
+      [orderNumber],
+    );
+
+    if (orderResult.rows.length === 0) {
+      const error = new Error("Order not found");
+
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const order = orderResult.rows[0];
+
+    // Ownership check
+    if (Number(order.assignedDeliveryAgentId) !== Number(deliveryAgentId)) {
+      const error = new Error("This order is not assigned to you");
+
+      error.statusCode = 403;
+      throw error;
+    }
+
+    // Correct status required
+    if (order.status !== "DELIVERY_ASSIGNED") {
+      const error = new Error(
+        `Order cannot be picked up from ${order.status} status`,
+      );
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const updateResult = await client.query(
+      `
+          UPDATE orders
+
+          SET
+            status = 'PICKED_UP',
+
+            picked_up_at =
+              CURRENT_TIMESTAMP,
+
+            updated_at =
+              CURRENT_TIMESTAMP
+
+          WHERE
+            id = $1
+            AND assigned_delivery_agent_id = $2
+            AND status = 'DELIVERY_ASSIGNED'
+
+          RETURNING
+            order_number
+              AS "orderNumber",
+
+            status,
+
+            picked_up_at
+              AS "pickedUpAt",
+
+            updated_at
+              AS "updatedAt"
+        `,
+      [order.id, deliveryAgentId],
+    );
+
+    if (updateResult.rows.length === 0) {
+      const error = new Error("Order could not be picked up");
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    /*
+      Agent still busy.
+
+      is_online = true
+      is_available = false
+    */
+    await client.query(
+      `
+        UPDATE delivery_agents
+
+        SET
+          is_available = FALSE,
+          updated_at =
+            CURRENT_TIMESTAMP
+
+        WHERE id = $1
+      `,
+      [deliveryAgentId],
+    );
+
+    await client.query("COMMIT");
+
+    return updateResult.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+
+    throw error;
+  } finally {
+    client.release();
+  }
+};
