@@ -10,6 +10,10 @@ import PopularRestaurantsSection from "../../../components/public/home/PopularRe
 
 import PopularFoodsSection from "../../../components/public/home/PopularFoodsSection";
 
+import HowItWorksSection from "../../../components/public/home/HowItWorksSection";
+
+import PartnerCTASection from "../../../components/public/home/PartnerCTASection";
+
 
 const Home = () => {
   // =========================
@@ -126,6 +130,10 @@ const Home = () => {
           handleAddToCart
         }
       />
+
+      <HowItWorksSection/>
+
+      <PartnerCTASection />
     </>
   );
 };
