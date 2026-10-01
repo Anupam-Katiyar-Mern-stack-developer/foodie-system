@@ -3,16 +3,16 @@ import {
 } from "react-router-dom";
 
 import {
-  ArrowUpRight,
-  ChefHat,
-  Facebook,
-  Instagram,
-  Linkedin,
-  Mail,
-  MapPin,
-  Phone,
-  Twitter,
-} from "lucide-react";
+  FaArrowRight,
+  FaEnvelope,
+  FaFacebookF,
+  FaInstagram,
+  FaLinkedinIn,
+  FaMapMarkerAlt,
+  FaPhoneAlt,
+  FaTwitter,
+  FaUtensils,
+} from "react-icons/fa";
 
 import Container from "../../common/Container/Container";
 
@@ -29,25 +29,25 @@ const PublicFooter = () => {
   const socialLinks = [
     {
       label: "Instagram",
-      icon: Instagram,
+      icon: FaInstagram,
       href: "#",
     },
 
     {
       label: "Facebook",
-      icon: Facebook,
+      icon: FaFacebookF,
       href: "#",
     },
 
     {
       label: "Twitter",
-      icon: Twitter,
+      icon: FaTwitter,
       href: "#",
     },
 
     {
       label: "LinkedIn",
-      icon: Linkedin,
+      icon: FaLinkedinIn,
       href: "#",
     },
   ];
@@ -58,7 +58,6 @@ const PublicFooter = () => {
       className="
         relative
         overflow-hidden
-
         bg-slate-950
         text-white
       "
@@ -66,10 +65,10 @@ const PublicFooter = () => {
       {/* =========================
           DECORATIVE BACKGROUND
       ========================== */}
+
       <div
         className="
           pointer-events-none
-
           absolute
           -left-32
           top-0
@@ -88,7 +87,6 @@ const PublicFooter = () => {
       <div
         className="
           pointer-events-none
-
           absolute
           -right-20
           bottom-0
@@ -108,6 +106,7 @@ const PublicFooter = () => {
       {/* =========================
           TOP CTA
       ========================== */}
+
       <Container>
         <div
           className="
@@ -118,7 +117,6 @@ const PublicFooter = () => {
             border-white/10
 
             py-8
-
             sm:py-10
           "
         >
@@ -147,11 +145,9 @@ const PublicFooter = () => {
               lg:p-8
             "
           >
-            <div
-              className="
-                max-w-2xl
-              "
-            >
+            {/* LEFT CONTENT */}
+
+            <div className="max-w-2xl">
               <span
                 className="
                   inline-flex
@@ -213,6 +209,8 @@ const PublicFooter = () => {
             </div>
 
 
+            {/* CTA */}
+
             <Link
               to="/restaurants"
 
@@ -250,7 +248,7 @@ const PublicFooter = () => {
             >
               Explore Restaurants
 
-              <ArrowUpRight
+              <FaArrowRight
                 className="
                   h-4
                   w-4
@@ -265,6 +263,7 @@ const PublicFooter = () => {
       {/* =========================
           MAIN FOOTER
       ========================== */}
+
       <Container>
         <div
           className="
@@ -283,7 +282,10 @@ const PublicFooter = () => {
             lg:py-14
           "
         >
-          {/* BRAND */}
+          {/* =====================
+              BRAND
+          ====================== */}
+
           <div>
             <Link
               to="/"
@@ -294,6 +296,8 @@ const PublicFooter = () => {
                 gap-3
               "
             >
+              {/* LOGO */}
+
               <span
                 className="
                   flex
@@ -314,14 +318,16 @@ const PublicFooter = () => {
                   shadow-orange-950/30
                 "
               >
-                <ChefHat
+                <FaUtensils
                   className="
-                    h-6
-                    w-6
+                    h-5
+                    w-5
                   "
                 />
               </span>
 
+
+              {/* NAME */}
 
               <div>
                 <p
@@ -332,7 +338,12 @@ const PublicFooter = () => {
                   "
                 >
                   Food
-                  <span className="text-orange-400">
+
+                  <span
+                    className="
+                      text-orange-400
+                    "
+                  >
                     ie
                   </span>
                 </p>
@@ -352,6 +363,8 @@ const PublicFooter = () => {
             </Link>
 
 
+            {/* DESCRIPTION */}
+
             <p
               className="
                 mt-5
@@ -370,13 +383,18 @@ const PublicFooter = () => {
             </p>
 
 
-            {/* CONTACT */}
+            {/* =====================
+                CONTACT
+            ====================== */}
+
             <div
               className="
                 mt-6
                 space-y-3
               "
             >
+              {/* EMAIL */}
+
               <a
                 href="mailto:support@foodie.com"
 
@@ -393,10 +411,11 @@ const PublicFooter = () => {
                   hover:text-orange-300
                 "
               >
-                <Mail
+                <FaEnvelope
                   className="
                     h-4
                     w-4
+                    shrink-0
                     text-orange-400
                   "
                 />
@@ -404,6 +423,8 @@ const PublicFooter = () => {
                 support@foodie.com
               </a>
 
+
+              {/* PHONE */}
 
               <a
                 href="tel:+910000000000"
@@ -421,10 +442,11 @@ const PublicFooter = () => {
                   hover:text-orange-300
                 "
               >
-                <Phone
+                <FaPhoneAlt
                   className="
                     h-4
                     w-4
+                    shrink-0
                     text-orange-400
                   "
                 />
@@ -432,6 +454,8 @@ const PublicFooter = () => {
                 +91 00000 00000
               </a>
 
+
+              {/* LOCATION */}
 
               <div
                 className="
@@ -443,7 +467,7 @@ const PublicFooter = () => {
                   text-slate-400
                 "
               >
-                <MapPin
+                <FaMapMarkerAlt
                   className="
                     h-4
                     w-4
@@ -459,7 +483,10 @@ const PublicFooter = () => {
           </div>
 
 
-          {/* LINK SECTIONS */}
+          {/* =====================
+              LINK SECTIONS
+          ====================== */}
+
           {footerSections.map(
             (section) => (
               <div
@@ -520,6 +547,7 @@ const PublicFooter = () => {
       {/* =========================
           BOTTOM BAR
       ========================== */}
+
       <div
         className="
           relative
@@ -543,9 +571,12 @@ const PublicFooter = () => {
               sm:justify-between
             "
           >
+            {/* COPYRIGHT */}
+
             <p
               className="
                 text-center
+
                 text-xs
                 leading-5
                 text-slate-500
@@ -558,7 +589,10 @@ const PublicFooter = () => {
             </p>
 
 
-            {/* SOCIALS */}
+            {/* =====================
+                SOCIAL LINKS
+            ====================== */}
+
             <div
               className="
                 flex
@@ -575,11 +609,17 @@ const PublicFooter = () => {
 
                   return (
                     <a
-                      key={social.label}
+                      key={
+                        social.label
+                      }
 
-                      href={social.href}
+                      href={
+                        social.href
+                      }
 
-                      aria-label={social.label}
+                      aria-label={
+                        social.label
+                      }
 
                       className="
                         inline-flex

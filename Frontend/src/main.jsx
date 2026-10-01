@@ -16,11 +16,12 @@ import {
 
 import App from "./App";
 
-// import store from "./redux/store";
+import store from "./redux/store";
 
 import ToastProvider from "./components/common/Toast/ToastProvider";
 
 import "./index.css";
+
 
 
 createRoot(
@@ -28,7 +29,7 @@ createRoot(
 ).render(
   <StrictMode>
     
-
+  <Provider store={store}>
       <BrowserRouter>
 
         <ToastProvider>
@@ -38,7 +39,7 @@ createRoot(
         </ToastProvider>
 
       </BrowserRouter>
-
+</Provider>
    
   </StrictMode>
 );

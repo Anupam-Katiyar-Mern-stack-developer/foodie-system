@@ -1,0 +1,15 @@
+{
+  "hero": {
+    "eyebrow": "Fresh food. Fast delivery.",
+    "titleStart": "Cravings delivered",
+    "titleHighlight": "right to your door.",
+    "description": "Discover delicious food from restaurants around you, order in a few clicks and follow your delivery every step of the way.",
+    "primaryButton": "Explore Restaurants",
+    "secondaryButton": "Become a Partner",
+    "deliveryTime": "25–30 min",
+    "rating": "4.8",
+    "tracking": "Live tracking",
+    "orderTitle": "Your order is on the way",
+    "orderDescription": "Fresh, hot and heading to your doorstep."
+  }
+}
