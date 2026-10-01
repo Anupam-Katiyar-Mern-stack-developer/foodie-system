@@ -3,13 +3,22 @@ import {
 } from "react-redux";
 
 import HeroSection from "../../../components/public/home/HeroSection";
+
 import CategorySection from "../../../components/public/home/CategorySection";
+
 import PopularRestaurantsSection from "../../../components/public/home/PopularRestaurantsSection";
+
+import PopularFoodsSection from "../../../components/public/home/PopularFoodsSection";
 
 
 const Home = () => {
+  // =========================
+  // CATEGORY STATE
+  // =========================
+
   const {
     categories,
+
     fetchLoading:
       categoryLoading,
   } = useSelector(
@@ -18,14 +27,63 @@ const Home = () => {
   );
 
 
+  // =========================
+  // RESTAURANT STATE
+  // =========================
+
   const {
     restaurants,
+
     fetchLoading:
       restaurantLoading,
   } = useSelector(
     (state) =>
       state.publicRestaurant
   );
+
+
+  // =========================
+  // FOOD STATE
+  // =========================
+
+  const {
+    foods,
+
+    fetchLoading:
+      foodLoading,
+  } = useSelector(
+    (state) =>
+      state.publicFood
+  );
+
+
+  // =========================
+  // ADD TO CART
+  // =========================
+
+  const handleAddToCart = (
+    food
+  ) => {
+    /*
+      UI phase only.
+
+      Backend integration ke time:
+
+      dispatch(
+        addToCart({
+          foodSlug: food.slug,
+          quantity: 1,
+        })
+      )
+
+      use karenge.
+    */
+
+    console.log(
+      "Add food:",
+      food.slug
+    );
+  };
 
 
   return (
@@ -51,6 +109,21 @@ const Home = () => {
 
         loading={
           restaurantLoading
+        }
+      />
+
+
+      <PopularFoodsSection
+        foods={
+          foods
+        }
+
+        loading={
+          foodLoading
+        }
+
+        onAddToCart={
+          handleAddToCart
         }
       />
     </>
