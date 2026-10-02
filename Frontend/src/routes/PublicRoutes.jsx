@@ -13,6 +13,7 @@ import Cart from "../pages/public/Cart/Cart";
 import Checkout from "../pages/public/Checkout/Checkout";
 import Addresses from "../pages/public/Addresses/Addresses";
 import Profile from "../pages/public/Profile/Profile";
+import Orders from "../pages/public/Orders/Orders";
 
 const Screen = ({
   title,
@@ -110,7 +111,7 @@ const PublicRoutes = () => {
         <Route
           path="orders"
           element={
-            <Screen title="My Orders" />
+            <Orders />
           }
         />
 
@@ -120,6 +121,7 @@ const PublicRoutes = () => {
             <Screen title="Order Details" />
           }
         />
+        
       </Route>
 
 

@@ -9,13 +9,23 @@ import {
 } from "react-redux";
 
 const PublicLayout = () => {
+  const {
+  profile,
+} = useSelector(
+  (state) =>
+    state.publicProfile
+);
+
+
+const user =
+  profile;
   /*
     UI phase.
 
     Later ye values Redux/API
     se aayengi.
   */
-  const user = null;
+
 
   const {
     cartGroups,

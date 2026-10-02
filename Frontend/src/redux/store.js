@@ -1,6 +1,4 @@
-import {
-  configureStore,
-} from "@reduxjs/toolkit";
+import { configureStore } from "@reduxjs/toolkit";
 
 import publicCategoryReducer from "./slices/public/category.slice";
 import publicRestaurantReducer from "./slices/public/restaurant.slice";
@@ -8,30 +6,24 @@ import publicFoodReducer from "./slices/public/food.slice";
 import publicCartReducer from "./slices/public/cart.slice";
 import publicAddressReducer from "./slices/public/address.slice";
 import publicProfileReducer from "./slices/public/profile.slice";
+import publicOrderReducer from "./slices/public/order.slice";
 
+const store = configureStore({
+  reducer: {
+    publicCategory: publicCategoryReducer,
 
-const store =
-  configureStore({
-    reducer: {
-      publicCategory:
-        publicCategoryReducer,
+    publicRestaurant: publicRestaurantReducer,
 
-      publicRestaurant:
-        publicRestaurantReducer,
+    publicFood: publicFoodReducer,
 
-      publicFood:
-        publicFoodReducer,
+    publicCart: publicCartReducer,
 
-      publicCart:
-        publicCartReducer,
+    publicAddress: publicAddressReducer,
 
-      publicAddress:
-        publicAddressReducer,
+    publicProfile: publicProfileReducer,
 
-      publicProfile:
-        publicProfileReducer,
-    },
-  });
-
+    publicOrder: publicOrderReducer,
+  },
+});
 
 export default store;
