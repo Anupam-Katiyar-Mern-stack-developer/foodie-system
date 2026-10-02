@@ -11,6 +11,8 @@ import CategoryFoods from "../pages/public/CategoryFoods/CategoryFoods";
 import Search from "../pages/public/Search/Search";
 import Cart from "../pages/public/Cart/Cart";
 import Checkout from "../pages/public/Checkout/Checkout";
+import Addresses from "../pages/public/Addresses/Addresses";
+
 
 const Screen = ({
   title,
@@ -60,7 +62,7 @@ const PublicRoutes = () => {
         <Route
           path="addresses"
           element={
-            <Screen title="Saved Addresses" />
+            <Addresses />
           }
         />
 
