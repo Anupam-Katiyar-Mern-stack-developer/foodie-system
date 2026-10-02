@@ -8,6 +8,10 @@ import Home from "../pages/public/Home/Home";
 import Restaurants from "../pages/public/Restaurants/Restaurants";
 import RestaurantDetails from "../pages/public/RestaurantDetails/RestaurantDetails";
 import CategoryFoods from "../pages/public/CategoryFoods/CategoryFoods";
+import Search from "../pages/public/Search/Search";
+import Cart from "../pages/public/Cart/Cart";
+import Checkout from "../pages/public/Checkout/Checkout";
+
 const Screen = ({
   title,
 }) => {
@@ -83,21 +87,21 @@ const PublicRoutes = () => {
         <Route
           path="search"
           element={
-            <Screen title="Search" />
+            <Search />
           }
         />
 
         <Route
           path="cart"
           element={
-            <Screen title="Cart" />
+            <Cart />
           }
         />
 
         <Route
           path="checkout"
           element={
-            <Screen title="Checkout" />
+            <Checkout />
           }
         />
 

@@ -16,6 +16,15 @@ import PartnerCTASection from "../../../components/public/home/PartnerCTASection
 
 import LiveTrackingSection from "../../../components/public/home/LiveTrackingSection";
 
+import {
+  useDispatch,
+
+} from "react-redux";
+
+import {
+  addCartItemLocal,
+} from "../../../redux/slices/public/cart.slice";
+
 const Home = () => {
   // =========================
   // CATEGORY STATE
@@ -25,7 +34,7 @@ const Home = () => {
     categories,
 
     fetchLoading:
-      categoryLoading,
+    categoryLoading,
   } = useSelector(
     (state) =>
       state.publicCategory
@@ -40,7 +49,7 @@ const Home = () => {
     restaurants,
 
     fetchLoading:
-      restaurantLoading,
+    restaurantLoading,
   } = useSelector(
     (state) =>
       state.publicRestaurant
@@ -55,7 +64,7 @@ const Home = () => {
     foods,
 
     fetchLoading:
-      foodLoading,
+    foodLoading,
   } = useSelector(
     (state) =>
       state.publicFood
@@ -66,30 +75,32 @@ const Home = () => {
   // ADD TO CART
   // =========================
 
-  const handleAddToCart = (
-    food
-  ) => {
-    /*
-      UI phase only.
-
-      Backend integration ke time:
-
-      dispatch(
-        addToCart({
-          foodSlug: food.slug,
-          quantity: 1,
-        })
-      )
-
-      use karenge.
-    */
-
-    console.log(
-      "Add food:",
-      food.slug
+const handleAddToCart = (
+  food
+) => {
+  const restaurant =
+    restaurants.find(
+      (item) =>
+        item.slug ===
+        food.restaurantSlug
     );
-  };
 
+
+  if (!restaurant) {
+    return;
+  }
+
+
+  dispatch(
+    addCartItemLocal({
+      food,
+      restaurant,
+    })
+  );
+};
+
+  const dispatch =
+    useDispatch();
 
   return (
     <>
@@ -132,7 +143,7 @@ const Home = () => {
         }
       />
 
-      <HowItWorksSection/>
+      <HowItWorksSection />
 
       <LiveTrackingSection />
 

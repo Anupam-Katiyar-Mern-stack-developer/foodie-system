@@ -4,7 +4,9 @@ import {
 
 import PublicNavbar from "../components/public/PublicNavbar/PublicNavbar";
 import PublicFooter from "../components/public/PublicFooter/PublicFooter";
-
+import {
+  useSelector,
+} from "react-redux";
 
 const PublicLayout = () => {
   /*
@@ -15,6 +17,43 @@ const PublicLayout = () => {
   */
   const user = null;
 
+  const {
+    cartGroups,
+  } = useSelector(
+    (state) =>
+      state.publicCart
+  );
+
+
+  const cartCount =
+    cartGroups.reduce(
+      (
+        total,
+        group
+      ) => {
+        const groupTotal =
+          group.items.reduce(
+            (
+              sum,
+              item
+            ) =>
+              sum +
+              Number(
+                item.quantity
+              ),
+
+            0
+          );
+
+
+        return (
+          total +
+          groupTotal
+        );
+      },
+
+      0
+    );
 
   const handleLogout = () => {
     /*
@@ -41,7 +80,9 @@ const PublicLayout = () => {
       <PublicNavbar
         user={user}
 
-        cartCount={0}
+        cartCount={
+          cartCount
+        }
 
         locationLabel="Choose delivery location"
 

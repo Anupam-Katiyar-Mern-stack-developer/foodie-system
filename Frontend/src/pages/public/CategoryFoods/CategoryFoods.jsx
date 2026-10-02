@@ -9,6 +9,7 @@ import {
 
 import {
   useSelector,
+  useDispatch,
 } from "react-redux";
 
 import {
@@ -27,8 +28,15 @@ import Button from "../../../components/common/Button/Button";
 
 import FoodCard from "../../../components/public/FoodCard/FoodCard";
 
+import {
+  addCartItemLocal,
+} from "../../../redux/slices/public/cart.slice";
 
 const CategoryFoods = () => {
+
+  const dispatch =
+    useDispatch();
+
   const {
     slug,
   } = useParams();
@@ -41,9 +49,9 @@ const CategoryFoods = () => {
   const {
     categories,
     fetchLoading:
-      categoryLoading,
+    categoryLoading,
     error:
-      categoryError,
+    categoryError,
   } = useSelector(
     (state) =>
       state.publicCategory
@@ -57,7 +65,7 @@ const CategoryFoods = () => {
   const {
     foods,
     fetchLoading:
-      foodLoading,
+    foodLoading,
   } = useSelector(
     (state) =>
       state.publicFood
@@ -151,7 +159,7 @@ const CategoryFoods = () => {
             ) ||
             (
               foodType ===
-                "non-veg" &&
+              "non-veg" &&
               !food.isVeg
             );
 
@@ -193,23 +201,34 @@ const CategoryFoods = () => {
   const handleAddToCart = (
     food
   ) => {
-    /*
-      Later:
-
-      dispatch(
-        addToCart({
-          foodSlug: food.slug,
-          quantity: 1,
-        })
+    const restaurant =
+      restaurants.find(
+        (item) =>
+          item.slug ===
+          food.restaurantSlug
       );
-    */
 
-    console.log(
-      "Add food:",
-      food.slug
+
+    if (!restaurant) {
+      return;
+    }
+
+
+    dispatch(
+      addCartItemLocal({
+        food,
+        restaurant,
+      })
     );
   };
 
+  // restaurant in redux
+  const {
+    restaurants,
+  } = useSelector(
+    (state) =>
+      state.publicRestaurant
+  );
 
   // =========================
   // LOADING
@@ -285,7 +304,7 @@ const CategoryFoods = () => {
 
             description={
               typeof categoryError ===
-              "string"
+                "string"
                 ? categoryError
                 : "Something went wrong while loading this category."
             }
@@ -556,7 +575,7 @@ const CategoryFoods = () => {
                   food
                   {
                     categoryFoods.length !==
-                    1
+                      1
                       ? "s"
                       : ""
                   }{" "}
@@ -811,14 +830,13 @@ const CategoryFoods = () => {
 
                     transition
 
-                    ${
-                      foodType ===
+                    ${foodType ===
                       "all"
-                        ? `
+                      ? `
                           bg-slate-950
                           text-white
                         `
-                        : `
+                      : `
                           bg-slate-100
                           text-slate-600
 
@@ -856,14 +874,13 @@ const CategoryFoods = () => {
 
                     transition
 
-                    ${
-                      foodType ===
+                    ${foodType ===
                       "veg"
-                        ? `
+                      ? `
                           bg-emerald-600
                           text-white
                         `
-                        : `
+                      : `
                           bg-emerald-50
                           text-emerald-700
                         `
@@ -902,14 +919,13 @@ const CategoryFoods = () => {
 
                     transition
 
-                    ${
-                      foodType ===
+                    ${foodType ===
                       "non-veg"
-                        ? `
+                      ? `
                           bg-rose-600
                           text-white
                         `
-                        : `
+                      : `
                           bg-rose-50
                           text-rose-700
                         `
@@ -966,7 +982,7 @@ const CategoryFoods = () => {
                   item
                   {
                     filteredFoods.length !==
-                    1
+                      1
                       ? "s"
                       : ""
                   }
@@ -1041,7 +1057,7 @@ const CategoryFoods = () => {
 
           {!foodLoading &&
             filteredFoods.length ===
-              0 && (
+            0 && (
               <div
                 className="
                   mt-7
@@ -1088,7 +1104,7 @@ const CategoryFoods = () => {
 
           {!foodLoading &&
             filteredFoods.length >
-              0 && (
+            0 && (
               <div
                 className="
                   mt-7

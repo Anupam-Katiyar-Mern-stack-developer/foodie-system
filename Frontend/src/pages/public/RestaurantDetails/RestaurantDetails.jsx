@@ -30,8 +30,19 @@ import OptimizedImage from "../../../components/common/OptimizedImage/OptimizedI
 import FoodCard from "../../../components/public/FoodCard/FoodCard";
 
 import Button from "../../../components/common/Button/Button";
+import {
+    useDispatch,
+
+} from "react-redux";
+
+import {
+    addCartItemLocal,
+} from "../../../redux/slices/public/cart.slice";
 
 const RestaurantDetails = () => {
+    const dispatch =
+        useDispatch();
+
     const {
         slug,
     } = useParams();
@@ -262,20 +273,16 @@ const RestaurantDetails = () => {
     const handleAddToCart = (
         food
     ) => {
-        /*
-          Backend integration:
-    
-          dispatch(
-            addToCart({
-              foodSlug: food.slug,
-              quantity: 1,
-            })
-          );
-        */
+        if (!restaurant) {
+            return;
+        }
 
-        console.log(
-            "Add to cart:",
-            food.slug
+
+        dispatch(
+            addCartItemLocal({
+                food,
+                restaurant,
+            })
         );
     };
 

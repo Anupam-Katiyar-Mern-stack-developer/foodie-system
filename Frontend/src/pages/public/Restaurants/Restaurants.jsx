@@ -21,6 +21,7 @@ import Skeleton from "../../../components/common/Skeleton/Skeleton";
 
 import RestaurantCard from "../../../components/public/RestaurantCard/RestaurantCard";
 
+import Button from "../../../components/common/Button/Button";
 
 const Restaurants = () => {
     // =========================
