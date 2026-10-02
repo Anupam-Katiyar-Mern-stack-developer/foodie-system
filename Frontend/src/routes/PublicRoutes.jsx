@@ -5,7 +5,9 @@ import {
 
 import PublicLayout from "../layouts/PublicLayout";
 import Home from "../pages/public/Home/Home";
-
+import Restaurants from "../pages/public/Restaurants/Restaurants";
+import RestaurantDetails from "../pages/public/RestaurantDetails/RestaurantDetails";
+import CategoryFoods from "../pages/public/CategoryFoods/CategoryFoods";
 const Screen = ({
   title,
 }) => {
@@ -61,21 +63,20 @@ const PublicRoutes = () => {
         <Route
           path="restaurants"
           element={
-            <Screen title="Restaurants" />
+            <Restaurants />
           }
         />
 
         <Route
           path="restaurants/:slug"
           element={
-            <Screen title="Restaurant Details" />
+            <RestaurantDetails />
           }
         />
-
         <Route
           path="categories/:slug"
           element={
-            <Screen title="Category Foods" />
+            <CategoryFoods />
           }
         />
 

@@ -14,6 +14,7 @@ import HowItWorksSection from "../../../components/public/home/HowItWorksSection
 
 import PartnerCTASection from "../../../components/public/home/PartnerCTASection";
 
+import LiveTrackingSection from "../../../components/public/home/LiveTrackingSection";
 
 const Home = () => {
   // =========================
@@ -132,6 +133,8 @@ const Home = () => {
       />
 
       <HowItWorksSection/>
+
+      <LiveTrackingSection />
 
       <PartnerCTASection />
     </>
