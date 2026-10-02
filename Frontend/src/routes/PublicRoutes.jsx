@@ -3,53 +3,71 @@ import {
   Routes,
 } from "react-router-dom";
 
-
 import PublicLayout from "../layouts/PublicLayout";
+
+import ProtectedRoute from "./ProtectedRoute";
+import GuestRoute from "./GuestRoute";
+
+
+// =========================
+// PUBLIC PAGES
+// =========================
+
 import Home from "../pages/public/Home/Home";
+
 import Restaurants from "../pages/public/Restaurants/Restaurants";
+
 import RestaurantDetails from "../pages/public/RestaurantDetails/RestaurantDetails";
+
 import CategoryFoods from "../pages/public/CategoryFoods/CategoryFoods";
+
 import Search from "../pages/public/Search/Search";
-import Cart from "../pages/public/Cart/Cart";
-import Checkout from "../pages/public/Checkout/Checkout";
-import Addresses from "../pages/public/Addresses/Addresses";
-import Profile from "../pages/public/Profile/Profile";
-import Orders from "../pages/public/Orders/Orders";
-import OrderDetails from "../pages/public/OrderDetails/OrderDetails";
+
+
+// =========================
+// AUTH
+// =========================
+
 import Login from "../pages/public/Login/Login";
 
-const Screen = ({
-  title,
-}) => {
-  return (
-    <div className="p-8">
-      <h1
-        className="
-          text-2xl
-          font-bold
-          text-gray-900
-        "
-      >
-        {title}
-      </h1>
-    </div>
-  );
-};
+import Register from "../pages/public/Register/Register";
+
+
+// =========================
+// PROTECTED USER PAGES
+// =========================
+
+import Profile from "../pages/public/Profile/Profile";
+
+import Addresses from "../pages/public/Addresses/Addresses";
+
+import Cart from "../pages/public/Cart/Cart";
+
+import Checkout from "../pages/public/Checkout/Checkout";
+
+import Orders from "../pages/public/Orders/Orders";
+
+import OrderDetails from "../pages/public/OrderDetails/OrderDetails";
 
 
 const PublicRoutes = () => {
-
   return (
     <Routes>
 
       {/* =========================
-          PUBLIC WEBSITE LAYOUT
+          PUBLIC LAYOUT
       ========================== */}
+
       <Route
         element={
           <PublicLayout />
         }
       >
+
+        {/* =====================
+            PUBLIC ROUTES
+        ====================== */}
+
         <Route
           index
           element={
@@ -57,19 +75,6 @@ const PublicRoutes = () => {
           }
         />
 
-        <Route
-          path="profile"
-          element={
-            <Profile />
-          }
-        />
-
-        <Route
-          path="addresses"
-          element={
-            <Addresses />
-          }
-        />
 
         <Route
           path="restaurants"
@@ -78,18 +83,22 @@ const PublicRoutes = () => {
           }
         />
 
+
         <Route
           path="restaurants/:slug"
           element={
             <RestaurantDetails />
           }
         />
+
+
         <Route
           path="categories/:slug"
           element={
             <CategoryFoods />
           }
         />
+
 
         <Route
           path="search"
@@ -98,54 +107,90 @@ const PublicRoutes = () => {
           }
         />
 
-        <Route
-          path="cart"
-          element={
-            <Cart />
-          }
-        />
+
+        {/* =====================
+            PROTECTED USER
+        ====================== */}
 
         <Route
-          path="checkout"
           element={
-            <Checkout />
+            <ProtectedRoute />
           }
-        />
+        >
+          <Route
+            path="profile"
+            element={
+              <Profile />
+            }
+          />
 
-        <Route
-          path="orders"
-          element={
-            <Orders />
-          }
-        />
 
-        <Route
-          path="orders/:orderNumber"
-          element={
-            <OrderDetails />
-          }
-        />
+          <Route
+            path="addresses"
+            element={
+              <Addresses />
+            }
+          />
 
+
+          <Route
+            path="cart"
+            element={
+              <Cart />
+            }
+          />
+
+
+          <Route
+            path="checkout"
+            element={
+              <Checkout />
+            }
+          />
+
+
+          <Route
+            path="orders"
+            element={
+              <Orders />
+            }
+          />
+
+
+          <Route
+            path="orders/:orderNumber"
+            element={
+              <OrderDetails />
+            }
+          />
+        </Route>
       </Route>
 
 
       {/* =========================
-          AUTH PAGES
-          Navbar/Footer ke bina
+          GUEST ONLY
       ========================== */}
-      <Route
-        path="login"
-        element={
-          <Login />
-        }
-      />
 
       <Route
-        path="register"
         element={
-          <Screen title="User Register" />
+          <GuestRoute />
         }
-      />
+      >
+        <Route
+          path="login"
+          element={
+            <Login />
+          }
+        />
+
+
+        <Route
+          path="register"
+          element={
+            <Register />
+          }
+        />
+      </Route>
 
     </Routes>
   );
