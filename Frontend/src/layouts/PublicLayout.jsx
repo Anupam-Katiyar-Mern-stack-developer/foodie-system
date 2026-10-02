@@ -6,9 +6,18 @@ import PublicNavbar from "../components/public/PublicNavbar/PublicNavbar";
 import PublicFooter from "../components/public/PublicFooter/PublicFooter";
 import {
   useSelector,
+  useDispatch,
 } from "react-redux";
 
+import {
+  logoutUser,
+} from "../redux/thunks/public/auth.thunk";
+
 const PublicLayout = () => {
+
+  const dispatch =
+  useDispatch();
+  
   const {
     profile,
   } = useSelector(
@@ -69,14 +78,18 @@ const PublicLayout = () => {
       0
     );
 
-  const handleLogout = () => {
-    /*
-      Later:
-      dispatch logout
-      clear token
-      toast
-      navigate
-    */
+ const handleLogout =
+  async () => {
+    await dispatch(
+      logoutUser()
+    );
+
+    navigate(
+      "/",
+      {
+        replace: true,
+      }
+    );
   };
 
 

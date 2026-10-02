@@ -1,136 +1,128 @@
 import {
-  useState,
+    useState,
 } from "react";
 
 import {
-  Link,
-  useNavigate,
+    Link,
+    useNavigate,
 } from "react-router-dom";
 
 import {
-  useSelector,
+    useSelector,
+    useDispatch,
 } from "react-redux";
 
 import {
-  FaArrowRight,
-  FaCheckCircle,
-  FaMapMarkerAlt,
-  FaShieldAlt,
-  FaShoppingBag,
-  FaUserPlus,
-  FaUtensils,
+    FaArrowRight,
+    FaCheckCircle,
+    FaMapMarkerAlt,
+    FaShieldAlt,
+    FaShoppingBag,
+    FaUserPlus,
+    FaUtensils,
 } from "react-icons/fa";
 
 import Container from "../../../components/common/Container/Container";
 import CommonForm from "../../../components/common/CommonForm/CommonForm";
 
 import {
-  registerSchema,
+    registerSchema,
 } from "../../../validations/public/register.validation";
 
 import {
-  registerFields,
-  registerDefaultValues,
+    registerFields,
+    registerDefaultValues,
 } from "../../../forms/public/register.form";
 
 
 const Register = () => {
-  const navigate =
-    useNavigate();
+    const navigate =
+        useNavigate();
+    const dispatch =
+        useDispatch();
 
 
-  // =========================
-  // REDUX
-  // =========================
-
-  const {
-    registerLoading,
-    error,
-  } = useSelector(
-    (state) =>
-      state.publicAuth
-  );
-
-
-  // =========================
-  // UI
-  // =========================
-
-  const [
-    previewMessage,
-    setPreviewMessage,
-  ] = useState("");
-
-
-  // =========================
-  // REGISTER
-  // =========================
-
-  const handleRegister = (
-    values
-  ) => {
-    /*
-      confirmPassword backend ko
-      nahi bhejna hai.
-    */
+    // =========================
+    // REDUX
+    // =========================
 
     const {
-      confirmPassword,
-      ...payload
-    } = values;
+        registerLoading,
+        error,
+    } = useSelector(
+        (state) =>
+            state.publicAuth
+    );
 
 
-    /*
-      BACKEND INTEGRATION:
+    // =========================
+    // UI
+    // =========================
 
-      dispatch(
-        registerUser(payload)
-      )
-        .unwrap()
-        .then(() => {
-          navigate(
-            "/login",
-            {
-              replace: true,
+
+
+
+    // =========================
+    // REGISTER
+    // =========================
+
+    const handleRegister =
+        async (values) => {
+            console.log("register button clicked");
+            const {
+                confirmPassword,
+                ...payload
+            } = values;
+
+
+            try {
+                await dispatch(
+                    registerUser(
+                        payload
+                    )
+                ).unwrap();
+
+
+                navigate(
+                    "/login",
+                    {
+                        replace: true,
+
+                        state: {
+                            registrationSuccess:
+                                true,
+                        },
+                    }
+                );
+            } catch {
+                /*
+                  Redux error UI already
+                  show karega.
+                */
             }
-          );
-        });
-    */
+        };
 
-
-    console.log(
-      "Register payload:",
-      payload
-    );
-
-
-    setPreviewMessage(
-      "Registration UI is ready. Actual registration will be connected to your existing backend API."
-    );
-  };
-
-
-  return (
-    <div
-      className="
+    return (
+        <div
+            className="
         min-h-screen
         bg-[#fffaf5]
       "
-    >
-      <div
-        className="
+        >
+            <div
+                className="
           grid
           min-h-screen
 
           lg:grid-cols-2
         "
-      >
-        {/* =========================
+            >
+                {/* =========================
             LEFT SIDE
         ========================== */}
 
-        <section
-          className="
+                <section
+                    className="
             relative
             hidden
             overflow-hidden
@@ -140,11 +132,11 @@ const Register = () => {
             lg:flex
             lg:items-center
           "
-        >
-          {/* GLOW */}
+                >
+                    {/* GLOW */}
 
-          <div
-            className="
+                    <div
+                        className="
               pointer-events-none
 
               absolute
@@ -160,11 +152,11 @@ const Register = () => {
 
               blur-[120px]
             "
-          />
+                    />
 
 
-          <div
-            className="
+                    <div
+                        className="
               pointer-events-none
 
               absolute
@@ -180,11 +172,11 @@ const Register = () => {
 
               blur-[120px]
             "
-          />
+                    />
 
 
-          <div
-            className="
+                    <div
+                        className="
               relative
               z-10
 
@@ -195,20 +187,20 @@ const Register = () => {
               px-10
               py-16
             "
-          >
-            {/* LOGO */}
+                    >
+                        {/* LOGO */}
 
-            <Link
-              to="/"
+                        <Link
+                            to="/"
 
-              className="
+                            className="
                 inline-flex
                 items-center
                 gap-3
               "
-            >
-              <span
-                className="
+                        >
+                            <span
+                                className="
                   flex
                   h-12
                   w-12
@@ -226,46 +218,46 @@ const Register = () => {
                   shadow-xl
                   shadow-orange-500/20
                 "
-              >
-                <FaUtensils />
-              </span>
+                            >
+                                <FaUtensils />
+                            </span>
 
 
-              <span
-                className="
+                            <span
+                                className="
                   text-2xl
                   font-black
                   tracking-tight
                   text-white
                 "
-              >
-                Foodie
-              </span>
-            </Link>
+                            >
+                                Foodie
+                            </span>
+                        </Link>
 
 
-            {/* CONTENT */}
+                        {/* CONTENT */}
 
-            <div
-              className="
+                        <div
+                            className="
                 mt-16
               "
-            >
-              <p
-                className="
+                        >
+                            <p
+                                className="
                   text-xs
                   font-black
                   uppercase
                   tracking-[0.18em]
                   text-orange-300
                 "
-              >
-                Join Foodie
-              </p>
+                            >
+                                Join Foodie
+                            </p>
 
 
-              <h1
-                className="
+                            <h1
+                                className="
                   mt-4
 
                   text-4xl
@@ -276,14 +268,14 @@ const Register = () => {
 
                   xl:text-5xl
                 "
-              >
-                Delicious food,
-                delivered your way.
-              </h1>
+                            >
+                                Delicious food,
+                                delivered your way.
+                            </h1>
 
 
-              <p
-                className="
+                            <p
+                                className="
                   mt-5
 
                   max-w-lg
@@ -292,69 +284,69 @@ const Register = () => {
                   leading-7
                   text-slate-400
                 "
-              >
-                Create your account,
-                save delivery addresses,
-                order from restaurants
-                and track every order.
-              </p>
-            </div>
+                            >
+                                Create your account,
+                                save delivery addresses,
+                                order from restaurants
+                                and track every order.
+                            </p>
+                        </div>
 
 
-            {/* FEATURES */}
+                        {/* FEATURES */}
 
-            <div
-              className="
+                        <div
+                            className="
                 mt-10
                 space-y-3
               "
-            >
-              {[
-                {
-                  icon:
-                    FaShoppingBag,
+                        >
+                            {[
+                                {
+                                    icon:
+                                        FaShoppingBag,
 
-                  title:
-                    "Easy ordering",
+                                    title:
+                                        "Easy ordering",
 
-                  description:
-                    "Browse restaurants and manage your cart easily.",
-                },
+                                    description:
+                                        "Browse restaurants and manage your cart easily.",
+                                },
 
-                {
-                  icon:
-                    FaMapMarkerAlt,
+                                {
+                                    icon:
+                                        FaMapMarkerAlt,
 
-                  title:
-                    "Saved addresses",
+                                    title:
+                                        "Saved addresses",
 
-                  description:
-                    "Keep your delivery locations ready for checkout.",
-                },
+                                    description:
+                                        "Keep your delivery locations ready for checkout.",
+                                },
 
-                {
-                  icon:
-                    FaShieldAlt,
+                                {
+                                    icon:
+                                        FaShieldAlt,
 
-                  title:
-                    "Secure account",
+                                    title:
+                                        "Secure account",
 
-                  description:
-                    "Your orders and account are protected by authentication.",
-                },
-              ].map(
-                (feature) => {
-                  const Icon =
-                    feature.icon;
+                                    description:
+                                        "Your orders and account are protected by authentication.",
+                                },
+                            ].map(
+                                (feature) => {
+                                    const Icon =
+                                        feature.icon;
 
 
-                  return (
-                    <div
-                      key={
-                        feature.title
-                      }
+                                    return (
+                                        <div
+                                            key={
+                                                feature.title
+                                            }
 
-                      className="
+                                            className="
                         flex
                         items-start
                         gap-3
@@ -370,9 +362,9 @@ const Register = () => {
 
                         backdrop-blur
                       "
-                    >
-                      <span
-                        className="
+                                        >
+                                            <span
+                                                className="
                           flex
                           h-10
                           w-10
@@ -386,53 +378,53 @@ const Register = () => {
 
                           text-orange-300
                         "
-                      >
-                        <Icon />
-                      </span>
+                                            >
+                                                <Icon />
+                                            </span>
 
 
-                      <div>
-                        <p
-                          className="
+                                            <div>
+                                                <p
+                                                    className="
                             text-sm
                             font-black
                             text-white
                           "
-                        >
-                          {
-                            feature.title
-                          }
-                        </p>
+                                                >
+                                                    {
+                                                        feature.title
+                                                    }
+                                                </p>
 
-                        <p
-                          className="
+                                                <p
+                                                    className="
                             mt-1
 
                             text-xs
                             leading-5
                             text-slate-400
                           "
-                        >
-                          {
-                            feature.description
-                          }
-                        </p>
-                      </div>
+                                                >
+                                                    {
+                                                        feature.description
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                            )}
+                        </div>
                     </div>
-                  );
-                }
-              )}
-            </div>
-          </div>
-        </section>
+                </section>
 
 
-        {/* =========================
+                {/* =========================
             REGISTER SIDE
         ========================== */}
 
-        <section
-          className="
+                <section
+                    className="
             flex
             min-h-screen
             items-center
@@ -441,27 +433,27 @@ const Register = () => {
 
             sm:py-14
           "
-        >
-          <Container
-            className="
+                >
+                    <Container
+                        className="
               w-full
 
               lg:max-w-xl
             "
-          >
-            <div
-              className="
+                    >
+                        <div
+                            className="
                 mx-auto
                 w-full
                 max-w-md
               "
-            >
-              {/* MOBILE LOGO */}
+                        >
+                            {/* MOBILE LOGO */}
 
-              <Link
-                to="/"
+                            <Link
+                                to="/"
 
-                className="
+                                className="
                   mb-8
 
                   inline-flex
@@ -470,9 +462,9 @@ const Register = () => {
 
                   lg:hidden
                 "
-              >
-                <span
-                  className="
+                            >
+                                <span
+                                    className="
                     flex
                     h-10
                     w-10
@@ -487,28 +479,28 @@ const Register = () => {
 
                     text-white
                   "
-                >
-                  <FaUtensils />
-                </span>
+                                >
+                                    <FaUtensils />
+                                </span>
 
 
-                <span
-                  className="
+                                <span
+                                    className="
                     text-xl
                     font-black
                     text-slate-950
                   "
-                >
-                  Foodie
-                </span>
-              </Link>
+                                >
+                                    Foodie
+                                </span>
+                            </Link>
 
 
-              {/* HEADER */}
+                            {/* HEADER */}
 
-              <div>
-                <div
-                  className="
+                            <div>
+                                <div
+                                    className="
                     inline-flex
                     items-center
                     gap-2
@@ -529,15 +521,15 @@ const Register = () => {
                     tracking-[0.14em]
                     text-orange-600
                   "
-                >
-                  <FaUserPlus />
+                                >
+                                    <FaUserPlus />
 
-                  Create account
-                </div>
+                                    Create account
+                                </div>
 
 
-                <h1
-                  className="
+                                <h1
+                                    className="
                     mt-4
 
                     text-3xl
@@ -547,41 +539,41 @@ const Register = () => {
 
                     sm:text-4xl
                   "
-                >
-                  Start with
-                  <span
-                    className="
+                                >
+                                    Start with
+                                    <span
+                                        className="
                       text-orange-500
                     "
-                  >
-                    {" "}
-                    Foodie
-                  </span>
-                </h1>
+                                    >
+                                        {" "}
+                                        Foodie
+                                    </span>
+                                </h1>
 
 
-                <p
-                  className="
+                                <p
+                                    className="
                     mt-2
 
                     text-sm
                     leading-6
                     text-slate-500
                   "
-                >
-                  Create your customer
-                  account to start
-                  ordering food.
-                </p>
-              </div>
+                                >
+                                    Create your customer
+                                    account to start
+                                    ordering food.
+                                </p>
+                            </div>
 
 
-              {/* =====================
+                            {/* =====================
                   FORM
               ====================== */}
 
-              <div
-                className="
+                            <div
+                                className="
                   mt-8
 
                   rounded-[1.75rem]
@@ -598,39 +590,39 @@ const Register = () => {
 
                   sm:p-6
                 "
-              >
-                <CommonForm
-                  fields={
-                    registerFields
-                  }
+                            >
+                                <CommonForm
+                                    fields={
+                                        registerFields
+                                    }
 
-                  schema={
-                    registerSchema
-                  }
+                                    schema={
+                                        registerSchema
+                                    }
 
-                  defaultValues={
-                    registerDefaultValues
-                  }
+                                    defaultValues={
+                                        registerDefaultValues
+                                    }
 
-                  onSubmit={
-                    handleRegister
-                  }
+                                    onSubmit={
+                                        handleRegister
+                                    }
 
-                  loading={
-                    registerLoading
-                  }
+                                    loading={
+                                        registerLoading
+                                    }
 
-                  submitText="Create Account"
+                                    submitText="Create Account"
 
-                  columns={1}
-                />
+                                    columns={1}
+                                />
 
 
-                {/* BACKEND ERROR */}
+                                {/* BACKEND ERROR */}
 
-                {error && (
-                  <div
-                    className="
+                                {error && (
+                                    <div
+                                        className="
                       mt-4
 
                       rounded-xl
@@ -646,20 +638,20 @@ const Register = () => {
                       leading-5
                       text-rose-700
                     "
-                  >
-                    {typeof error ===
-                    "string"
-                      ? error
-                      : "Unable to create account. Please try again."}
-                  </div>
-                )}
+                                    >
+                                        {typeof error ===
+                                            "string"
+                                            ? error
+                                            : "Unable to create account. Please try again."}
+                                    </div>
+                                )}
 
 
-                {/* PREVIEW */}
+                                {/* PREVIEW */}
 
-                {previewMessage && (
-                  <div
-                    className="
+                                {/* {previewMessage && (
+                                    <div
+                                        className="
                       mt-4
 
                       flex
@@ -674,56 +666,56 @@ const Register = () => {
 
                       p-3
                     "
-                  >
-                    <FaCheckCircle
-                      className="
+                                    >
+                                        <FaCheckCircle
+                                            className="
                         mt-0.5
                         shrink-0
 
                         text-emerald-600
                       "
-                    />
+                                        />
 
-                    <p
-                      className="
+                                        <p
+                                            className="
                         text-xs
                         leading-5
                         text-emerald-700
                       "
-                    >
-                      {
-                        previewMessage
-                      }
-                    </p>
-                  </div>
-                )}
-              </div>
+                                        >
+                                            {
+                                                previewMessage
+                                            }
+                                        </p>
+                                    </div>
+                                )} */}
+                            </div>
 
 
-              {/* =====================
+                            {/* =====================
                   LOGIN
               ====================== */}
 
-              <div
-                className="
+                            <div
+                                className="
                   mt-6
 
                   text-center
                 "
-              >
-                <p
-                  className="
+                            >
+                                <p
+                                    className="
                     text-sm
                     text-slate-500
                   "
-                >
-                  Already have an
-                  account?{" "}
+                                >
+                                    Already have an
+                                    account?{" "}
 
-                  <Link
-                    to="/login"
+                                    <Link
+                                        to="/login"
 
-                    className="
+                                        className="
                       inline-flex
                       items-center
                       gap-1.5
@@ -735,53 +727,53 @@ const Register = () => {
 
                       hover:text-orange-700
                     "
-                  >
-                    Sign In
+                                    >
+                                        Sign In
 
-                    <FaArrowRight
-                      className="
+                                        <FaArrowRight
+                                            className="
                         h-2.5
                         w-2.5
                       "
-                    />
-                  </Link>
-                </p>
-              </div>
+                                        />
+                                    </Link>
+                                </p>
+                            </div>
 
 
-              {/* HOME */}
+                            {/* HOME */}
 
-              <div
-                className="
+                            <div
+                                className="
                   mt-8
 
                   text-center
                 "
-              >
-                <button
-                  type="button"
+                            >
+                                <button
+                                    type="button"
 
-                  onClick={() =>
-                    navigate("/")
-                  }
+                                    onClick={() =>
+                                        navigate("/")
+                                    }
 
-                  className="
+                                    className="
                     text-xs
                     font-bold
                     text-slate-400
 
                     hover:text-slate-700
                   "
-                >
-                  ← Back to Foodie
-                </button>
-              </div>
+                                >
+                                    ← Back to Foodie
+                                </button>
+                            </div>
+                        </div>
+                    </Container>
+                </section>
             </div>
-          </Container>
-        </section>
-      </div>
-    </div>
-  );
+        </div>
+    );
 };
 
 

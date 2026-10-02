@@ -10,6 +10,7 @@ import {
 
 import {
     useSelector,
+    useDispatch,
 } from "react-redux";
 
 import {
@@ -34,8 +35,14 @@ import {
     loginDefaultValues,
 } from "../../../forms/public/login.form";
 
+import {
+    loginUser,
+} from "../../../redux/thunks/public/auth.thunk";
+
 
 const Login = () => {
+    const dispatch =
+        useDispatch();
     const navigate =
         useNavigate();
 
@@ -52,51 +59,39 @@ const Login = () => {
     );
 
 
-    const [
-        previewMessage,
-        setPreviewMessage,
-    ] = useState("");
+   
 
 
     // =========================
     // LOGIN
     // =========================
 
-    const handleLogin = (
-        values
-    ) => {
-        /*
-          BACKEND INTEGRATION:
-    
-          dispatch(
-            loginUser(values)
-          )
-            .unwrap()
-            .then(() => {
-              const redirectTo =
-                location.state?.from ||
-                "/";
-    
-              navigate(
-                redirectTo,
-                {
-                  replace: true,
-                }
-              );
-            });
-        */
+  const handleLogin =
+  async (values) => {
+    try {
+      await dispatch(
+        loginUser(values)
+      ).unwrap();
 
 
-        console.log(
-            "Login values:",
-            values
-        );
+      const redirectTo =
+        location.state?.from ||
+        "/";
 
 
-        setPreviewMessage(
-            "Login UI is ready. Actual authentication will be connected to your existing backend login API."
-        );
-    };
+      navigate(
+        redirectTo,
+        {
+          replace: true,
+        }
+      );
+    } catch {
+      /*
+        Error Redux me already
+        store ho chuka hai.
+      */
+    }
+  };
 
 
     return (
@@ -611,7 +606,7 @@ const Login = () => {
 
                                 {/* PREVIEW MESSAGE */}
 
-                                {previewMessage && (
+                                {/* {previewMessage && (
                                     <div
                                         className="
                       mt-4
@@ -650,7 +645,7 @@ const Login = () => {
                                             }
                                         </p>
                                     </div>
-                                )}
+                                )} */}
 
 
                                 {/* FORGOT PASSWORD */}

@@ -1,53 +1,85 @@
 import {
-    Navigate,
-    Outlet,
-    useLocation,
+  Navigate,
+  Outlet,
+  useLocation,
 } from "react-router-dom";
 
 import {
-    useSelector,
+  useSelector,
 } from "react-redux";
 
 
 const ProtectedRoute = () => {
-    const location =
-        useLocation();
+  const location =
+    useLocation();
 
 
-    const {
-        isAuthenticated,
-    } = useSelector(
-        (state) =>
-            state.publicAuth
+  const {
+    isAuthenticated,
+    authReady,
+  } = useSelector(
+    (state) =>
+      state.publicAuth
+  );
+
+
+  // =========================
+  // AUTH CHECK RUNNING
+  // =========================
+
+  if (!authReady) {
+    return (
+      <div
+        className="
+          flex
+          min-h-[60vh]
+          items-center
+          justify-center
+
+          bg-[#fffaf5]
+        "
+      >
+        <div
+          className="
+            h-10
+            w-10
+
+            animate-spin
+
+            rounded-full
+
+            border-4
+            border-orange-100
+            border-t-orange-500
+          "
+        />
+      </div>
     );
+  }
 
 
-    // =========================
-    // NOT LOGGED IN
-    // =========================
+  // =========================
+  // GUEST
+  // =========================
 
-    if (!isAuthenticated) {
-        return (
-            <Navigate
-                to="/login"
+  if (!isAuthenticated) {
+    return (
+      <Navigate
+        to="/login"
 
-                replace
+        replace
 
-                state={{
-                    from:
-                        location.pathname +
-                        location.search,
-                }}
-            />
-        );
-    }
+        state={{
+          from:
+            location.pathname +
+            location.search,
+        }}
+      />
+    );
+  }
 
 
-    // =========================
-    // LOGGED IN
-    // =========================
-
-    return <Outlet />;
+  return <Outlet />;
 };
 
 
