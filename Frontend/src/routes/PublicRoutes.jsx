@@ -3,6 +3,7 @@ import {
   Routes,
 } from "react-router-dom";
 
+
 import PublicLayout from "../layouts/PublicLayout";
 import Home from "../pages/public/Home/Home";
 import Restaurants from "../pages/public/Restaurants/Restaurants";
@@ -14,6 +15,8 @@ import Checkout from "../pages/public/Checkout/Checkout";
 import Addresses from "../pages/public/Addresses/Addresses";
 import Profile from "../pages/public/Profile/Profile";
 import Orders from "../pages/public/Orders/Orders";
+import OrderDetails from "../pages/public/OrderDetails/OrderDetails";
+import Login from "../pages/public/Login/Login";
 
 const Screen = ({
   title,
@@ -35,6 +38,7 @@ const Screen = ({
 
 
 const PublicRoutes = () => {
+
   return (
     <Routes>
 
@@ -118,10 +122,10 @@ const PublicRoutes = () => {
         <Route
           path="orders/:orderNumber"
           element={
-            <Screen title="Order Details" />
+            <OrderDetails />
           }
         />
-        
+
       </Route>
 
 
@@ -132,7 +136,7 @@ const PublicRoutes = () => {
       <Route
         path="login"
         element={
-          <Screen title="User Login" />
+          <Login />
         }
       />
 

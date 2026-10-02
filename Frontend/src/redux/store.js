@@ -7,6 +7,7 @@ import publicCartReducer from "./slices/public/cart.slice";
 import publicAddressReducer from "./slices/public/address.slice";
 import publicProfileReducer from "./slices/public/profile.slice";
 import publicOrderReducer from "./slices/public/order.slice";
+import publicAuthReducer from "./slices/public/auth.slice";
 
 const store = configureStore({
   reducer: {
@@ -23,6 +24,7 @@ const store = configureStore({
     publicProfile: publicProfileReducer,
 
     publicOrder: publicOrderReducer,
+    publicAuth: publicAuthReducer,
   },
 });
 

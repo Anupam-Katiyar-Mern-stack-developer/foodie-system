@@ -10,15 +10,19 @@ import {
 
 const PublicLayout = () => {
   const {
-  profile,
-} = useSelector(
-  (state) =>
-    state.publicProfile
-);
+    profile,
+  } = useSelector(
+    (state) =>
+      state.publicProfile
+  );
 
-
-const user =
-  profile;
+  const {
+    user,
+    isAuthenticated,
+  } = useSelector(
+    (state) =>
+      state.publicAuth
+  );
   /*
     UI phase.
 
@@ -88,7 +92,11 @@ const user =
       "
     >
       <PublicNavbar
-        user={user}
+        user={
+          isAuthenticated
+            ? user
+            : null
+        }
 
         cartCount={
           cartCount
