@@ -1,23 +1,37 @@
-import { configureStore } from "@reduxjs/toolkit";
+import {
+  configureStore,
+} from "@reduxjs/toolkit";
 
 import publicCategoryReducer from "./slices/public/category.slice";
 import publicRestaurantReducer from "./slices/public/restaurant.slice";
 import publicFoodReducer from "./slices/public/food.slice";
 import publicCartReducer from "./slices/public/cart.slice";
 import publicAddressReducer from "./slices/public/address.slice";
+import publicProfileReducer from "./slices/public/profile.slice";
 
-const store = configureStore({
-  reducer: {
-    publicCategory: publicCategoryReducer,
 
-    publicRestaurant: publicRestaurantReducer,
+const store =
+  configureStore({
+    reducer: {
+      publicCategory:
+        publicCategoryReducer,
 
-    publicFood: publicFoodReducer,
+      publicRestaurant:
+        publicRestaurantReducer,
 
-    publicCart: publicCartReducer,
+      publicFood:
+        publicFoodReducer,
 
-    publicAddress: publicAddressReducer,
-  },
-});
+      publicCart:
+        publicCartReducer,
+
+      publicAddress:
+        publicAddressReducer,
+
+      publicProfile:
+        publicProfileReducer,
+    },
+  });
+
 
 export default store;

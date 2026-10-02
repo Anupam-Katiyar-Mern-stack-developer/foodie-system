@@ -12,7 +12,7 @@ import Search from "../pages/public/Search/Search";
 import Cart from "../pages/public/Cart/Cart";
 import Checkout from "../pages/public/Checkout/Checkout";
 import Addresses from "../pages/public/Addresses/Addresses";
-
+import Profile from "../pages/public/Profile/Profile";
 
 const Screen = ({
   title,
@@ -55,7 +55,7 @@ const PublicRoutes = () => {
         <Route
           path="profile"
           element={
-            <Screen title="User Profile" />
+            <Profile />
           }
         />
 
