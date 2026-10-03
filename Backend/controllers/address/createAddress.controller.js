@@ -1,4 +1,3 @@
-import { success } from "zod";
 import { createAddressService } from "../../services/address.service.js";
 
 export const createAddress = async (req, res, next) => {
@@ -13,29 +12,36 @@ export const createAddress = async (req, res, next) => {
       state,
       pincode,
       latitude,
-      logitude,
+      longitude,
       isDefault,
     } = req.body;
 
-    if (!label || !addressLine || !city || !state || !pincode) {
+    if (
+      !label ||
+      !addressLine ||
+      !city ||
+      !state ||
+      !pincode
+    ) {
       return res.status(400).json({
         success: false,
         message: "Required address fields are missing",
       });
     }
 
-    const address = await createAddressService({
-      userId,
-      label,
-      addressLine,
-      landmark,
-      city,
-      state,
-      pincode,
-      latitude,
-      logitude,
-      isDefault,
-    });
+    const address =
+      await createAddressService({
+        userId,
+        label,
+        addressLine,
+        landmark,
+        city,
+        state,
+        pincode,
+        latitude,
+        longitude,
+        isDefault,
+      });
 
     return res.status(201).json({
       success: true,

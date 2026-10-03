@@ -1,54 +1,18 @@
-import {
-  createSlice,
-} from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
+import {
+  createAddress,
+  deleteAddress,
+  getAddresses,
+  setDefaultAddress,
+  updateAddress,
+} from "../../thunks/public/address.thunk";
 
 const initialState = {
-  addresses: [
-    {
-      id: 1,
-
-      addressLine:
-        "117/K/12, Kakadeo",
-
-      city:
-        "Kanpur",
-
-      state:
-        "Uttar Pradesh",
-
-      pincode:
-        "208025",
-
-      isDefault:
-        true,
-    },
-
-    {
-      id: 2,
-
-      addressLine:
-        "Near Gumti No. 5",
-
-      city:
-        "Kanpur",
-
-      state:
-        "Uttar Pradesh",
-
-      pincode:
-        "208012",
-
-      isDefault:
-        false,
-    },
-  ],
-
+  addresses: [],
 
   fetchLoading: false,
-
   createLoading: false,
-
   updateLoading: false,
 
   deletingId: null,
@@ -58,163 +22,151 @@ const initialState = {
   error: null,
 };
 
+const addressSlice = createSlice({
+  name: "publicAddress",
 
-const addressSlice =
-  createSlice({
-    name: "publicAddress",
+  initialState,
 
-    initialState,
-
-    reducers: {
-      // =========================
-      // ADD
-      // =========================
-
-      addAddressLocal: (
-        state,
-        action
-      ) => {
-        const nextId =
-          state.addresses.length
-            ? Math.max(
-                ...state.addresses.map(
-                  (address) =>
-                    Number(
-                      address.id
-                    )
-                )
-              ) + 1
-            : 1;
-
-
-        const firstAddress =
-          state.addresses.length ===
-          0;
-
-
-        state.addresses.push({
-          id: nextId,
-
-          ...action.payload,
-
-          isDefault:
-            firstAddress,
-        });
-      },
-
-
-      // =========================
-      // UPDATE
-      // =========================
-
-      updateAddressLocal: (
-        state,
-        action
-      ) => {
-        const {
-          id,
-          data,
-        } = action.payload;
-
-
-        const address =
-          state.addresses.find(
-            (item) =>
-              item.id === id
-          );
-
-
-        if (!address) {
-          return;
-        }
-
-
-        address.addressLine =
-          data.addressLine;
-
-        address.city =
-          data.city;
-
-        address.state =
-          data.state;
-
-        address.pincode =
-          data.pincode;
-      },
-
-
-      // =========================
-      // DELETE
-      // =========================
-
-      deleteAddressLocal: (
-        state,
-        action
-      ) => {
-        const id =
-          action.payload;
-
-
-        const deletedAddress =
-          state.addresses.find(
-            (address) =>
-              address.id === id
-          );
-
-
-        state.addresses =
-          state.addresses.filter(
-            (address) =>
-              address.id !== id
-          );
-
-
-        /*
-          Default delete hua aur
-          addresses bache hue hain
-          to first ko default.
-        */
-
-        if (
-          deletedAddress?.isDefault &&
-          state.addresses.length >
-            0
-        ) {
-          state.addresses[0]
-            .isDefault = true;
-        }
-      },
-
-
-      // =========================
-      // DEFAULT ADDRESS
-      // =========================
-
-      setDefaultAddressLocal: (
-        state,
-        action
-      ) => {
-        const id =
-          action.payload;
-
-
-        state.addresses.forEach(
-          (address) => {
-            address.isDefault =
-              address.id === id;
-          }
-        );
-      },
+  reducers: {
+    clearAddressError: (state) => {
+      state.error = null;
     },
-  });
+  },
 
+  extraReducers: (builder) => {
+    // =====================
+    // GET
+    // =====================
 
-export const {
-  addAddressLocal,
-  updateAddressLocal,
-  deleteAddressLocal,
-  setDefaultAddressLocal,
-} = addressSlice.actions;
+    builder
+      .addCase(getAddresses.pending, (state) => {
+        state.fetchLoading = true;
 
+        state.error = null;
+      })
+
+      .addCase(getAddresses.fulfilled, (state, action) => {
+        state.fetchLoading = false;
+
+        state.addresses = action.payload?.addresses ?? action.payload ?? [];
+      })
+
+      .addCase(getAddresses.rejected, (state, action) => {
+        state.fetchLoading = false;
+
+        state.error = action.payload;
+      });
+
+    // =====================
+    // CREATE
+    // =====================
+
+    builder
+      .addCase(createAddress.pending, (state) => {
+        state.createLoading = true;
+
+        state.error = null;
+      })
+
+      .addCase(createAddress.fulfilled, (state, action) => {
+        state.createLoading = false;
+
+        const address = action.payload?.address ?? action.payload;
+
+        if (address) {
+          state.addresses.push(address);
+        }
+      })
+
+      .addCase(createAddress.rejected, (state, action) => {
+        state.createLoading = false;
+
+        state.error = action.payload;
+      });
+
+    // =====================
+    // UPDATE
+    // =====================
+
+    builder
+      .addCase(updateAddress.pending, (state) => {
+        state.updateLoading = true;
+
+        state.error = null;
+      })
+
+      .addCase(updateAddress.fulfilled, (state, action) => {
+        state.updateLoading = false;
+
+        const updated = action.payload?.address ?? action.payload;
+
+        if (!updated) return;
+
+        const index = state.addresses.findIndex(
+          (address) => address.id === updated.id,
+        );
+
+        if (index !== -1) {
+          state.addresses[index] = updated;
+        }
+      })
+
+      .addCase(updateAddress.rejected, (state, action) => {
+        state.updateLoading = false;
+
+        state.error = action.payload;
+      });
+
+    // =====================
+    // DELETE
+    // =====================
+
+    builder
+      .addCase(deleteAddress.pending, (state, action) => {
+        state.deletingId = action.meta.arg;
+      })
+
+      .addCase(deleteAddress.fulfilled, (state, action) => {
+        state.deletingId = null;
+
+        state.addresses = state.addresses.filter(
+          (address) => address.id !== action.payload,
+        );
+      })
+
+      .addCase(deleteAddress.rejected, (state, action) => {
+        state.deletingId = null;
+
+        state.error = action.payload;
+      });
+
+    // =====================
+    // DEFAULT
+    // =====================
+
+    builder
+      .addCase(setDefaultAddress.pending, (state, action) => {
+        state.defaultLoadingId = action.meta.arg;
+      })
+
+      .addCase(setDefaultAddress.fulfilled, (state, action) => {
+        state.defaultLoadingId = null;
+
+        state.addresses = state.addresses.map((address) => ({
+          ...address,
+
+          isDefault: address.id === action.payload,
+        }));
+      })
+
+      .addCase(setDefaultAddress.rejected, (state, action) => {
+        state.defaultLoadingId = null;
+
+        state.error = action.payload;
+      });
+  },
+});
+
+export const { clearAddressError } = addressSlice.actions;
 
 export default addressSlice.reducer;

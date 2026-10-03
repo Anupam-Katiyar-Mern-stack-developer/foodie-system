@@ -1,5 +1,6 @@
 import {
     useState,
+    useEffect,
 } from "react";
 
 import {
@@ -24,11 +25,12 @@ import Button from "../../../components/common/Button/Button";
 import AddressCard from "../../../components/public/AddressCard/AddressCard";
 
 import {
-    addAddressLocal,
-    updateAddressLocal,
-    deleteAddressLocal,
-    setDefaultAddressLocal,
-} from "../../../redux/slices/public/address.slice";
+    createAddress,
+    deleteAddress,
+    getAddresses,
+    setDefaultAddress,
+    updateAddress,
+} from "../../../redux/thunks/public/address.thunk";
 
 import {
     addressSchema,
@@ -51,17 +53,26 @@ const Addresses = () => {
 
     const {
         addresses,
+
         fetchLoading,
         createLoading,
         updateLoading,
+
         deletingId,
         defaultLoadingId,
+
         error,
     } = useSelector(
         (state) =>
             state.publicAddress
     );
 
+
+    useEffect(() => {
+        dispatch(
+            getAddresses()
+        );
+    }, [dispatch]);
 
     // =========================
     // LOCAL UI STATE
@@ -142,7 +153,7 @@ const Addresses = () => {
             );
         } else {
             dispatch(
-                addAddressLocal(
+                createAddress(
                     values
                 )
             );

@@ -11,6 +11,9 @@ import {
     useSelector,
     useDispatch,
 } from "react-redux";
+import {
+    registerUser,
+} from "../../../redux/thunks/public/auth.thunk";
 
 import {
     FaArrowRight,
@@ -36,10 +39,9 @@ import {
 
 
 const Register = () => {
-    const navigate =
-        useNavigate();
-    const dispatch =
-        useDispatch();
+
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
 
 
     // =========================
@@ -68,20 +70,28 @@ const Register = () => {
 
     const handleRegister =
         async (values) => {
-            console.log("register button clicked");
+            console.log(
+                "1. REGISTER BUTTON CLICKED",
+                values
+            );
+
             const {
                 confirmPassword,
                 ...payload
             } = values;
 
+       
 
             try {
-                await dispatch(
-                    registerUser(
-                        payload
-                    )
-                ).unwrap();
+                const response =
+                    await dispatch(
+                        registerUser(payload)
+                    ).unwrap();
 
+                console.log(
+                    "3. REGISTER SUCCESS:",
+                    response
+                );
 
                 navigate(
                     "/login",
@@ -94,11 +104,11 @@ const Register = () => {
                         },
                     }
                 );
-            } catch {
-                /*
-                  Redux error UI already
-                  show karega.
-                */
+            } catch (error) {
+                console.error(
+                    "❌ REGISTER ERROR:",
+                    error
+                );
             }
         };
 

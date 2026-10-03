@@ -48,8 +48,7 @@ const PublicNavbar = ({
   const navigate =
     useNavigate();
 
-  const location =
-    useLocation();
+  const location = useLocation();
 
 
   // =========================
@@ -630,13 +629,12 @@ const PublicNavbar = ({
 
                         transition
 
-                        ${
-                          isActive
-                            ? `
+                        ${isActive
+                          ? `
                               bg-orange-50
                               text-orange-600
                             `
-                            : `
+                          : `
                               text-slate-600
 
                               hover:bg-white
@@ -903,14 +901,13 @@ const PublicNavbar = ({
                     hover:bg-orange-50
                     hover:text-orange-600
 
-                    ${
-                      mediumSearchOpen
-                        ? `
+                    ${mediumSearchOpen
+                      ? `
                           pointer-events-none
                           scale-90
                           opacity-0
                         `
-                        : `
+                      : `
                           scale-100
                           opacity-100
                         `
@@ -961,15 +958,14 @@ const PublicNavbar = ({
                     md:w-[285px]
                     lg:w-[340px]
 
-                    ${
-                      mediumSearchOpen
-                        ? `
+                    ${mediumSearchOpen
+                      ? `
                           visible
                           translate-x-0
                           scale-100
                           opacity-100
                         `
-                        : `
+                      : `
                           invisible
                           pointer-events-none
                           translate-x-3
@@ -1967,13 +1963,12 @@ const PublicNavbar = ({
 
                     transition
 
-                    ${
-                      isActive
-                        ? `
+                    ${isActive
+                      ? `
                           bg-orange-50
                           text-orange-600
                         `
-                        : `
+                      : `
                           text-slate-700
 
                           hover:bg-slate-50

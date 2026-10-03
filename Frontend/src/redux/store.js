@@ -24,6 +24,7 @@ const store = configureStore({
     publicProfile: publicProfileReducer,
 
     publicOrder: publicOrderReducer,
+    
     publicAuth: publicAuthReducer,
   },
 });

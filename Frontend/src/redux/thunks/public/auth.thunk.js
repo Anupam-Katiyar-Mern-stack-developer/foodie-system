@@ -30,6 +30,8 @@ export const registerUser = createAsyncThunk(
 
   async (payload, { rejectWithValue }) => {
     try {
+      console.log(payload);
+      
       return await registerUserService(payload);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
