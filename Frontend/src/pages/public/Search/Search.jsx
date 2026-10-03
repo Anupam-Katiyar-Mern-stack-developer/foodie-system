@@ -27,8 +27,8 @@ import Skeleton from "../../../components/common/Skeleton/Skeleton";
 import RestaurantCard from "../../../components/public/RestaurantCard/RestaurantCard";
 import FoodCard from "../../../components/public/FoodCard/FoodCard";
 import {
-    addCartItemLocal,
-} from "../../../redux/slices/public/cart.slice";
+    addCartItem,
+} from "../../../redux/thunks/public/cart.thunk";
 
 const Search = () => {
 
@@ -207,28 +207,24 @@ const Search = () => {
     // ADD TO CART
     // =========================
 
-    const handleAddToCart = (
-        food
-    ) => {
-        const restaurant =
-            restaurants.find(
-                (item) =>
-                    item.slug ===
-                    food.restaurantSlug
+    const handleAddToCart = async (food) => {
+        try {
+            await dispatch(
+                addCartItem({
+                    foodSlug: food.slug,
+                    quantity: 1,
+                })
+            ).unwrap();
+
+            console.log(
+                "Added to cart"
             );
-
-
-        if (!restaurant) {
-            return;
+        } catch (error) {
+            console.error(
+                "ADD CART ERROR:",
+                error
+            );
         }
-
-
-        dispatch(
-            addCartItemLocal({
-                food,
-                restaurant,
-            })
-        );
     };
 
 

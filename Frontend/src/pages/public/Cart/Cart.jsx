@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useMemo,
 } from "react";
 
@@ -28,10 +29,11 @@ import Button from "../../../components/common/Button/Button";
 import CartItem from "../../../components/public/CartItem/CartItem";
 
 import {
-  clearCartLocal,
-  removeCartItemLocal,
-  updateCartQuantityLocal,
-} from "../../../redux/slices/public/cart.slice";
+  clearCart,
+  getCart,
+  removeCartItem,
+  updateCartItem,
+} from "../../../redux/thunks/public/cart.thunk";
 
 
 const Cart = () => {
@@ -48,14 +50,31 @@ const Cart = () => {
 
   const {
     cartGroups,
+
+    totalItems,
+
+    grandTotal,
+
     fetchLoading,
+
     updatingSlug,
+
     deletingSlug,
+
     clearLoading,
+
+    error,
   } = useSelector(
     (state) =>
       state.publicCart
   );
+
+
+  useEffect(() => {
+    dispatch(
+      getCart()
+    );
+  }, [dispatch]);
 
 
   // =========================
@@ -80,19 +99,19 @@ const Cart = () => {
                 Number(
                   item.discountPrice
                 ) <
-                  Number(
-                    item.price
-                  );
+                Number(
+                  item.price
+                );
 
 
               const price =
                 hasDiscount
                   ? Number(
-                      item.discountPrice
-                    )
+                    item.discountPrice
+                  )
                   : Number(
-                      item.price
-                    );
+                    item.price
+                  );
 
 
               totalItems +=
@@ -150,65 +169,71 @@ const Cart = () => {
   // QUANTITY
   // =========================
 
-  const handleQuantityChange = ({
-    restaurantSlug,
-    foodSlug,
-    quantity,
-  }) => {
-    /*
-      Later:
-      dispatch(
-        updateCartQuantityThunk(...)
-      )
-    */
+  const handleQuantityChange =
+    async ({
+      foodSlug,
+      quantity,
+    }) => {
+      if (
+        quantity < 1 ||
+        quantity > 20
+      ) {
+        return;
+      }
 
-    dispatch(
-      updateCartQuantityLocal({
-        restaurantSlug,
-        foodSlug,
-        quantity,
-      })
-    );
-  };
-
+      try {
+        await dispatch(
+          updateCartItem({
+            foodSlug,
+            quantity,
+          })
+        ).unwrap();
+      } catch (error) {
+        console.error(
+          "UPDATE CART ERROR:",
+          error
+        );
+      }
+    };
 
   // =========================
   // REMOVE
   // =========================
 
-  const handleRemove = ({
-    restaurantSlug,
-    foodSlug,
-  }) => {
-    /*
-      Later:
-      dispatch(
-        removeCartItemThunk(...)
-      )
-    */
-
-    dispatch(
-      removeCartItemLocal({
-        restaurantSlug,
-        foodSlug,
-      })
-    );
-  };
-
+  const handleRemove =
+    async ({
+      foodSlug,
+    }) => {
+      try {
+        await dispatch(
+          removeCartItem(
+            foodSlug
+          )
+        ).unwrap();
+      } catch (error) {
+        console.error(
+          "REMOVE CART ERROR:",
+          error
+        );
+      }
+    };
 
   // =========================
   // CLEAR
   // =========================
 
   const handleClearCart =
-    () => {
-      /*
-        Later clear cart thunk.
-      */
-
-      dispatch(
-        clearCartLocal()
-      );
+    async () => {
+      try {
+        await dispatch(
+          clearCart()
+        ).unwrap();
+      } catch (error) {
+        console.error(
+          "CLEAR CART ERROR:",
+          error
+        );
+      }
     };
 
 
@@ -423,7 +448,7 @@ const Cart = () => {
                   item
                   {
                     cartSummary.totalItems !==
-                    1
+                      1
                       ? "s"
                       : ""
                   }{" "}
@@ -434,7 +459,7 @@ const Cart = () => {
                   restaurant
                   {
                     cartSummary.restaurantCount !==
-                    1
+                      1
                       ? "s"
                       : ""
                   }.
@@ -644,7 +669,7 @@ const Cart = () => {
                               item
                               {
                                 items.length !==
-                                1
+                                  1
                                   ? "s"
                                   : ""
                               }
@@ -667,13 +692,12 @@ const Cart = () => {
                             uppercase
                             tracking-wide
 
-                            ${
-                              restaurant.isOpen
-                                ? `
+                            ${restaurant.isOpen
+                              ? `
                                   bg-emerald-50
                                   text-emerald-700
                                 `
-                                : `
+                              : `
                                   bg-rose-50
                                   text-rose-700
                                 `
@@ -968,8 +992,8 @@ const Cart = () => {
 
                   {cartSummary.restaurantCount >
                     1 && (
-                    <div
-                      className="
+                      <div
+                        className="
                         rounded-2xl
 
                         border
@@ -979,47 +1003,47 @@ const Cart = () => {
 
                         p-3.5
                       "
-                    >
-                      <div
-                        className="
+                      >
+                        <div
+                          className="
                           flex
                           gap-2.5
                         "
-                      >
-                        <FaStore
-                          className="
+                        >
+                          <FaStore
+                            className="
                             mt-0.5
                             shrink-0
 
                             text-orange-500
                           "
-                        />
+                          />
 
-                        <p
-                          className="
+                          <p
+                            className="
                             text-xs
                             leading-5
                             text-orange-800
                           "
-                        >
-                          Your cart contains
-                          food from multiple
-                          restaurants.
-                          Checkout will
-                          create separate
-                          restaurant orders.
-                        </p>
+                          >
+                            Your cart contains
+                            food from multiple
+                            restaurants.
+                            Checkout will
+                            create separate
+                            restaurant orders.
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
 
                   {/* UNAVAILABLE */}
 
                   {cartSummary.unavailableItems >
                     0 && (
-                    <div
-                      className="
+                      <div
+                        className="
                         rounded-2xl
 
                         border
@@ -1029,36 +1053,36 @@ const Cart = () => {
 
                         p-3.5
                       "
-                    >
-                      <div
-                        className="
+                      >
+                        <div
+                          className="
                           flex
                           gap-2.5
                         "
-                      >
-                        <FaExclamationTriangle
-                          className="
+                        >
+                          <FaExclamationTriangle
+                            className="
                             mt-0.5
                             shrink-0
 
                             text-rose-500
                           "
-                        />
+                          />
 
-                        <p
-                          className="
+                          <p
+                            className="
                             text-xs
                             leading-5
                             text-rose-700
                           "
-                        >
-                          Remove unavailable
-                          items before
-                          checkout.
-                        </p>
+                          >
+                            Remove unavailable
+                            items before
+                            checkout.
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
 
                   {/* CHECKOUT */}

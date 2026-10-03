@@ -29,8 +29,8 @@ import Button from "../../../components/common/Button/Button";
 import FoodCard from "../../../components/public/FoodCard/FoodCard";
 
 import {
-  addCartItemLocal,
-} from "../../../redux/slices/public/cart.slice";
+  addCartItem,
+} from "../../../redux/thunks/public/cart.thunk";
 
 const CategoryFoods = () => {
 
@@ -198,30 +198,25 @@ const CategoryFoods = () => {
   // ADD TO CART
   // =========================
 
-  const handleAddToCart = (
-    food
-  ) => {
-    const restaurant =
-      restaurants.find(
-        (item) =>
-          item.slug ===
-          food.restaurantSlug
-      );
-
-
-    if (!restaurant) {
-      return;
-    }
-
-
-    dispatch(
-      addCartItemLocal({
-        food,
-        restaurant,
+ const handleAddToCart = async (food) => {
+  try {
+    await dispatch(
+      addCartItem({
+        foodSlug: food.slug,
+        quantity: 1,
       })
-    );
-  };
+    ).unwrap();
 
+    console.log(
+      "Added to cart"
+    );
+  } catch (error) {
+    console.error(
+      "ADD CART ERROR:",
+      error
+    );
+  }
+};
   // restaurant in redux
   const {
     restaurants,

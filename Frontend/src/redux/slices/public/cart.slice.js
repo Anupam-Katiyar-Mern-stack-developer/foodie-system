@@ -1,80 +1,23 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+import {
+  addCartItem,
+  clearCart,
+  getCart,
+  removeCartItem,
+  updateCartItem,
+} from "../../thunks/public/cart.thunk";
+
 const initialState = {
-  cartGroups: [
-    {
-      restaurant: {
-        slug: "spice-garden",
-        restaurantName: "Spice Garden",
-        isOpen: true,
-      },
+  cartGroups: [],
 
-      items: [
-        {
-          slug: "classic-cheese-pizza",
+  totalItems: 0,
 
-          name: "Classic Cheese Pizza",
-
-          image:
-            "https://images.unsplash.com/photo-1579751626657-72bc17010498?auto=format&fit=crop&w=500&q=80",
-
-          price: 299,
-
-          discountPrice: 249,
-
-          quantity: 2,
-
-          isAvailable: true,
-        },
-
-        {
-          slug: "veg-biryani",
-
-          name: "Veg Biryani",
-
-          image:
-            "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=500&q=80",
-
-          price: 249,
-
-          discountPrice: 219,
-
-          quantity: 1,
-
-          isAvailable: true,
-        },
-      ],
-    },
-
-    {
-      restaurant: {
-        slug: "urban-bites",
-        restaurantName: "Urban Bites",
-        isOpen: true,
-      },
-
-      items: [
-        {
-          slug: "crispy-chicken-burger",
-
-          name: "Crispy Chicken Burger",
-
-          image:
-            "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=500&q=80",
-
-          price: 229,
-
-          discountPrice: null,
-
-          quantity: 1,
-
-          isAvailable: true,
-        },
-      ],
-    },
-  ],
+  grandTotal: 0,
 
   fetchLoading: false,
+
+  addLoadingSlug: null,
 
   updatingSlug: null,
 
@@ -85,153 +28,163 @@ const initialState = {
   error: null,
 };
 
+// =============================
+// BACKEND → FRONTEND SHAPE
+// =============================
+
+const setCartData = (state, payload) => {
+  const restaurants = payload?.restaurants ?? [];
+
+  state.cartGroups = restaurants.map((restaurant) => ({
+    restaurant: {
+      slug: restaurant.restaurantSlug,
+
+      restaurantName: restaurant.restaurantName,
+
+      logo: restaurant.restaurantLogo,
+
+      isOpen: restaurant.isOpen,
+
+      subtotal: restaurant.subtotal,
+    },
+
+    items: restaurant.items ?? [],
+  }));
+
+  state.totalItems = payload?.totalItems ?? 0;
+
+  state.grandTotal = payload?.grandTotal ?? 0;
+};
+
 const cartSlice = createSlice({
   name: "publicCart",
 
   initialState,
 
   reducers: {
-    /*
-        UI PHASE reducers.
+    clearCartError: (state) => {
+      state.error = null;
+    },
+  },
 
-        Backend integration ke time
-        quantity/update/delete thunks
-        use honge.
-      */
-    addCartItemLocal: (state, action) => {
-      const { food, restaurant } = action.payload;
+  extraReducers: (builder) => {
+    // =====================
+    // GET
+    // =====================
 
-      // Invalid data
-      if (!food || !restaurant) {
-        return;
-      }
+    builder
+      .addCase(getCart.pending, (state) => {
+        state.fetchLoading = true;
 
-      // Unavailable food cart me nahi jayega
-      if (food.isAvailable === false) {
-        return;
-      }
+        state.error = null;
+      })
 
-      // =========================
-      // RESTAURANT GROUP FIND
-      // =========================
+      .addCase(getCart.fulfilled, (state, action) => {
+        state.fetchLoading = false;
 
-      let group = state.cartGroups.find(
-        (item) => item.restaurant.slug === restaurant.slug,
-      );
+        setCartData(state, action.payload);
+      })
 
-      // =========================
-      // NEW RESTAURANT GROUP
-      // =========================
+      .addCase(getCart.rejected, (state, action) => {
+        state.fetchLoading = false;
 
-      if (!group) {
-        state.cartGroups.push({
-          restaurant: {
-            slug: restaurant.slug,
-
-            restaurantName: restaurant.restaurantName,
-
-            isOpen: restaurant.isOpen,
-          },
-
-          items: [],
-        });
-
-        group = state.cartGroups[state.cartGroups.length - 1];
-      }
-
-      // =========================
-      // CHECK EXISTING FOOD
-      // =========================
-
-      const existingItem = group.items.find((item) => item.slug === food.slug);
-
-      // Already cart me hai
-      if (existingItem) {
-        existingItem.quantity += 1;
-
-        return;
-      }
-
-      // =========================
-      // ADD NEW FOOD
-      // =========================
-
-      group.items.push({
-        slug: food.slug,
-
-        name: food.name,
-
-        image: food.image,
-
-        price: Number(food.price),
-
-        discountPrice: food.discountPrice ? Number(food.discountPrice) : null,
-
-        quantity: 1,
-
-        isAvailable: food.isAvailable,
+        state.error = action.payload;
       });
-    },
 
-    updateCartQuantityLocal: (state, action) => {
-      const { restaurantSlug, foodSlug, quantity } = action.payload;
+    // =====================
+    // ADD
+    // =====================
 
-      const group = state.cartGroups.find(
-        (item) => item.restaurant.slug === restaurantSlug,
-      );
+    builder
+      .addCase(addCartItem.pending, (state, action) => {
+        state.addLoadingSlug = action.meta.arg?.foodSlug;
 
-      if (!group) {
-        return;
-      }
+        state.error = null;
+      })
 
-      const cartItem = group.items.find((item) => item.slug === foodSlug);
+      .addCase(addCartItem.fulfilled, (state, action) => {
+        state.addLoadingSlug = null;
 
-      if (!cartItem) {
-        return;
-      }
+        setCartData(state, action.payload);
+      })
 
-      if (quantity < 1) {
-        return;
-      }
+      .addCase(addCartItem.rejected, (state, action) => {
+        state.addLoadingSlug = null;
 
-      cartItem.quantity = quantity;
-    },
+        state.error = action.payload;
+      });
 
-    removeCartItemLocal: (state, action) => {
-      const { restaurantSlug, foodSlug } = action.payload;
+    // =====================
+    // UPDATE
+    // =====================
 
-      const group = state.cartGroups.find(
-        (item) => item.restaurant.slug === restaurantSlug,
-      );
+    builder
+      .addCase(updateCartItem.pending, (state, action) => {
+        state.updatingSlug = action.meta.arg?.foodSlug;
 
-      if (!group) {
-        return;
-      }
+        state.error = null;
+      })
 
-      group.items = group.items.filter((item) => item.slug !== foodSlug);
+      .addCase(updateCartItem.fulfilled, (state, action) => {
+        state.updatingSlug = null;
 
-      /*
-          Restaurant ke andar
-          koi item nahi bacha,
-          group bhi remove.
-        */
+        setCartData(state, action.payload);
+      })
 
-      state.cartGroups = state.cartGroups.filter(
-        (item) => item.items.length > 0,
-      );
-    },
+      .addCase(updateCartItem.rejected, (state, action) => {
+        state.updatingSlug = null;
 
-    clearCartLocal: (state) => {
-      state.cartGroups = [];
-    },
+        state.error = action.payload;
+      });
+
+    // =====================
+    // REMOVE
+    // =====================
+
+    builder
+      .addCase(removeCartItem.pending, (state, action) => {
+        state.deletingSlug = action.meta.arg;
+
+        state.error = null;
+      })
+
+      .addCase(removeCartItem.fulfilled, (state, action) => {
+        state.deletingSlug = null;
+
+        setCartData(state, action.payload);
+      })
+
+      .addCase(removeCartItem.rejected, (state, action) => {
+        state.deletingSlug = null;
+
+        state.error = action.payload;
+      });
+
+    // =====================
+    // CLEAR
+    // =====================
+
+    builder
+      .addCase(clearCart.pending, (state) => {
+        state.clearLoading = true;
+
+        state.error = null;
+      })
+
+      .addCase(clearCart.fulfilled, (state, action) => {
+        state.clearLoading = false;
+
+        setCartData(state, action.payload);
+      })
+
+      .addCase(clearCart.rejected, (state, action) => {
+        state.clearLoading = false;
+
+        state.error = action.payload;
+      });
   },
 });
 
-export const {
-  addCartItemLocal,
-  updateCartQuantityLocal,
-  removeCartItemLocal,
-  clearCartLocal,
-} = cartSlice.actions;
+export const { clearCartError } = cartSlice.actions;
 
 export default cartSlice.reducer;

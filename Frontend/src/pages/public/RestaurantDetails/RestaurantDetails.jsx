@@ -36,8 +36,8 @@ import {
 } from "react-redux";
 
 import {
-    addCartItemLocal,
-} from "../../../redux/slices/public/cart.slice";
+    addCartItem,
+} from "../../../redux/thunks/public/cart.thunk";
 
 const RestaurantDetails = () => {
     const dispatch =
@@ -270,20 +270,24 @@ const RestaurantDetails = () => {
     // ADD TO CART
     // =========================
 
-    const handleAddToCart = (
-        food
-    ) => {
-        if (!restaurant) {
-            return;
+    const handleAddToCart = async (food) => {
+        try {
+            await dispatch(
+                addCartItem({
+                    foodSlug: food.slug,
+                    quantity: 1,
+                })
+            ).unwrap();
+
+            console.log(
+                "Added to cart"
+            );
+        } catch (error) {
+            console.error(
+                "ADD CART ERROR:",
+                error
+            );
         }
-
-
-        dispatch(
-            addCartItemLocal({
-                food,
-                restaurant,
-            })
-        );
     };
 
 
