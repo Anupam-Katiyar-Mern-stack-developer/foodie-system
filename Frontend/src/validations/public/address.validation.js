@@ -1,11 +1,21 @@
 import { z } from "zod";
 
 export const addressSchema = z.object({
+  label: z
+    .string()
+    .trim()
+    .min(1, "Address type is required"),
+
   addressLine: z
     .string()
     .trim()
     .min(5, "Please enter a complete address")
     .max(250, "Address is too long"),
+
+  landmark: z
+    .string()
+    .trim()
+    .optional(),
 
   city: z
     .string()
@@ -22,5 +32,8 @@ export const addressSchema = z.object({
   pincode: z
     .string()
     .trim()
-    .regex(/^[1-9][0-9]{5}$/, "Enter a valid 6 digit pincode"),
+    .regex(
+      /^[1-9][0-9]{5}$/,
+      "Enter a valid 6 digit pincode"
+    ),
 });

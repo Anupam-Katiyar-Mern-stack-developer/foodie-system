@@ -1,20 +1,48 @@
 export const addressFields = [
+{
+  name: "label",
+  label: "Address Type",
+  type: "select",
+  placeholder: "Select address type",
+  required: true,
+
+  options: [
+    {
+      label: "Home",
+      value: "Home",
+    },
+    {
+      label: "Work",
+      value: "Work",
+    },
+    {
+      label: "Other",
+      value: "Other",
+    },
+  ],
+},
+
   {
     name: "addressLine",
-    label: "Full Address",
+    label: "Address",
     type: "textarea",
-    placeholder: "House number, street, landmark...",
+    placeholder: "House no, street, area",
     required: true,
-    componentProps: {
-      rows: 3,
-    },
+    fullWidth: true,
+  },
+
+  {
+    name: "landmark",
+    label: "Landmark",
+    type: "text",
+    placeholder: "Near market, school etc.",
   },
 
   {
     name: "city",
     label: "City",
     type: "text",
-    placeholder: "Enter city",
+    placeholder: "Kanpur",
     required: true,
   },
 
@@ -22,7 +50,7 @@ export const addressFields = [
     name: "state",
     label: "State",
     type: "text",
-    placeholder: "Enter state",
+    placeholder: "Uttar Pradesh",
     required: true,
   },
 
@@ -30,8 +58,9 @@ export const addressFields = [
     name: "pincode",
     label: "Pincode",
     type: "text",
-    placeholder: "Enter 6 digit pincode",
+    placeholder: "208001",
     required: true,
+
     componentProps: {
       inputMode: "numeric",
       maxLength: 6,
@@ -39,8 +68,11 @@ export const addressFields = [
   },
 ];
 
+
 export const addressDefaultValues = {
+  label: "Home",
   addressLine: "",
+  landmark: "",
   city: "",
   state: "",
   pincode: "",

@@ -43,9 +43,9 @@ import {
 
 
 const Addresses = () => {
+
     const dispatch =
         useDispatch();
-
 
     // =========================
     // REDUX
@@ -91,8 +91,8 @@ const Addresses = () => {
 
 
     const [
-        deleteAddress,
-        setDeleteAddress,
+        deleteTarget,
+        setDeleteTarget,
     ] = useState(null);
 
 
@@ -137,31 +137,39 @@ const Addresses = () => {
     // SUBMIT
     // =========================
 
-    const handleSubmit = (
-        values
-    ) => {
-        if (
-            editingAddress
-        ) {
-            dispatch(
-                updateAddressLocal({
-                    id:
-                        editingAddress.id,
-
-                    data: values,
-                })
+    const handleSubmit =
+        async (values) => {
+            console.log(
+                "ADDRESS PAYLOAD:",
+                values
             );
-        } else {
-            dispatch(
-                createAddress(
-                    values
-                )
-            );
-        }
 
+            try {
+                if (editingAddress) {
+                    await dispatch(
+                        updateAddress({
+                            addressId:
+                                editingAddress.id,
 
-        closeForm();
-    };
+                            payload: values,
+                        })
+                    ).unwrap();
+                } else {
+                    await dispatch(
+                        createAddress(
+                            values
+                        )
+                    ).unwrap();
+                }
+
+                closeForm();
+            } catch (error) {
+                console.error(
+                    "ADDRESS SUBMIT ERROR:",
+                    error
+                );
+            }
+        };
 
 
     // =========================
@@ -169,20 +177,25 @@ const Addresses = () => {
     // =========================
 
     const handleDeleteConfirm =
-        () => {
-            if (!deleteAddress) {
+        async () => {
+            if (!deleteTarget) {
                 return;
             }
 
+            try {
+                await dispatch(
+                    deleteAddress(
+                        deleteTarget.id
+                    )
+                ).unwrap();
 
-            dispatch(
-                deleteAddressLocal(
-                    deleteAddress.id
-                )
-            );
-
-
-            setDeleteAddress(null);
+                setDeleteTarget(null);
+            } catch (error) {
+                console.error(
+                    "DELETE ADDRESS ERROR:",
+                    error
+                );
+            }
         };
 
 
@@ -190,15 +203,19 @@ const Addresses = () => {
     // DEFAULT
     // =========================
 
-    const handleSetDefault = (
-        id
-    ) => {
-        dispatch(
-            setDefaultAddressLocal(
-                id
-            )
-        );
-    };
+    const handleSetDefault =
+        async (id) => {
+            try {
+                await dispatch(
+                    setDefaultAddress(id)
+                ).unwrap();
+            } catch (error) {
+                console.error(
+                    "SET DEFAULT ERROR:",
+                    error
+                );
+            }
+        };
 
 
     // =========================
@@ -208,8 +225,16 @@ const Addresses = () => {
     const formValues =
         editingAddress
             ? {
+                label:
+                    editingAddress.label ||
+                    "Home",
+
                 addressLine:
                     editingAddress.addressLine ||
+                    "",
+
+                landmark:
+                    editingAddress.landmark ||
                     "",
 
                 city:
@@ -518,7 +543,7 @@ const Addresses = () => {
                                             }
 
                                             onDelete={() =>
-                                                setDeleteAddress(
+                                                setDeleteTarget(
                                                     address
                                                 )
                                             }
@@ -610,12 +635,12 @@ const Addresses = () => {
             <ConfirmModal
                 open={
                     Boolean(
-                        deleteAddress
+                        deleteTarget
                     )
                 }
 
                 onClose={() =>
-                    setDeleteAddress(null)
+                    setDeleteTarget(null)
                 }
 
                 title="Delete address?"
@@ -626,7 +651,7 @@ const Addresses = () => {
 
                 loading={
                     deletingId ===
-                    deleteAddress?.id
+                    deleteTarget?.id
                 }
 
                 onConfirm={
