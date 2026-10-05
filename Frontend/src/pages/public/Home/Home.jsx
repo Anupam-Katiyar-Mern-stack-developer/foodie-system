@@ -27,6 +27,9 @@ import {
   getFoods,
 } from "../../../redux/thunks/public/food.thunk";
 
+import {
+  getCategories,
+} from "../../../redux/thunks/public/category.thunk";
 
 const Home = () => {
   const dispatch =
@@ -83,6 +86,12 @@ const Home = () => {
   // =========================
 
   useEffect(() => {
+    dispatch(
+      getCategories({
+        page: 1,
+        limit: 6,
+      })
+    );
     dispatch(
       getRestaurants()
     );

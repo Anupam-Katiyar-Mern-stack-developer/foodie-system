@@ -31,7 +31,7 @@ export const registerUser = createAsyncThunk(
   async (payload, { rejectWithValue }) => {
     try {
       console.log(payload);
-      
+
       return await registerUserService(payload);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -50,21 +50,7 @@ export const loginUser = createAsyncThunk(
     try {
       const data = await loginUserService(payload);
 
-      /*
-          ApiResponse shape support:
-
-          data = {
-            token,
-            user
-          }
-
-          OR
-
-          data = {
-            accessToken,
-            user
-          }
-        */
+      showSuccessToast("Login successful");
 
       const token = data?.token || data?.accessToken;
 
@@ -82,6 +68,9 @@ export const loginUser = createAsyncThunk(
         user: data?.user || null,
       };
     } catch (error) {
+      const message = getErrorMessage(error, "Login failed");
+
+      showErrorToast(message);
       return rejectWithValue(getErrorMessage(error));
     }
   },

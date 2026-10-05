@@ -6,11 +6,16 @@ import {
   getFoodBySlugService,
 } from "../../../services/public/food.service";
 
-const getErrorMessage = (error) => {
-  return (
-    error?.response?.data?.message || error?.message || "Unable to load foods"
-  );
-};
+
+import { getErrorMessage } from "../../../utils/getErrorMessage";
+
+import { showErrorToast, showSuccessToast } from "../../../utils/toast";
+
+// const getErrorMessage = (error) => {
+//   return (
+//     error?.response?.data?.message || error?.message || "Unable to load foods"
+//   );
+// };
 
 // =========================
 // GET ALL FOODS

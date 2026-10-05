@@ -8,11 +8,15 @@ import {
   updateCartItemService,
 } from "../../../services/public/cart.service";
 
-const getErrorMessage = (error) => {
-  return (
-    error?.response?.data?.message || error?.message || "Something went wrong"
-  );
-};
+import { getErrorMessage } from "../../../utils/getErrorMessage";
+
+import { showErrorToast, showSuccessToast } from "../../../utils/toast";
+
+// const getErrorMessage = (error) => {
+//   return (
+//     error?.response?.data?.message || error?.message || "Something went wrong"
+//   );
+// };
 
 // =========================
 // GET CART
@@ -39,17 +43,15 @@ export const addCartItem = createAsyncThunk(
 
   async (payload, { rejectWithValue }) => {
     try {
-      await addCartItemService(payload);
+     const result= await addCartItemService(payload);
 
-      /*
-          Add ke baad complete cart
-          dubara fetch karenge.
-
-          Source of truth backend rahega.
-        */
+      showSuccessToast(result?.message || "Food added to cart");
 
       return await getCartService();
     } catch (error) {
+      const message = getErrorMessage(error, "Unable to add food to cart");
+
+      showErrorToast(message);
       return rejectWithValue(getErrorMessage(error));
     }
   },

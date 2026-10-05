@@ -1,53 +1,20 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+import { getCategories } from "../../thunks/public/category.thunk";
+
 const initialState = {
-  categories: [
-    {
-      slug: "pizza",
-      name: "Pizza",
-      image:
-        "https://images.unsplash.com/photo-1579751626657-72bc17010498?auto=format&fit=crop&w=500&q=80",
-    },
-
-    {
-      slug: "burger",
-      name: "Burger",
-      image:
-        "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=500&q=80",
-    },
-
-    {
-      slug: "biryani",
-      name: "Biryani",
-      image:
-        "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=500&q=80",
-    },
-
-    {
-      slug: "chinese",
-      name: "Chinese",
-      image:
-        "https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=500&q=80",
-    },
-
-    {
-      slug: "desserts",
-      name: "Desserts",
-      image:
-        "https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=500&q=80",
-    },
-
-    {
-      slug: "south-indian",
-      name: "South Indian",
-      image:
-        "https://images.unsplash.com/photo-1668236543090-82eba5ee5976?auto=format&fit=crop&w=500&q=80",
-    },
-  ],
+  categories: [],
 
   fetchLoading: false,
 
   error: null,
+
+  pagination: {
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  },
 };
 
 const categorySlice = createSlice({
@@ -55,7 +22,45 @@ const categorySlice = createSlice({
 
   initialState,
 
-  reducers: {},
+  reducers: {
+    clearCategoryError: (state) => {
+      state.error = null;
+    },
+  },
+
+  extraReducers: (builder) => {
+    builder
+
+      // =========================
+      // GET CATEGORIES
+      // =========================
+
+      .addCase(getCategories.pending, (state) => {
+        state.fetchLoading = true;
+
+        state.error = null;
+      })
+
+      .addCase(getCategories.fulfilled, (state, action) => {
+        state.fetchLoading = false;
+
+        state.error = null;
+
+        state.categories = action.payload?.categories ?? action.payload ?? [];
+
+        if (action.payload?.pagination) {
+          state.pagination = action.payload.pagination;
+        }
+      })
+
+      .addCase(getCategories.rejected, (state, action) => {
+        state.fetchLoading = false;
+
+        state.error = action.payload || "Unable to load categories";
+      });
+  },
 });
+
+export const { clearCategoryError } = categorySlice.actions;
 
 export default categorySlice.reducer;
