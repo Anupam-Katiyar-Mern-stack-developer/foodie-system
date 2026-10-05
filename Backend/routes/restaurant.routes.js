@@ -24,6 +24,7 @@ import { updateFood } from "../controllers/food/updateFood.controller.js";
 
 import {deleteFood} from "../controllers/food/deleteFood.controller.js";
 
+import {getRestaurants} from "../controllers/restaurant/getRestaurants.controller.js";
 
 const router = express.Router();
 
@@ -54,6 +55,12 @@ router.get(
   "/foods/:foodSlug",
   restaurantAuthMiddleware,
   getRestaurantFoodBySlug,
+);
+
+// get restaurant
+router.get(
+  "/",
+  getRestaurants
 );
 
 // update food router

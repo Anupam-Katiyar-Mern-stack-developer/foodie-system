@@ -16,6 +16,7 @@ import cartRoutes from "./routes/cart.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 import deliveryRoutes from "./routes/delivery.routes.js";
 
+import foodRoutes from "./routes/food.routes.js";
 const app = express();
 
 app.use("/images", express.static(path.join(process.cwd(), "images")));
@@ -43,6 +44,7 @@ app.use("/api/restaurants", publicRestaurantRoutes);
 app.use("/api/user/cart", cartRoutes);
 app.use("/api", orderRoutes);
 app.use("/api/delivery", deliveryRoutes);
+app.use("/api/foods", foodRoutes);
 //Error handler
 
 app.use((error, req, res, next) => {

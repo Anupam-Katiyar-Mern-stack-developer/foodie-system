@@ -26,7 +26,7 @@ export const getRestaurantsService =
 
     const response =
       await apiClient.get(
-        "/restaurants",
+        "/restaurant",
         {
           params: {
             page,

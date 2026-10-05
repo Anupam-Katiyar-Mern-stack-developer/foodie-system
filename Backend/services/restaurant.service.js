@@ -941,3 +941,93 @@ export const getPublicRestaurantBySlugService = async ({ restaurantSlug }) => {
 
   return result.rows[0];
 };
+
+// get rstaurants
+
+export const getRestaurantsService = async ({ page = 1, limit = 20 }) => {
+  // =========================
+  // PAGINATION
+  // =========================
+
+  const currentPage = Math.max(Number(page) || 1, 1);
+
+  const currentLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
+
+  const offset = (currentPage - 1) * currentLimit;
+
+  // =========================
+  // GET RESTAURANTS
+  // =========================
+
+  const restaurantsResult = await pool.query(
+    `
+      SELECT
+        restaurant_name AS "restaurantName",
+
+        slug,
+
+        description,
+
+        logo,
+        banner,
+
+        address_line AS "addressLine",
+
+        city,
+
+        state,
+
+        pincode,
+
+        is_open AS "isOpen"
+
+      FROM restaurants
+
+      WHERE
+        approval_status = 'approved'
+
+        AND is_blocked = false
+
+      ORDER BY
+        created_at DESC
+
+      LIMIT $1
+      OFFSET $2
+      `,
+    [currentLimit, offset],
+  );
+
+  // =========================
+  // TOTAL RESTAURANTS
+  // =========================
+
+  const countResult = await pool.query(
+    `
+      SELECT
+        COUNT(*)::int AS total
+
+      FROM restaurants
+
+      WHERE
+        approval_status = 'approved'
+
+        AND is_blocked = false
+      `,
+  );
+
+  const total = countResult.rows[0]?.total || 0;
+
+  return {
+    restaurants: restaurantsResult.rows,
+
+    pagination: {
+      page: currentPage,
+
+      limit: currentLimit,
+
+      total,
+
+      totalPages: Math.ceil(total / currentLimit),
+    },
+  };
+};
