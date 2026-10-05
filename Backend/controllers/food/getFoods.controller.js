@@ -1,0 +1,17 @@
+import { getFoodsService } from "../../services/food/getFoods.service.js";
+
+export const getFoods = async (req, res, next) => {
+  try {
+    const result = await getFoodsService(req.query);
+
+    return res.status(200).json({
+      success: true,
+
+      message: "Foods fetched successfully",
+
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

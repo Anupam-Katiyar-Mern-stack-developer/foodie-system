@@ -1,15 +1,13 @@
 import {
     useMemo,
     useState,
+    useEffect,
 } from "react";
 
 import {
     useParams,
 } from "react-router-dom";
 
-import {
-    useSelector,
-} from "react-redux";
 
 import {
     FaClock,
@@ -32,16 +30,30 @@ import FoodCard from "../../../components/public/FoodCard/FoodCard";
 import Button from "../../../components/common/Button/Button";
 import {
     useDispatch,
-
+    useSelector,
 } from "react-redux";
 
 import {
     addCartItem,
 } from "../../../redux/thunks/public/cart.thunk";
 
+import {
+    getRestaurantBySlug,
+} from "../../../redux/thunks/public/restaurant.thunk";
+
+import {
+    getRestaurantFoods,
+} from "../../../redux/thunks/public/food.thunk";
+
 const RestaurantDetails = () => {
     const dispatch =
         useDispatch();
+
+    const navigate =
+        useNavigate();
+
+    const location =
+        useLocation();
 
     const {
         slug,
@@ -53,10 +65,12 @@ const RestaurantDetails = () => {
     // =========================
 
     const {
-        restaurants,
-        fetchLoading:
+        selectedRestaurant,
+
+        detailLoading:
         restaurantLoading,
-        error:
+
+        detailError:
         restaurantError,
     } = useSelector(
         (state) =>
@@ -65,13 +79,53 @@ const RestaurantDetails = () => {
 
 
     const {
-        foods,
+        restaurantFoods = [],
+
         restaurantFoodsLoading,
+
+        restaurantFoodsError,
     } = useSelector(
         (state) =>
             state.publicFood
     );
 
+
+    const {
+        isAuthenticated,
+    } = useSelector(
+        (state) =>
+            state.publicAuth
+    );
+
+
+    // =========================
+    // LOAD DATA
+    // =========================
+
+    useEffect(() => {
+        if (!slug) return;
+
+        dispatch(
+            getRestaurantBySlug(
+                slug
+            )
+        );
+
+        dispatch(
+            getRestaurantFoods({
+                restaurantSlug:
+                    slug,
+
+                page: 1,
+
+                limit: 20,
+            })
+        );
+
+    }, [
+        dispatch,
+        slug,
+    ]);
 
     // =========================
     // LOCAL STATE
@@ -100,38 +154,12 @@ const RestaurantDetails = () => {
     // =========================
 
     const restaurant =
-        useMemo(
-            () =>
-                restaurants.find(
-                    (item) =>
-                        item.slug === slug
-                ),
-
-            [
-                restaurants,
-                slug,
-            ]
-        );
-
+        selectedRestaurant;
 
     // =========================
     // RESTAURANT FOODS
     // =========================
 
-    const restaurantFoods =
-        useMemo(
-            () =>
-                foods.filter(
-                    (food) =>
-                        food.restaurantSlug ===
-                        slug
-                ),
-
-            [
-                foods,
-                slug,
-            ]
-        );
 
 
     // =========================
@@ -270,25 +298,52 @@ const RestaurantDetails = () => {
     // ADD TO CART
     // =========================
 
-    const handleAddToCart = async (food) => {
-        try {
-            await dispatch(
-                addCartItem({
-                    foodSlug: food.slug,
-                    quantity: 1,
-                })
-            ).unwrap();
+    const handleAddToCart =
+        async (food) => {
 
-            console.log(
-                "Added to cart"
-            );
-        } catch (error) {
-            console.error(
-                "ADD CART ERROR:",
-                error
-            );
-        }
-    };
+            if (!food?.slug) {
+                return;
+            }
+
+
+            if (!food.isAvailable) {
+                return;
+            }
+
+
+            if (!isAuthenticated) {
+                navigate(
+                    "/login",
+                    {
+                        state: {
+                            from:
+                                location.pathname +
+                                location.search,
+                        },
+                    }
+                );
+
+                return;
+            }
+
+
+            try {
+                await dispatch(
+                    addCartItem({
+                        foodSlug:
+                            food.slug,
+
+                        quantity: 1,
+                    })
+                ).unwrap();
+
+            } catch (error) {
+                console.error(
+                    "ADD CART ERROR:",
+                    error
+                );
+            }
+        };
 
 
     // =========================

@@ -1,160 +1,74 @@
-import {
-  createSlice,
-} from "@reduxjs/toolkit";
-
+import { createSlice } from "@reduxjs/toolkit";
+import { getFoods, getRestaurantFoods } from "../../thunks/public/food.thunk";
 
 const initialState = {
-  foods: [
-    {
-      slug: "classic-cheese-pizza",
+  foods: [],
 
-      restaurantSlug:
-        "spice-garden",
+  restaurantFoods: [],
 
-      categorySlug:
-        "pizza",
+  restaurantPagination: null,
 
-      categoryName:
-        "Pizza",
-
-      name:
-        "Classic Cheese Pizza",
-
-      description:
-        "Loaded with cheese, rich tomato sauce and fresh herbs.",
-
-      image:
-        "https://images.unsplash.com/photo-1579751626657-72bc17010498?auto=format&fit=crop&w=700&q=80",
-
-      price: 299,
-
-      discountPrice: 249,
-
-      preparationTime: 25,
-
-      isVeg: true,
-
-      isAvailable: true,
-    },
-
-    {
-      slug:
-        "veg-biryani",
-
-      restaurantSlug:
-        "spice-garden",
-
-      categorySlug:
-        "biryani",
-
-      categoryName:
-        "Biryani",
-
-      name:
-        "Veg Biryani",
-
-      description:
-        "Fragrant basmati rice cooked with vegetables and aromatic spices.",
-
-      image:
-        "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=700&q=80",
-
-      price: 249,
-
-      discountPrice: 219,
-
-      preparationTime: 30,
-
-      isVeg: true,
-
-      isAvailable: true,
-    },
-
-    {
-      slug:
-        "crispy-chicken-burger",
-
-      restaurantSlug:
-        "urban-bites",
-
-      categorySlug:
-        "burger",
-
-      categoryName:
-        "Burger",
-
-      name:
-        "Crispy Chicken Burger",
-
-      description:
-        "Crispy chicken, fresh veggies and creamy sauce in a soft bun.",
-
-      image:
-        "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=700&q=80",
-
-      price: 229,
-
-      discountPrice: null,
-
-      preparationTime: 20,
-
-      isVeg: false,
-
-      isAvailable: true,
-    },
-
-    {
-      slug:
-        "creamy-pasta",
-
-      restaurantSlug:
-        "urban-bites",
-
-      categorySlug:
-        "pasta",
-
-      categoryName:
-        "Pasta",
-
-      name:
-        "Creamy Pasta",
-
-      description:
-        "Creamy sauce, herbs and perfectly cooked pasta for a comforting meal.",
-
-      image:
-        "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=700&q=80",
-
-      price: 279,
-
-      discountPrice: null,
-
-      preparationTime: 20,
-
-      isVeg: true,
-
-      isAvailable: true,
-    },
-  ],
-
+  restaurantFoodsError: null,
 
   fetchLoading: false,
 
-  restaurantFoodsLoading:
-    false,
+  restaurantFoodsLoading: false,
 
   error: null,
 };
 
+const foodSlice = createSlice({
+  name: "publicFood",
 
-const foodSlice =
-  createSlice({
-    name: "publicFood",
+  initialState,
 
-    initialState,
+  reducers: {},
 
-    reducers: {},
-  });
+  extraReducers: (builder) => {
+    builder
+      .addCase(getRestaurantFoods.pending, (state) => {
+        state.restaurantFoodsLoading = true;
 
+        state.restaurantFoodsError = null;
+      })
+
+      .addCase(getRestaurantFoods.fulfilled, (state, action) => {
+        state.restaurantFoodsLoading = false;
+
+        state.restaurantFoods = action.payload?.foods ?? [];
+
+        state.restaurantPagination = action.payload?.pagination ?? null;
+      })
+
+      .addCase(getRestaurantFoods.rejected, (state, action) => {
+        state.restaurantFoodsLoading = false;
+
+        state.restaurantFoodsError = action.payload;
+
+        state.restaurantFoods = [];
+      });
+
+    builder
+      .addCase(getFoods.pending, (state) => {
+        state.fetchLoading = true;
+
+        state.error = null;
+      })
+
+      .addCase(getFoods.fulfilled, (state, action) => {
+        state.fetchLoading = false;
+
+        state.foods = action.payload?.foods ?? action.payload ?? [];
+      })
+
+      .addCase(getFoods.rejected, (state, action) => {
+        state.fetchLoading = false;
+
+        state.error = action.payload;
+
+        state.foods = [];
+      });
+  },
+});
 
 export default foodSlice.reducer;

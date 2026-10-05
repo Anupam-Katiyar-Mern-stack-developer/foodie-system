@@ -854,7 +854,6 @@ export const getAdminFoodBySlugService = async ({ foodSlug }) => {
 };
 
 // get food by category service
-
 export const getFoodsByCategoryService = async ({
   categorySlug,
   page,
@@ -1119,6 +1118,132 @@ export const getFoodsByRestaurantService = async ({
       total,
 
       totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+// get food service
+export const getFoodsService = async ({
+  page = 1,
+  limit = 20,
+}) => {
+  const currentPage = Math.max(
+    Number(page) || 1,
+    1
+  );
+
+  const currentLimit = Math.min(
+    Math.max(
+      Number(limit) || 20,
+      1
+    ),
+    100
+  );
+
+  const offset =
+    (currentPage - 1) *
+    currentLimit;
+
+
+  // =========================
+  // GET FOODS
+  // =========================
+
+  const foodsResult =
+    await pool.query(
+      `
+      SELECT
+        f.name,
+        f.slug,
+        f.description,
+        f.price,
+        f.discount_price AS "discountPrice",
+        f.image,
+        f.preparation_time AS "preparationTime",
+        f.is_veg AS "isVeg",
+        f.is_available AS "isAvailable",
+
+        c.name AS "categoryName",
+        c.slug AS "categorySlug",
+
+        r.restaurant_name AS "restaurantName",
+        r.slug AS "restaurantSlug"
+
+      FROM foods f
+
+      JOIN restaurants r
+        ON r.id = f.restaurant_id
+
+      LEFT JOIN categories c
+        ON c.id = f.category_id
+
+      WHERE
+        f.is_available = true
+
+        AND r.approval_status = 'approved'
+
+        AND r.is_blocked = false
+
+      ORDER BY
+        f.created_at DESC
+
+      LIMIT $1
+      OFFSET $2
+      `,
+      [
+        currentLimit,
+        offset,
+      ]
+    );
+
+
+  // =========================
+  // TOTAL COUNT
+  // =========================
+
+  const countResult =
+    await pool.query(
+      `
+      SELECT
+        COUNT(*)::int AS total
+
+      FROM foods f
+
+      JOIN restaurants r
+        ON r.id = f.restaurant_id
+
+      WHERE
+        f.is_available = true
+
+        AND r.approval_status = 'approved'
+
+        AND r.is_blocked = false
+      `
+    );
+
+
+  const total =
+    countResult.rows[0].total;
+
+
+  return {
+    foods:
+      foodsResult.rows,
+
+    pagination: {
+      page:
+        currentPage,
+
+      limit:
+        currentLimit,
+
+      total,
+
+      totalPages:
+        Math.ceil(
+          total /
+          currentLimit
+        ),
     },
   };
 };

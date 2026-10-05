@@ -1,31 +1,38 @@
 import {
+  useEffect,
+} from "react";
+
+import {
+  useDispatch,
   useSelector,
 } from "react-redux";
 
 import HeroSection from "../../../components/public/home/HeroSection";
-
 import CategorySection from "../../../components/public/home/CategorySection";
-
 import PopularRestaurantsSection from "../../../components/public/home/PopularRestaurantsSection";
-
 import PopularFoodsSection from "../../../components/public/home/PopularFoodsSection";
-
 import HowItWorksSection from "../../../components/public/home/HowItWorksSection";
-
 import PartnerCTASection from "../../../components/public/home/PartnerCTASection";
-
 import LiveTrackingSection from "../../../components/public/home/LiveTrackingSection";
-
-import {
-  useDispatch,
-
-} from "react-redux";
 
 import {
   addCartItem,
 } from "../../../redux/thunks/public/cart.thunk";
 
+import {
+  getRestaurants,
+} from "../../../redux/thunks/public/restaurant.thunk";
+
+import {
+  getFoods,
+} from "../../../redux/thunks/public/food.thunk";
+
+
 const Home = () => {
+  const dispatch =
+    useDispatch();
+
+
   // =========================
   // CATEGORY STATE
   // =========================
@@ -72,68 +79,74 @@ const Home = () => {
 
 
   // =========================
+  // FETCH HOME DATA
+  // =========================
+
+  useEffect(() => {
+    dispatch(
+      getRestaurants()
+    );
+
+    dispatch(
+      getFoods()
+    );
+  }, [dispatch]);
+
+
+  // =========================
   // ADD TO CART
   // =========================
 
-  const handleAddToCart = async (food) => {
-    try {
-      await dispatch(
-        addCartItem({
-          foodSlug: food.slug,
-          quantity: 1,
-        })
-      ).unwrap();
+  const handleAddToCart =
+    async (food) => {
+      try {
+        await dispatch(
+          addCartItem({
+            foodSlug:
+              food.slug,
 
-      console.log(
-        "Added to cart"
-      );
-    } catch (error) {
-      console.error(
-        "ADD CART ERROR:",
-        error
-      );
-    }
-  };
+            quantity: 1,
+          })
+        ).unwrap();
 
-  const dispatch =
-    useDispatch();
+      } catch (error) {
+        console.error(
+          "ADD CART ERROR:",
+          error
+        );
+      }
+    };
+
 
   return (
     <>
       <HeroSection />
 
-
       <CategorySection
         categories={
           categories
         }
-
         loading={
           categoryLoading
         }
       />
 
-
       <PopularRestaurantsSection
         restaurants={
           restaurants
         }
-
         loading={
           restaurantLoading
         }
       />
 
-
       <PopularFoodsSection
         foods={
           foods
         }
-
         loading={
           foodLoading
         }
-
         onAddToCart={
           handleAddToCart
         }
