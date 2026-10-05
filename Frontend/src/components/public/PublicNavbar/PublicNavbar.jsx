@@ -66,7 +66,22 @@ const PublicNavbar = ({
     setSearchQuery,
   ] = useState("");
 
+  const [
+    deliveryLocation,
+    setDeliveryLocation,
+  ] = useState(
+    locationLabel
+  );
 
+  const [
+    locationLoading,
+    setLocationLoading,
+  ] = useState(false);
+
+  const [
+    locationCoords,
+    setLocationCoords,
+  ] = useState(null);
   /*
     MD / LG screen par
     expandable search.
@@ -236,7 +251,236 @@ const PublicNavbar = ({
 
   }, [mediumSearchOpen]);
 
+  const detectCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setDeliveryLocation(
+        "Choose delivery location"
+      );
 
+      return;
+    }
+
+    setLocationLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const {
+            latitude,
+            longitude,
+          } = position.coords;
+
+          // =========================
+          // SAVE COORDINATES
+          // =========================
+
+          setLocationCoords({
+            latitude,
+            longitude,
+          });
+
+
+          // =========================
+          // REVERSE GEOCODING
+          // =========================
+
+          const response =
+            await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+            );
+
+
+          if (!response.ok) {
+            throw new Error(
+              "Unable to detect address"
+            );
+          }
+
+
+          const data =
+            await response.json();
+
+
+          const address =
+            data?.address || {};
+
+
+          const area =
+            address.suburb ||
+            address.neighbourhood ||
+            address.city_district ||
+            address.village ||
+            address.town;
+
+
+          const city =
+            address.city ||
+            address.town ||
+            address.village ||
+            address.county;
+
+
+          const state =
+            address.state;
+
+
+          const locationText = [
+            area,
+            city,
+            state,
+          ]
+            .filter(Boolean)
+
+            .filter(
+              (
+                value,
+                index,
+                array
+              ) =>
+                array.indexOf(
+                  value
+                ) === index
+            )
+
+            .join(", ");
+
+
+          const finalLocation =
+            locationText ||
+            data?.display_name ||
+            "Current location";
+
+
+          setDeliveryLocation(
+            finalLocation
+          );
+
+
+          // =========================
+          // CACHE
+          // =========================
+
+          localStorage.setItem(
+            "deliveryLocation",
+            JSON.stringify({
+              label:
+                finalLocation,
+
+              latitude,
+
+              longitude,
+            })
+          );
+
+        } catch (error) {
+          console.error(
+            "LOCATION ERROR:",
+            error
+          );
+
+          setDeliveryLocation(
+            "Choose delivery location"
+          );
+
+        } finally {
+          setLocationLoading(false);
+        }
+      },
+
+
+      // =========================
+      // GEOLOCATION ERROR
+      // =========================
+
+      (error) => {
+        console.error(
+          "GEOLOCATION ERROR:",
+          error
+        );
+
+        setLocationLoading(false);
+
+
+        if (
+          error.code ===
+          error.PERMISSION_DENIED
+        ) {
+          setDeliveryLocation(
+            "Location permission denied"
+          );
+
+          return;
+        }
+
+
+        setDeliveryLocation(
+          "Choose delivery location"
+        );
+      },
+
+
+      // =========================
+      // OPTIONS
+      // =========================
+
+      {
+        enableHighAccuracy:
+          true,
+
+        timeout:
+          10000,
+
+        maximumAge:
+          60000,
+      }
+    );
+  };
+
+
+  useEffect(() => {
+    const savedLocation =
+      localStorage.getItem(
+        "deliveryLocation"
+      );
+
+
+    // Already detected hai to
+    // pehle cached location dikhao.
+
+    if (savedLocation) {
+      try {
+        const parsed =
+          JSON.parse(
+            savedLocation
+          );
+
+        if (parsed?.label) {
+          setDeliveryLocation(
+            parsed.label
+          );
+
+          setLocationCoords({
+            latitude:
+              parsed.latitude,
+
+            longitude:
+              parsed.longitude,
+          });
+        }
+
+      } catch (error) {
+        localStorage.removeItem(
+          "deliveryLocation"
+        );
+      }
+    }
+
+
+    // Page open hote hi
+    // current location check karo.
+
+    detectCurrentLocation();
+  }, []);
   // =========================
   // HELPERS
   // =========================
@@ -511,26 +755,24 @@ const PublicNavbar = ({
               <button
                 type="button"
 
+                onClick={
+                  detectCurrentLocation
+                }
+
                 className="
-                  hidden
-                  max-w-[180px]
-                  items-center
-                  gap-2
-
-                  rounded-xl
-
-                  px-2.5
-                  py-2
-
-                  text-left
-
-                  transition
-
-                  hover:bg-orange-50
-
-                  lg:flex
-                  xl:max-w-[200px]
-                "
+    hidden
+    max-w-[180px]
+    items-center
+    gap-2
+    rounded-xl
+    px-2.5
+    py-2
+    text-left
+    transition
+    hover:bg-orange-50
+    lg:flex
+    xl:max-w-[200px]
+  "
               >
                 <span
                   className="
@@ -583,7 +825,9 @@ const PublicNavbar = ({
                       text-slate-800
                     "
                   >
-                    {locationLabel}
+                    {locationLoading
+                      ? "Detecting location..."
+                      : deliveryLocation}
                   </span>
                 </span>
               </button>
