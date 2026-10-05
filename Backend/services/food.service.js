@@ -1180,7 +1180,7 @@ export const getFoodsService = async ({
       WHERE
         f.is_available = true
 
-        AND r.approval_status = 'approved'
+        AND r.approval_status = 'APPROVED'
 
         AND r.is_blocked = false
 

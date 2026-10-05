@@ -2,7 +2,7 @@ import { clearCartService } from "../../services/cart.service.js";
 
 export const clearCart = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.auth.userId;
 
     const result = await clearCartService({
       userId,

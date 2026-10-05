@@ -2,7 +2,7 @@ import { removeCartItemService } from "../../services/cart.service.js";
 
 export const removeCartItem = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.auth.userId;
 
     const { foodSlug } = req.params;
 

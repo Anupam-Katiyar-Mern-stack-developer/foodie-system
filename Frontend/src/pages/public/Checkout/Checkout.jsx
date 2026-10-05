@@ -9,9 +9,7 @@ import {
     useNavigate,
 } from "react-router-dom";
 
-import {
-    useSelector,
-} from "react-redux";
+
 
 import {
     FaArrowLeft,
@@ -28,13 +26,20 @@ import {
 import Container from "../../../components/common/Container/Container";
 import EmptyState from "../../../components/common/EmptyState/EmptyState";
 import Skeleton from "../../../components/common/Skeleton/Skeleton";
-
+import {
+    placeOrder,
+} from "../../../redux/thunks/public/order.thunk";
+import {
+    useDispatch,
+    useSelector,
+} from "react-redux";
 
 const Checkout = () => {
     const navigate =
         useNavigate();
 
-
+    const dispatch =
+        useDispatch();
     // =========================
     // REDUX
     // =========================
@@ -59,6 +64,14 @@ const Checkout = () => {
     );
 
 
+    const {
+        placeOrderLoading,
+        placeOrderError,
+    } = useSelector(
+        (state) =>
+            state.publicOrder
+    );
+
     // =========================
     // LOCAL STATE
     // =========================
@@ -67,18 +80,6 @@ const Checkout = () => {
         selectedAddressId,
         setSelectedAddressId,
     ] = useState(null);
-
-
-    /*
-      UI preview only.
-  
-      Backend connect hone ke baad
-      placeOrderLoading Redux se aayega.
-    */
-    const [
-        previewMessage,
-        setPreviewMessage,
-    ] = useState("");
 
 
     // =========================
@@ -256,37 +257,48 @@ const Checkout = () => {
     // =========================
 
     const handlePlaceOrder =
-        () => {
-            if (!canPlaceOrder) {
+        async () => {
+            if (
+                !canPlaceOrder ||
+                !selectedAddress?.id ||
+                placeOrderLoading
+            ) {
                 return;
             }
 
+            try {
+                const result =
+                    await dispatch(
+                        placeOrder({
+                            addressId:
+                                selectedAddress.id,
 
-            /*
-              BACKEND INTEGRATION:
-      
-              dispatch(
-                placeOrder({
-                  addressId:
-                    selectedAddress.id,
-      
-                  paymentMethod:
-                    "COD",
-                })
-              );
-      
-              Backend khud current cart
-              read karega aur prices /
-              restaurants / foods
-              revalidate karega.
-            */
+                            paymentMethod:
+                                "COD",
+                        })
+                    ).unwrap();
 
 
-            setPreviewMessage(
-                "Checkout UI is ready. Order API will be connected during backend integration."
-            );
+                console.log(
+                    "ORDER CREATED:",
+                    result
+                );
+
+
+                navigate(
+                    "/orders",
+                    {
+                        replace: true,
+                    }
+                );
+
+            } catch (error) {
+                console.error(
+                    "PLACE ORDER ERROR:",
+                    error
+                );
+            }
         };
-
 
     // =========================
     // LOADING
@@ -1862,73 +1874,79 @@ const Checkout = () => {
                                         }
 
                                         disabled={
-                                            !canPlaceOrder
+                                            !canPlaceOrder ||
+                                            placeOrderLoading
                                         }
 
                                         className="
-                      inline-flex
-                      min-h-12
-                      w-full
-                      items-center
-                      justify-center
-                      gap-2
+    inline-flex
+    min-h-12
+    w-full
+    items-center
+    justify-center
+    gap-2
 
-                      rounded-2xl
+    rounded-2xl
 
-                      bg-gradient-to-r
-                      from-orange-500
-                      to-rose-500
+    bg-gradient-to-r
+    from-orange-500
+    to-rose-500
 
-                      px-5
+    px-5
 
-                      text-sm
-                      font-black
-                      text-white
+    text-sm
+    font-black
+    text-white
 
-                      shadow-lg
-                      shadow-orange-500/20
+    shadow-lg
+    shadow-orange-500/20
 
-                      transition
+    transition
 
-                      hover:-translate-y-0.5
-                      hover:shadow-xl
+    hover:-translate-y-0.5
+    hover:shadow-xl
 
-                      disabled:cursor-not-allowed
-                      disabled:opacity-40
-                      disabled:hover:translate-y-0
-                    "
+    disabled:cursor-not-allowed
+    disabled:opacity-40
+    disabled:hover:translate-y-0
+  "
                                     >
                                         <FaShoppingBag
                                             className="
-                        h-3.5
-                        w-3.5
-                      "
+      h-3.5
+      w-3.5
+    "
                                         />
 
-                                        Place Order
+                                        {placeOrderLoading
+                                            ? "Placing Order..."
+                                            : "Place Order"}
                                     </button>
 
 
                                     {/* PREVIEW MESSAGE */}
 
-                                    {previewMessage && (
+                                    {placeOrderError && (
                                         <div
                                             className="
-                        rounded-xl
+      rounded-xl
 
-                        bg-slate-100
+      border
+      border-rose-200
 
-                        p-3
+      bg-rose-50
 
-                        text-xs
-                        leading-5
-                        text-slate-600
-                      "
+      p-3
+
+      text-xs
+      font-semibold
+      leading-5
+      text-rose-700
+    "
                                         >
-                                            {previewMessage}
+                                            {placeOrderError}
                                         </div>
                                     )}
-
 
                                     <p
                                         className="

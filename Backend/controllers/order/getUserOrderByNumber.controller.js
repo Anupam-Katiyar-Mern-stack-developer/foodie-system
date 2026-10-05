@@ -2,7 +2,7 @@ import { getUserOrderByNumberService } from "../../services/order.service.js";
 
 export const getUserOrderByNumber = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.auth.userId;
 
     const { orderNumber } = req.params;
 

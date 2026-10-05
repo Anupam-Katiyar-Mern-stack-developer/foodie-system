@@ -2,7 +2,7 @@ import { placeOrderService } from "../../services/order.service.js";
 
 export const placeOrder = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.auth.userId;
 
     const { addressId, paymentMethod = "COD" } = req.body;
 

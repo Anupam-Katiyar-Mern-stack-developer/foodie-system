@@ -1,17 +1,16 @@
-import {
-    useMemo,
-    useState,
-} from "react";
+import { useEffect, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
 import {
-    useSelector,
-} from "react-redux";
-
-import {
-    FaBoxOpen,
-    FaSearch,
-    FaShoppingBag,
-    FaTimes,
+    FaBox,
+    FaCheckCircle,
+    FaClock,
+    FaMapMarkerAlt,
+    FaMotorcycle,
+    FaReceipt,
+    FaStore,
+    FaUtensils,
+    FaTimesCircle,
 } from "react-icons/fa";
 
 import Container from "../../../components/common/Container/Container";
@@ -19,21 +18,712 @@ import EmptyState from "../../../components/common/EmptyState/EmptyState";
 import ErrorState from "../../../components/common/ErrorState/ErrorState";
 import Skeleton from "../../../components/common/Skeleton/Skeleton";
 
-import OrderCard from "../../../components/public/OrderCard/OrderCard";
-
 import {
-    ACTIVE_ORDER_STATUSES,
-    ORDER_STATUS,
-} from "../../../constants/orderStatus";
+    getMyOrders,
+} from "../../../redux/thunks/public/order.thunk";
 
+
+// =========================
+// ORDER STATUS CONFIG
+// =========================
+
+const statusConfig = {
+    PLACED: {
+        label: "Order Placed",
+        icon: FaReceipt,
+        className:
+            "bg-blue-50 text-blue-700 border-blue-200",
+    },
+
+    ACCEPTED: {
+        label: "Accepted",
+        icon: FaCheckCircle,
+        className:
+            "bg-indigo-50 text-indigo-700 border-indigo-200",
+    },
+
+    PREPARING: {
+        label: "Preparing",
+        icon: FaUtensils,
+        className:
+            "bg-amber-50 text-amber-700 border-amber-200",
+    },
+
+    READY: {
+        label: "Ready",
+        icon: FaBox,
+        className:
+            "bg-purple-50 text-purple-700 border-purple-200",
+    },
+
+    OUT_FOR_DELIVERY: {
+        label: "Out For Delivery",
+        icon: FaMotorcycle,
+        className:
+            "bg-orange-50 text-orange-700 border-orange-200",
+    },
+
+    DELIVERED: {
+        label: "Delivered",
+        icon: FaCheckCircle,
+        className:
+            "bg-emerald-50 text-emerald-700 border-emerald-200",
+    },
+
+    CANCELLED: {
+        label: "Cancelled",
+        icon: FaTimesCircle,
+        className:
+            "bg-rose-50 text-rose-700 border-rose-200",
+    },
+};
+
+
+const orderStatusSteps = [
+    "Placed",
+    "Accepted",
+    "Preparing",
+    "Ready",
+    "OutForDelivery",
+    "Delivered",
+];
+
+
+// =========================
+// STATUS BADGE
+// =========================
+
+const OrderStatusBadge = ({
+    status,
+}) => {
+    const config =
+        statusConfig[status] ||
+        statusConfig.Placed;
+
+    const Icon =
+        config.icon;
+
+    return (
+        <span
+            className={`
+        inline-flex
+        items-center
+        gap-2
+        rounded-full
+        border
+        px-3
+        py-1.5
+        text-xs
+        font-bold
+        ${config.className}
+      `}
+        >
+            <Icon />
+
+            {config.label}
+        </span>
+    );
+};
+
+
+// =========================
+// ORDER TIMELINE
+// =========================
+
+const OrderTimeline = ({
+    status,
+}) => {
+    if (
+        status === "Cancelled"
+    ) {
+        return (
+            <div
+                className="
+          mt-5
+          rounded-xl
+          border
+          border-rose-100
+          bg-rose-50
+          px-4
+          py-3
+          text-sm
+          font-semibold
+          text-rose-600
+        "
+            >
+                This order has been
+                cancelled.
+            </div>
+        );
+    }
+
+
+    const currentIndex =
+        orderStatusSteps.indexOf(
+            status
+        );
+
+
+    return (
+        <div
+            className="
+        mt-6
+        overflow-x-auto
+        pb-2
+      "
+        >
+            <div
+                className="
+          flex
+          min-w-[650px]
+          items-start
+        "
+            >
+                {orderStatusSteps.map(
+                    (
+                        step,
+                        index
+                    ) => {
+                        const completed =
+                            index <=
+                            currentIndex;
+
+                        const current =
+                            index ===
+                            currentIndex;
+
+                        return (
+                            <div
+                                key={step}
+                                className="
+                  relative
+                  flex
+                  flex-1
+                  flex-col
+                  items-center
+                "
+                            >
+                                {index !== 0 && (
+                                    <div
+                                        className={`
+                      absolute
+                      right-1/2
+                      top-4
+                      h-[2px]
+                      w-full
+
+                      ${index <=
+                                                currentIndex
+                                                ? "bg-orange-500"
+                                                : "bg-slate-200"
+                                            }
+                    `}
+                                    />
+                                )}
+
+
+                                <div
+                                    className={`
+                    relative
+                    z-10
+
+                    flex
+                    h-8
+                    w-8
+
+                    items-center
+                    justify-center
+
+                    rounded-full
+
+                    border-2
+
+                    text-xs
+                    font-black
+
+                    ${completed
+                                            ? "border-orange-500 bg-orange-500 text-white"
+                                            : "border-slate-200 bg-white text-slate-400"
+                                        }
+
+                    ${current
+                                            ? "ring-4 ring-orange-100"
+                                            : ""
+                                        }
+                  `}
+                                >
+                                    {completed ? (
+                                        <FaCheckCircle />
+                                    ) : (
+                                        index + 1
+                                    )}
+                                </div>
+
+
+                                <span
+                                    className={`
+                    mt-2
+                    text-center
+                    text-xs
+                    font-bold
+
+                    ${completed
+                                            ? "text-slate-900"
+                                            : "text-slate-400"
+                                        }
+                  `}
+                                >
+                                    {
+                                        statusConfig[
+                                            step
+                                        ]?.label
+                                    }
+                                </span>
+                            </div>
+                        );
+                    }
+                )}
+            </div>
+        </div>
+    );
+};
+
+
+// =========================
+// ORDER CARD
+// =========================
+
+const OrderCard = ({
+    order,
+}) => {
+    const items =
+        order.items || [];
+
+    return (
+        <article
+            className="
+        overflow-hidden
+        rounded-[1.75rem]
+
+        border
+        border-slate-200
+
+        bg-white
+
+        shadow-sm
+      "
+        >
+            {/* HEADER */}
+
+            <div
+                className="
+          flex
+          flex-col
+          gap-4
+
+          border-b
+          border-slate-100
+
+          p-5
+
+          sm:flex-row
+          sm:items-center
+          sm:justify-between
+
+          lg:p-6
+        "
+            >
+                <div>
+                    <p
+                        className="
+              text-xs
+              font-bold
+              uppercase
+              tracking-[0.12em]
+              text-slate-400
+            "
+                    >
+                        Order
+                    </p>
+
+                    <h2
+                        className="
+              mt-1
+              text-lg
+              font-black
+              text-slate-950
+            "
+                    >
+                        #
+                        {
+                            order.orderNumber
+                        }
+                    </h2>
+
+                    {order.createdAt && (
+                        <div
+                            className="
+                mt-2
+                flex
+                items-center
+                gap-2
+                text-xs
+                text-slate-500
+              "
+                        >
+                            <FaClock />
+
+                            {new Date(
+                                order.createdAt
+                            ).toLocaleString()}
+                        </div>
+                    )}
+                </div>
+
+
+                <OrderStatusBadge
+                    status={
+                        order.status
+                    }
+                />
+            </div>
+
+
+            <div
+                className="
+          p-5
+          lg:p-6
+        "
+            >
+                {/* RESTAURANT */}
+
+                <div
+                    className="
+            flex
+            items-center
+            gap-3
+          "
+                >
+                    <div
+                        className="
+              flex
+              h-11
+              w-11
+              items-center
+              justify-center
+
+              rounded-xl
+
+              bg-orange-50
+
+              text-orange-500
+            "
+                    >
+                        <FaStore />
+                    </div>
+
+
+                    <div>
+                        <p
+                            className="
+                text-xs
+                font-semibold
+                text-slate-400
+              "
+                        >
+                            Restaurant
+                        </p>
+
+                        <h3
+                            className="
+                font-black
+                text-slate-900
+              "
+                        >
+                            {
+                                order.restaurantName
+                            }
+                        </h3>
+                    </div>
+                </div>
+
+
+                {/* TIMELINE */}
+
+                <OrderTimeline
+                    status={
+                        order.status
+                    }
+                />
+
+
+                {/* ITEMS */}
+
+                <div
+                    className="
+            mt-6
+            space-y-3
+          "
+                >
+                    {items.map(
+                        (
+                            item,
+                            index
+                        ) => (
+                            <div
+                                key={
+                                    item.slug ||
+                                    item.foodSlug ||
+                                    index
+                                }
+                                className="
+                  flex
+                  items-center
+                  justify-between
+                  gap-4
+
+                  rounded-xl
+
+                  bg-slate-50
+
+                  px-4
+                  py-3
+                "
+                            >
+                                <div
+                                    className="
+                    min-w-0
+                  "
+                                >
+                                    <p
+                                        className="
+                      truncate
+                      text-sm
+                      font-bold
+                      text-slate-900
+                    "
+                                    >
+                                        {item.name ||
+                                            item.foodName}
+                                    </p>
+
+                                    <p
+                                        className="
+                      mt-1
+                      text-xs
+                      text-slate-500
+                    "
+                                    >
+                                        Qty:{" "}
+                                        {
+                                            item.quantity
+                                        }
+                                    </p>
+                                </div>
+
+
+                                <p
+                                    className="
+                    shrink-0
+                    text-sm
+                    font-black
+                    text-slate-950
+                  "
+                                >
+                                    ₹
+                                    {Number(
+                                        item.itemTotal ??
+                                        item.total ??
+                                        item.price *
+                                        item.quantity
+                                    ).toFixed(2)}
+                                </p>
+                            </div>
+                        )
+                    )}
+                </div>
+
+
+                {/* ADDRESS */}
+
+                {(order.addressLine ||
+                    order.city) && (
+                        <div
+                            className="
+              mt-6
+
+              flex
+              gap-3
+
+              rounded-xl
+
+              border
+              border-slate-100
+
+              bg-white
+
+              p-4
+            "
+                        >
+                            <FaMapMarkerAlt
+                                className="
+                mt-1
+                shrink-0
+                text-orange-500
+              "
+                            />
+
+                            <div>
+                                <p
+                                    className="
+                  text-xs
+                  font-bold
+                  uppercase
+                  tracking-wide
+                  text-slate-400
+                "
+                                >
+                                    Delivery Address
+                                </p>
+
+                                <p
+                                    className="
+                  mt-1
+                  text-sm
+                  font-semibold
+                  leading-6
+                  text-slate-700
+                "
+                                >
+                                    {
+                                        order.addressLine
+                                    }
+
+                                    {order.addressLine &&
+                                        order.city &&
+                                        ", "}
+
+                                    {order.city}
+
+                                    {order.state &&
+                                        `, ${order.state}`}
+
+                                    {order.pincode &&
+                                        ` - ${order.pincode}`}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+
+                <div
+                    className="
+    mt-6
+    grid
+    grid-cols-2
+    gap-3
+    sm:grid-cols-4
+  "
+                >
+                    <div className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-xs text-slate-400">
+                            Subtotal
+                        </p>
+
+                        <p className="mt-1 text-sm font-black text-slate-900">
+                            ₹{Number(order.subtotal || 0).toFixed(2)}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-xs text-slate-400">
+                            Delivery Fee
+                        </p>
+
+                        <p className="mt-1 text-sm font-black text-slate-900">
+                            ₹{Number(order.deliveryFee || 0).toFixed(2)}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-xs text-slate-400">
+                            Payment
+                        </p>
+
+                        <p className="mt-1 text-sm font-black text-slate-900">
+                            {order.paymentMethod}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-xs text-slate-400">
+                            Payment Status
+                        </p>
+
+                        <p className="mt-1 text-sm font-black text-slate-900">
+                            {order.paymentStatus}
+                        </p>
+                    </div>
+                </div>
+
+                {/* TOTAL */}
+
+                <div
+                    className="
+            mt-6
+
+            flex
+            items-center
+            justify-between
+
+            border-t
+            border-slate-100
+
+            pt-5
+          "
+                >
+                    <span
+                        className="
+              text-sm
+              font-bold
+              text-slate-500
+            "
+                    >
+                        Order Total
+                    </span>
+
+                    <span
+                        className="
+              text-xl
+              font-black
+              text-slate-950
+            "
+                    >
+                        ₹
+                        {Number(
+                            order.totalAmount || 0
+                        ).toFixed(2)}
+                    </span>
+                </div>
+
+
+            </div>
+        </article>
+    );
+};
+
+
+// =========================
+// ORDERS PAGE
+// =========================
 
 const Orders = () => {
-    // =========================
-    // REDUX
-    // =========================
+    const dispatch =
+        useDispatch();
+
 
     const {
-        orders,
+        orders = [],
         fetchLoading,
         error,
     } = useSelector(
@@ -42,708 +732,247 @@ const Orders = () => {
     );
 
 
-    // =========================
-    // UI STATE
-    // =========================
+    useEffect(() => {
+        dispatch(getMyOrders())
+            .unwrap()
+            .then((data) => {
+                console.log(
+                    "MY ORDERS RESPONSE:",
+                    data
+                );
+            })
+            .catch((error) => {
+                console.log(error);
+            });
+    }, [dispatch]);
 
-    const [
-        activeFilter,
-        setActiveFilter,
-    ] = useState("all");
 
-
-    const [
-        searchTerm,
-        setSearchTerm,
-    ] = useState("");
-
-
-    // =========================
-    // FILTER
-    // =========================
-
-    const filteredOrders =
+    // Active orders first
+    const sortedOrders =
         useMemo(() => {
-            const search =
-                searchTerm
-                    .trim()
-                    .toLowerCase();
+            const activeStatuses =
+                [
+                    "Placed",
+                    "Accepted",
+                    "Preparing",
+                    "Ready",
+                    "OutForDelivery",
+                ];
 
+            return [
+                ...orders,
+            ].sort(
+                (
+                    a,
+                    b
+                ) => {
+                    const aActive =
+                        activeStatuses.includes(
+                            a.status
+                        );
 
-            return orders.filter(
-                (order) => {
-                    const matchesSearch =
-                        !search ||
-                        order.orderNumber
-                            ?.toLowerCase()
-                            .includes(search) ||
-                        order.restaurantName
-                            ?.toLowerCase()
-                            .includes(search);
-
-
-                    let matchesStatus =
-                        true;
-
-
-                    if (
-                        activeFilter ===
-                        "active"
-                    ) {
-                        matchesStatus =
-                            ACTIVE_ORDER_STATUSES.includes(
-                                order.status
-                            );
-                    }
-
+                    const bActive =
+                        activeStatuses.includes(
+                            b.status
+                        );
 
                     if (
-                        activeFilter ===
-                        "delivered"
+                        aActive &&
+                        !bActive
                     ) {
-                        matchesStatus =
-                            order.status ===
-                            ORDER_STATUS.DELIVERED;
+                        return -1;
                     }
-
 
                     if (
-                        activeFilter ===
-                        "cancelled"
+                        !aActive &&
+                        bActive
                     ) {
-                        matchesStatus =
-                            order.status ===
-                            ORDER_STATUS.CANCELLED;
+                        return 1;
                     }
-
 
                     return (
-                        matchesSearch &&
-                        matchesStatus
+                        new Date(
+                            b.createdAt || 0
+                        ) -
+                        new Date(
+                            a.createdAt || 0
+                        )
                     );
                 }
             );
-        }, [
-            orders,
-            searchTerm,
-            activeFilter,
-        ]);
-
-
-    const activeCount =
-        orders.filter(
-            (order) =>
-                ACTIVE_ORDER_STATUSES.includes(
-                    order.status
-                )
-        ).length;
-
-
-    const deliveredCount =
-        orders.filter(
-            (order) =>
-                order.status ===
-                ORDER_STATUS.DELIVERED
-        ).length;
-
-
-    const cancelledCount =
-        orders.filter(
-            (order) =>
-                order.status ===
-                ORDER_STATUS.CANCELLED
-        ).length;
-
-
-    const clearFilters = () => {
-        setSearchTerm("");
-
-        setActiveFilter(
-            "all"
-        );
-    };
-
-
-    const hasFilters =
-        Boolean(
-            searchTerm.trim()
-        ) ||
-        activeFilter !==
-        "all";
+        }, [orders]);
 
 
     return (
-        <div
+        <main
             className="
         min-h-screen
         bg-[#fffaf5]
+        py-8
+
+        sm:py-10
+
+        lg:py-14
       "
         >
-            {/* =========================
-          HEADER
-      ========================== */}
+            <Container>
+                {/* PAGE HEADER */}
 
-            <section
-                className="
-          relative
-          overflow-hidden
-
-          border-b
-          border-orange-100
-
-          bg-white
-        "
-            >
                 <div
                     className="
-            pointer-events-none
-
-            absolute
-            -left-28
-            top-0
-
-            h-64
-            w-64
-
-            rounded-full
-
-            bg-orange-300/15
-
-            blur-[90px]
+            mb-8
           "
-                />
-
-
-                <Container>
+                >
                     <div
                         className="
-              relative
-              z-10
+              inline-flex
+              items-center
+              gap-2
 
-              py-10
+              rounded-full
 
-              sm:py-12
+              bg-orange-50
 
-              lg:py-14
+              px-3
+              py-1.5
+
+              text-xs
+              font-black
+              uppercase
+              tracking-[0.12em]
+              text-orange-600
             "
                     >
-                        <div
-                            className="
-                inline-flex
-                items-center
-                gap-2
+                        <FaReceipt />
 
-                rounded-full
-
-                border
-                border-orange-200
-
-                bg-orange-50
-
-                px-3
-                py-1.5
-
-                text-xs
-                font-black
-                uppercase
-                tracking-[0.14em]
-                text-orange-600
-              "
-                        >
-                            <FaShoppingBag />
-
-                            Order history
-                        </div>
-
-
-                        <h1
-                            className="
-                mt-4
-
-                text-3xl
-                font-black
-                tracking-tight
-                text-slate-950
-
-                sm:text-4xl
-              "
-                        >
-                            My
-                            <span
-                                className="
-                  text-orange-500
-                "
-                            >
-                                {" "}
-                                Orders
-                            </span>
-                        </h1>
-
-
-                        <p
-                            className="
-                mt-2
-
-                max-w-xl
-
-                text-sm
-                leading-6
-                text-slate-500
-
-                sm:text-base
-              "
-                        >
-                            Track active orders and
-                            view your previous Foodie
-                            orders.
-                        </p>
+                        My Orders
                     </div>
-                </Container>
-            </section>
 
 
-            {/* =========================
-          CONTENT
-      ========================== */}
-
-            <section
-                className="
-          py-8
-
-          sm:py-10
-
-          lg:py-12
-        "
-            >
-                <Container>
-                    {/* =====================
-              FILTER BOX
-          ====================== */}
-
-                    <div
+                    <h1
                         className="
-              mb-7
+              mt-3
+              text-3xl
+              font-black
+              tracking-tight
+              text-slate-950
 
-              rounded-[1.5rem]
-
-              border
-              border-slate-200
-
-              bg-white
-
-              p-3
-
-              shadow-sm
+              sm:text-4xl
             "
                     >
-                        {/* SEARCH */}
-
-                        <div
-                            className="
-                relative
-              "
-                        >
-                            <FaSearch
-                                className="
-                  pointer-events-none
-
-                  absolute
-                  left-4
-                  top-1/2
-
-                  -translate-y-1/2
-
-                  text-sm
-                  text-orange-500
-                "
-                            />
+                        Your food orders
+                    </h1>
 
 
-                            <input
-                                type="search"
+                    <p
+                        className="
+              mt-2
+              max-w-2xl
+              text-sm
+              leading-6
+              text-slate-500
 
-                                value={
-                                    searchTerm
-                                }
-
-                                onChange={(
-                                    event
-                                ) =>
-                                    setSearchTerm(
-                                        event.target.value
-                                    )
-                                }
-
-                                placeholder="Search by order number or restaurant..."
-
-                                className="
-                  min-h-11
-                  w-full
-
-                  rounded-xl
-
-                  border
-                  border-slate-200
-
-                  bg-slate-50
-
-                  pl-10
-                  pr-10
-
-                  text-sm
-
-                  outline-none
-
-                  transition
-
-                  focus:border-orange-300
-                  focus:bg-white
-                  focus:ring-4
-                  focus:ring-orange-100
-                "
-                            />
+              sm:text-base
+            "
+                    >
+                        Track active
+                        deliveries and view
+                        your previous orders
+                        in one place.
+                    </p>
+                </div>
 
 
-                            {searchTerm && (
-                                <button
-                                    type="button"
+                {/* LOADING */}
 
-                                    onClick={() =>
-                                        setSearchTerm("")
+                {fetchLoading && (
+                    <div
+                        className="
+              space-y-5
+            "
+                    >
+                        {Array.from({
+                            length: 3,
+                        }).map(
+                            (
+                                _,
+                                index
+                            ) => (
+                                <Skeleton
+                                    key={
+                                        index
                                     }
-
-                                    className="
-                    absolute
-                    right-2
-                    top-1/2
-
-                    flex
-                    h-8
-                    w-8
-
-                    -translate-y-1/2
-
-                    items-center
-                    justify-center
-
-                    rounded-lg
-
-                    text-slate-400
-
-                    hover:bg-slate-100
-                  "
-                                >
-                                    <FaTimes
-                                        className="
-                      h-3
-                      w-3
-                    "
-                                    />
-                                </button>
-                            )}
-                        </div>
-
-
-                        {/* STATUS TABS */}
-
-                        <div
-                            className="
-                mt-3
-
-                flex
-                gap-2
-
-                overflow-x-auto
-
-                border-t
-                border-slate-100
-
-                pt-3
-
-                [scrollbar-width:none]
-                [&::-webkit-scrollbar]:hidden
-              "
-                        >
-                            {[
-                                {
-                                    value: "all",
-
-                                    label: "All",
-
-                                    count:
-                                        orders.length,
-                                },
-
-                                {
-                                    value:
-                                        "active",
-
-                                    label:
-                                        "Active",
-
-                                    count:
-                                        activeCount,
-                                },
-
-                                {
-                                    value:
-                                        "delivered",
-
-                                    label:
-                                        "Delivered",
-
-                                    count:
-                                        deliveredCount,
-                                },
-
-                                {
-                                    value:
-                                        "cancelled",
-
-                                    label:
-                                        "Cancelled",
-
-                                    count:
-                                        cancelledCount,
-                                },
-                            ].map(
-                                (filter) => (
-                                    <button
-                                        key={
-                                            filter.value
-                                        }
-
-                                        type="button"
-
-                                        onClick={() =>
-                                            setActiveFilter(
-                                                filter.value
-                                            )
-                                        }
-
-                                        className={`
-                      min-h-10
-                      shrink-0
-
-                      rounded-xl
-
-                      px-4
-
-                      text-xs
-                      font-black
-
-                      transition
-
-                      ${activeFilter ===
-                                                filter.value
-                                                ? `
-                            bg-slate-950
-                            text-white
-                          `
-                                                : `
-                            bg-slate-50
-                            text-slate-500
-
-                            hover:bg-orange-50
-                            hover:text-orange-600
-                          `
-                                            }
-                    `}
-                                    >
-                                        {
-                                            filter.label
-                                        }
-
-                                        <span
-                                            className="
-                        ml-1.5
-                        opacity-60
-                      "
-                                        >
-                                            {
-                                                filter.count
-                                            }
-                                        </span>
-                                    </button>
-                                )
-                            )}
-                        </div>
+                                    width="w-full"
+                                    height="h-[420px]"
+                                    rounded="rounded-[1.75rem]"
+                                />
+                            )
+                        )}
                     </div>
+                )}
 
 
-                    {/* =====================
-              LOADING
-          ====================== */}
+                {/* ERROR */}
 
-                    {fetchLoading && (
+                {!fetchLoading &&
+                    error && (
+                        <ErrorState
+                            title="Unable to load orders"
+                            description={
+                                typeof error ===
+                                    "string"
+                                    ? error
+                                    : "Something went wrong while loading your orders."
+                            }
+                        />
+                    )}
+
+
+                {/* EMPTY */}
+
+                {!fetchLoading &&
+                    !error &&
+                    sortedOrders.length ===
+                    0 && (
+                        <EmptyState
+                            icon={
+                                FaReceipt
+                            }
+                            title="No orders yet"
+                            description="Your orders will appear here after you place your first order."
+                        />
+                    )}
+
+
+                {/* ORDERS */}
+
+                {!fetchLoading &&
+                    !error &&
+                    sortedOrders.length >
+                    0 && (
                         <div
                             className="
-                grid
-                gap-5
-
-                lg:grid-cols-2
+                space-y-6
               "
                         >
-                            {Array.from({
-                                length: 4,
-                            }).map(
-                                (_, index) => (
-                                    <Skeleton
-                                        key={index}
-
-                                        width="w-full"
-                                        height="h-[330px]"
-                                        rounded="rounded-[1.75rem]"
+                            {sortedOrders.map(
+                                (
+                                    order
+                                ) => (
+                                    <OrderCard
+                                        key={
+                                            order.orderNumber
+                                        }
+                                        order={
+                                            order
+                                        }
                                     />
                                 )
                             )}
                         </div>
                     )}
-
-
-                    {/* =====================
-              ERROR
-          ====================== */}
-
-                    {!fetchLoading &&
-                        error && (
-                            <ErrorState
-                                title="Unable to load orders"
-
-                                description={
-                                    typeof error ===
-                                        "string"
-                                        ? error
-                                        : "Something went wrong while loading your orders."
-                                }
-                            />
-                        )}
-
-
-                    {/* =====================
-              EMPTY
-          ====================== */}
-
-                    {!fetchLoading &&
-                        !error &&
-                        filteredOrders.length ===
-                        0 && (
-                            <EmptyState
-                                icon={
-                                    FaBoxOpen
-                                }
-
-                                title={
-                                    hasFilters
-                                        ? "No matching orders"
-                                        : "No orders yet"
-                                }
-
-                                description={
-                                    hasFilters
-                                        ? "Try another order number, restaurant or status."
-                                        : "Your Foodie orders will appear here after you place your first order."
-                                }
-
-                                action={
-                                    hasFilters ? (
-                                        <button
-                                            type="button"
-
-                                            onClick={
-                                                clearFilters
-                                            }
-
-                                            className="
-                        min-h-11
-
-                        rounded-xl
-
-                        bg-orange-500
-
-                        px-5
-
-                        text-sm
-                        font-bold
-                        text-white
-                      "
-                                        >
-                                            Clear Filters
-                                        </button>
-                                    ) : null
-                                }
-                            />
-                        )}
-
-
-                    {/* =====================
-              ORDER GRID
-          ====================== */}
-
-                    {!fetchLoading &&
-                        !error &&
-                        filteredOrders.length >
-                        0 && (
-                            <>
-                                <div
-                                    className="
-                    mb-4
-
-                    text-sm
-                    text-slate-500
-                  "
-                                >
-                                    Showing{" "}
-
-                                    <span
-                                        className="
-                      font-black
-                      text-slate-900
-                    "
-                                    >
-                                        {
-                                            filteredOrders.length
-                                        }
-                                    </span>
-
-                                    {" "}
-                                    order
-                                    {
-                                        filteredOrders.length !==
-                                            1
-                                            ? "s"
-                                            : ""
-                                    }
-                                </div>
-
-
-                                <div
-                                    className="
-                    grid
-                    gap-5
-
-                    lg:grid-cols-2
-                  "
-                                >
-                                    {filteredOrders.map(
-                                        (order) => (
-                                            <OrderCard
-                                                key={
-                                                    order.orderNumber
-                                                }
-
-                                                order={
-                                                    order
-                                                }
-                                            />
-                                        )
-                                    )}
-                                </div>
-                            </>
-                        )}
-                </Container>
-            </section>
-        </div>
+            </Container>
+        </main>
     );
 };
 
