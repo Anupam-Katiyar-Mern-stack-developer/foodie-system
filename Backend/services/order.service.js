@@ -522,12 +522,29 @@ export const placeOrderService = async ({
 
 // get user order service
 
-export const getUserOrdersService = async ({ userId, page, limit }) => {
-  const offset = (page - 1) * limit;
+export const getUserOrdersService = async ({
+  userId,
+  page = 1,
+  limit = 10,
+}) => {
+  // =========================
+  // PAGINATION
+  // =========================
+
+  const currentPage = Math.max(Number(page) || 1, 1);
+
+  const currentLimit = Math.min(Math.max(Number(limit) || 10, 1), 50);
+
+  const offset = (currentPage - 1) * currentLimit;
+
+  // =========================
+  // TOTAL ORDERS
+  // =========================
 
   const countResult = await pool.query(
     `
-      SELECT COUNT(*)::int AS total
+      SELECT
+        COUNT(*)::int AS total
 
       FROM orders o
 
@@ -535,61 +552,238 @@ export const getUserOrdersService = async ({ userId, page, limit }) => {
         ON og.id = o.order_group_id
 
       WHERE og.user_id = $1
-    `,
+      `,
     [userId],
   );
+
+  // =========================
+  // GET COMPLETE ORDERS
+  // =========================
 
   const result = await pool.query(
     `
       SELECT
-        o.order_number AS "orderNumber",
+        -- =====================
+        -- ORDER
+        -- =====================
+
+        o.order_number
+          AS "orderNumber",
+
         o.status,
 
         o.subtotal,
-        o.delivery_fee AS "deliveryFee",
-        o.tax_amount AS "taxAmount",
-        o.total_amount AS "totalAmount",
 
-        o.created_at AS "createdAt",
-        o.updated_at AS "updatedAt",
+        o.delivery_fee
+          AS "deliveryFee",
 
-        og.checkout_number AS "checkoutNumber",
-        og.payment_method AS "paymentMethod",
-        og.payment_status AS "paymentStatus",
+        o.tax_amount
+          AS "taxAmount",
 
-        r.restaurant_name AS "restaurantName",
-        r.slug AS "restaurantSlug",
-        r.logo AS "restaurantLogo"
+        o.total_amount
+          AS "totalAmount",
+
+
+        -- =====================
+        -- REJECTION / CANCEL
+        -- =====================
+
+        o.rejection_reason
+          AS "rejectionReason",
+
+        o.cancelled_reason
+          AS "cancelledReason",
+
+
+        -- =====================
+        -- STATUS TIMESTAMPS
+        -- =====================
+
+        o.confirmed_at
+          AS "confirmedAt",
+
+        o.preparing_at
+          AS "preparingAt",
+
+        o.ready_at
+          AS "readyAt",
+
+        o.picked_up_at
+          AS "pickedUpAt",
+
+        o.delivered_at
+          AS "deliveredAt",
+
+        o.cancelled_at
+          AS "cancelledAt",
+
+        o.created_at
+          AS "createdAt",
+
+        o.updated_at
+          AS "updatedAt",
+
+
+        -- =====================
+        -- CHECKOUT
+        -- =====================
+
+        og.checkout_number
+          AS "checkoutNumber",
+
+        og.payment_method
+          AS "paymentMethod",
+
+        og.payment_status
+          AS "paymentStatus",
+
+
+        -- =====================
+        -- CUSTOMER
+        -- =====================
+
+        og.delivery_name
+          AS "deliveryName",
+
+        og.delivery_phone
+          AS "deliveryPhone",
+
+
+        -- =====================
+        -- DELIVERY ADDRESS
+        -- =====================
+
+        og.address_line
+          AS "addressLine",
+
+        og.landmark,
+
+        og.city,
+
+        og.state,
+
+        og.pincode,
+
+        og.latitude,
+
+        og.longitude,
+
+
+        -- =====================
+        -- RESTAURANT
+        -- =====================
+
+        r.restaurant_name
+          AS "restaurantName",
+
+        r.slug
+          AS "restaurantSlug",
+
+        r.logo
+          AS "restaurantLogo",
+
+
+        -- =====================
+        -- TOTAL FOOD ITEMS
+        -- =====================
+
+        (
+          SELECT
+            COALESCE(
+              SUM(oi.quantity),
+              0
+            )::int
+
+          FROM order_items oi
+
+          WHERE
+            oi.order_id = o.id
+
+        ) AS "totalItems",
+
+
+        -- =====================
+        -- ORDER ITEMS
+        -- =====================
+
+        COALESCE(
+          (
+            SELECT
+              json_agg(
+                json_build_object(
+                  'name',
+                    oi.food_name,
+
+                  'slug',
+                    oi.food_slug,
+
+                  'image',
+                    oi.food_image,
+
+                  'unitPrice',
+                    oi.unit_price,
+
+                  'quantity',
+                    oi.quantity,
+
+                  'itemTotal',
+                    oi.item_total
+                )
+
+                ORDER BY
+                  oi.id ASC
+              )
+
+            FROM order_items oi
+
+            WHERE
+              oi.order_id = o.id
+          ),
+
+          '[]'::json
+        ) AS items
+
 
       FROM orders o
 
+
       INNER JOIN order_groups og
-        ON og.id = o.order_group_id
+        ON og.id =
+          o.order_group_id
+
 
       INNER JOIN restaurants r
-        ON r.id = o.restaurant_id
+        ON r.id =
+          o.restaurant_id
 
-      WHERE og.user_id = $1
 
-      ORDER BY o.created_at DESC
+      WHERE
+        og.user_id = $1
+
+
+      ORDER BY
+        o.created_at DESC
+
 
       LIMIT $2
       OFFSET $3
-    `,
-    [userId, limit, offset],
+      `,
+    [userId, currentLimit, offset],
   );
 
-  const total = countResult.rows[0].total;
+  const total = countResult.rows[0]?.total || 0;
 
   return {
     orders: result.rows,
 
     pagination: {
-      page,
-      limit,
+      page: currentPage,
+
+      limit: currentLimit,
+
       total,
 
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / currentLimit),
     },
   };
 };

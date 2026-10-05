@@ -1123,35 +1123,19 @@ export const getFoodsByRestaurantService = async ({
 };
 
 // get food service
-export const getFoodsService = async ({
-  page = 1,
-  limit = 20,
-}) => {
-  const currentPage = Math.max(
-    Number(page) || 1,
-    1
-  );
+export const getFoodsService = async ({ page = 1, limit = 20 }) => {
+  const currentPage = Math.max(Number(page) || 1, 1);
 
-  const currentLimit = Math.min(
-    Math.max(
-      Number(limit) || 20,
-      1
-    ),
-    100
-  );
+  const currentLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
 
-  const offset =
-    (currentPage - 1) *
-    currentLimit;
-
+  const offset = (currentPage - 1) * currentLimit;
 
   // =========================
   // GET FOODS
   // =========================
 
-  const foodsResult =
-    await pool.query(
-      `
+  const foodsResult = await pool.query(
+    `
       SELECT
         f.name,
         f.slug,
@@ -1190,20 +1174,15 @@ export const getFoodsService = async ({
       LIMIT $1
       OFFSET $2
       `,
-      [
-        currentLimit,
-        offset,
-      ]
-    );
-
+    [currentLimit, offset],
+  );
 
   // =========================
   // TOTAL COUNT
   // =========================
 
-  const countResult =
-    await pool.query(
-      `
+  const countResult = await pool.query(
+    `
       SELECT
         COUNT(*)::int AS total
 
@@ -1218,32 +1197,178 @@ export const getFoodsService = async ({
         AND r.approval_status = 'approved'
 
         AND r.is_blocked = false
-      `
-    );
+      `,
+  );
 
-
-  const total =
-    countResult.rows[0].total;
-
+  const total = countResult.rows[0].total;
 
   return {
-    foods:
-      foodsResult.rows,
+    foods: foodsResult.rows,
 
     pagination: {
-      page:
-        currentPage,
+      page: currentPage,
 
-      limit:
-        currentLimit,
+      limit: currentLimit,
 
       total,
 
-      totalPages:
-        Math.ceil(
-          total /
-          currentLimit
-        ),
+      totalPages: Math.ceil(total / currentLimit),
     },
   };
+};
+
+// get food by slug in publoc
+export const getFoodBySlugService = async ({ foodSlug }) => {
+  const result = await pool.query(
+    `
+      SELECT
+        f.id,
+
+        f.name,
+        f.slug,
+        f.description,
+        f.image,
+
+        f.price,
+
+        f.discount_price
+          AS "discountPrice",
+
+        f.preparation_time
+          AS "preparationTime",
+
+        f.is_veg
+          AS "isVeg",
+
+        f.is_available
+          AS "isAvailable",
+
+        f.created_at
+          AS "createdAt",
+
+        -- =========================
+        -- CATEGORY
+        -- =========================
+
+        c.name
+          AS "categoryName",
+
+        c.slug
+          AS "categorySlug",
+
+        c.is_active
+          AS "categoryIsActive",
+
+        -- =========================
+        -- RESTAURANT
+        -- =========================
+
+        r.restaurant_name
+          AS "restaurantName",
+
+        r.slug
+          AS "restaurantSlug",
+
+        r.logo
+          AS "restaurantLogo",
+
+        r.banner
+          AS "restaurantBanner",
+
+        r.city
+          AS "restaurantCity",
+
+        r.state
+          AS "restaurantState",
+
+        r.is_open
+          AS "restaurantIsOpen",
+
+        r.approval_status
+          AS "restaurantApprovalStatus",
+
+        r.is_blocked
+          AS "restaurantIsBlocked"
+
+
+      FROM foods f
+
+
+      INNER JOIN categories c
+        ON c.id = f.category_id
+
+
+      INNER JOIN restaurants r
+        ON r.id = f.restaurant_id
+
+
+      WHERE
+        f.slug = $1
+
+      LIMIT 1
+    `,
+    [foodSlug],
+  );
+
+  // =========================
+  // FOOD NOT FOUND
+  // =========================
+
+  if (result.rows.length === 0) {
+    const error = new Error("Food not found");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  const food = result.rows[0];
+
+  // =========================
+  // RESTAURANT VALIDATION
+  // =========================
+
+  if (food.restaurantApprovalStatus !== "APPROVED") {
+    const error = new Error("Restaurant is currently unavailable");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  if (food.restaurantIsBlocked) {
+    const error = new Error("Restaurant is currently unavailable");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  // =========================
+  // CATEGORY VALIDATION
+  // =========================
+
+  if (!food.categoryIsActive) {
+    const error = new Error("Food category is currently unavailable");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  // Internal database id
+  // public frontend ko nahi bhejna.
+
+  delete food.id;
+
+  // Ye internal validation fields bhi
+  // frontend ko zarurat nahi.
+
+  delete food.categoryIsActive;
+
+  delete food.restaurantApprovalStatus;
+
+  delete food.restaurantIsBlocked;
+
+  return food;
 };

@@ -1,20 +1,23 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { getFoods, getRestaurantFoods } from "../../thunks/public/food.thunk";
+import {
+  getFoods,
+  getRestaurantFoods,
+  getFoodBySlug,
+} from "../../thunks/public/food.thunk";
 
 const initialState = {
   foods: [],
 
+  fetchLoading: false,
+  error: null,
+
   restaurantFoods: [],
-
-  restaurantPagination: null,
-
+  restaurantFoodsLoading: false,
   restaurantFoodsError: null,
 
-  fetchLoading: false,
-
-  restaurantFoodsLoading: false,
-
-  error: null,
+  selectedFood: null,
+  detailLoading: false,
+  detailError: null,
 };
 
 const foodSlice = createSlice({
@@ -67,6 +70,29 @@ const foodSlice = createSlice({
         state.error = action.payload;
 
         state.foods = [];
+      });
+
+    builder
+      .addCase(getFoodBySlug.pending, (state) => {
+        state.detailLoading = true;
+
+        state.detailError = null;
+
+        state.selectedFood = null;
+      })
+
+      .addCase(getFoodBySlug.fulfilled, (state, action) => {
+        state.detailLoading = false;
+
+        state.selectedFood = action.payload?.food ?? action.payload ?? null;
+      })
+
+      .addCase(getFoodBySlug.rejected, (state, action) => {
+        state.detailLoading = false;
+
+        state.detailError = action.payload;
+
+        state.selectedFood = null;
       });
   },
 });

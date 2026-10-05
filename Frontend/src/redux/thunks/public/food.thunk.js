@@ -3,6 +3,7 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import {
   getFoodsService,
   getRestaurantFoodsService,
+  getFoodBySlugService,
 } from "../../../services/public/food.service";
 
 const getErrorMessage = (error) => {
@@ -41,6 +42,18 @@ export const getRestaurantFoods = createAsyncThunk(
   async (payload, { rejectWithValue }) => {
     try {
       return await getRestaurantFoodsService(payload);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const getFoodBySlug = createAsyncThunk(
+  "publicFood/getFoodBySlug",
+
+  async (foodSlug, { rejectWithValue }) => {
+    try {
+      return await getFoodBySlugService(foodSlug);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }

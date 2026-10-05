@@ -48,6 +48,7 @@ import Checkout from "../pages/public/Checkout/Checkout";
 import Orders from "../pages/public/Orders/Orders";
 
 import OrderDetails from "../pages/public/OrderDetails/OrderDetails";
+import FoodDetails from "../pages/public/FoodDetails/FoodDetails";
 
 
 const PublicRoutes = () => {
@@ -96,6 +97,12 @@ const PublicRoutes = () => {
           path="categories/:slug"
           element={
             <CategoryFoods />
+          }
+        />
+        <Route
+          path="foods/:slug"
+          element={
+            <FoodDetails />
           }
         />
 
