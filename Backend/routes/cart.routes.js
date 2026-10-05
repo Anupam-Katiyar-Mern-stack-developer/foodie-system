@@ -11,10 +11,10 @@ import express from "express";
 const router = express.Router();
 
 // post cart items
-router.post("/items", authMiddleware, addToCart);
+router.post("/", authMiddleware, addToCart);
 
 //get cart items
-router.get("/cart", authMiddleware, getCart);
+router.get("/", authMiddleware, getCart);
 
 // update cart item
 router.patch("/cart/items/:foodSlug", authMiddleware, updateCartItem);

@@ -35,6 +35,8 @@ export const getRestaurantsService =
         }
       );
 
+      console.log(response);
+
     return getData(response);
   };
 

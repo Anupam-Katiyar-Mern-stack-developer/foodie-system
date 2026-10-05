@@ -23,7 +23,9 @@ export const getRestaurants = createAsyncThunk(
 
   async (payload = {}, { rejectWithValue }) => {
     try {
+        console.log(payload);
       return await getRestaurantsService(payload);
+      
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }

@@ -984,7 +984,7 @@ export const getRestaurantsService = async ({ page = 1, limit = 20 }) => {
       FROM restaurants
 
       WHERE
-        approval_status = 'approved'
+        approval_status = 'APPROVED'
 
         AND is_blocked = false
 
@@ -1000,7 +1000,7 @@ export const getRestaurantsService = async ({ page = 1, limit = 20 }) => {
   // =========================
   // TOTAL RESTAURANTS
   // =========================
-
+ 
   const countResult = await pool.query(
     `
       SELECT

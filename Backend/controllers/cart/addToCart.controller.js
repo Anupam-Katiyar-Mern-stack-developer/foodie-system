@@ -9,7 +9,9 @@ export const addToCart = async (
 ) => {
   try {
     const userId =
-      req.user.userId;
+      req.auth.userId;
+  
+      console.log(userId);
 
     const {
       foodSlug,
