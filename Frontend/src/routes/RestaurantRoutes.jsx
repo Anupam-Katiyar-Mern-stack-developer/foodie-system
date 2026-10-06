@@ -1,8 +1,16 @@
 import {
   Route,
   Routes,
+  Navigate,
 } from "react-router-dom";
 
+
+
+import RestaurantLayout
+  from "../layouts/RestaurantLayout";
+
+import RestaurantDashboard
+  from "../pages/restaurant/Dashboard/RestaurantDashboard";
 
 const Screen = ({
   title,
@@ -27,67 +35,120 @@ const RestaurantRoutes = () => {
   return (
     <Routes>
       <Route
-        path="login"
-        element={
-          <Screen title="Restaurant Login" />
-        }
-      />
 
-      <Route
-        path="register"
         element={
-          <Screen title="Restaurant Register" />
+          <RestaurantLayout />
         }
-      />
+      >
+        {/* DEFAULT */}
 
-      <Route
-        path="dashboard"
-        element={
-          <Screen title="Restaurant Dashboard" />
-        }
-      />
+        <Route
+          index
+          element={
+            <Navigate
+              to="dashboard"
+              replace
+            />
+          }
+        />
 
-      <Route
-        path="profile"
-        element={
-          <Screen title="Restaurant Profile" />
-        }
-      />
 
-      <Route
-        path="foods"
-        element={
-          <Screen title="Restaurant Foods" />
-        }
-      />
+        {/* DASHBOARD */}
 
-      <Route
-        path="foods/add"
-        element={
-          <Screen title="Add Food" />
-        }
-      />
+        <Route
+          path="dashboard"
+          element={
+            <RestaurantDashboard />
+          }
+        />
 
-      <Route
-        path="foods/:slug/edit"
-        element={
-          <Screen title="Edit Food" />
-        }
-      />
 
-      <Route
-        path="orders"
-        element={
-          <Screen title="Restaurant Orders" />
-        }
-      />
+        {/* ORDERS */}
 
-      <Route
-        path="orders/:orderNumber"
-        element={
-          <Screen title="Restaurant Order Details" />
-        }
-      />
+        <Route
+          path="orders"
+          element={
+            <div>
+              Restaurant Orders
+            </div>
+          }
+        />
+
+        <Route
+          path="orders/:orderNumber"
+          element={
+            <div>
+              Restaurant Order Details
+            </div>
+          }
+        />
+
+
+        {/* FOODS */}
+
+        <Route
+          path="foods"
+          element={
+            <div>
+              Restaurant Foods
+            </div>
+          }
+        />
+
+        <Route
+          path="foods/add"
+          element={
+            <div>
+              Add Food
+            </div>
+          }
+        />
+
+        <Route
+          path="foods/:foodSlug/edit"
+          element={
+            <div>
+              Edit Food
+            </div>
+          }
+        />
+
+
+        {/* CATEGORIES */}
+
+        <Route
+          path="categories"
+          element={
+            <div>
+              Restaurant Categories
+            </div>
+          }
+        />
+
+
+        {/* PROFILE */}
+
+        <Route
+          path="profile"
+          element={
+            <div>
+              Restaurant Profile
+            </div>
+          }
+        />
+
+
+        {/* BUSINESS HOURS */}
+
+        <Route
+          path="business-hours"
+          element={
+            <div>
+              Restaurant Business Hours
+            </div>
+          }
+        />
+      </Route>
     </Routes>
   );
 };
