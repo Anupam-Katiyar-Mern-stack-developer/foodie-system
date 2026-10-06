@@ -1,50 +1,128 @@
-export const foodFormFields = [
-  {
-    name: "name",
-    type: "text",
-    label: "Food Name",
-    placeholder: "Enter food name",
-    required: true,
-  },
+export const foodDefaultValues = {
+  name: "",
+  description: "",
+  categorySlug: "",
+  price: "",
+  discountPrice: "",
+  preparationTime: "",
+  isVeg: true,
+  isAvailable: true,
+  image: null,
+};
 
-  {
-    name: "price",
-    type: "number",
-    label: "Price",
-    placeholder: "Enter price",
-    required: true,
-  },
 
-  {
-    name: "discountPrice",
-    type: "number",
-    label: "Discount Price",
-    placeholder: "Enter discount price",
-  },
+export const getFoodFields = (
+  categories = []
+) => {
+  return [
+    {
+      name: "name",
+      label: "Food Name",
+      type: "text",
+      placeholder:
+        "Enter food name",
+      required: true,
+    },
 
-  {
-    name: "description",
-    type: "textarea",
-    label: "Description",
-    placeholder: "Enter food description",
-  },
+    {
+      name: "categorySlug",
+      label: "Category",
+      type: "select",
+      placeholder:
+        "Select category",
+      required: true,
 
-  {
-    name: "categoryId",
-    type: "select",
-    label: "Category",
-    required: true,
-  },
+      options:
+        categories
+          .filter(
+            (category) =>
+              category.isActive !==
+              false
+          )
+          .map(
+            (category) => ({
+              label:
+                category.name,
 
-  {
-    name: "isAvailable",
-    type: "switch",
-    label: "Available",
-  },
+              value:
+                category.slug,
+            })
+          ),
+    },
 
-  {
-    name: "image",
-    type: "file",
-    label: "Food Image",
-  },
-];
+    {
+      name: "price",
+      label: "Price",
+      type: "number",
+      placeholder:
+        "Enter price",
+      required: true,
+
+      componentProps: {
+        min: 1,
+        step: "0.01",
+      },
+    },
+
+    {
+      name: "discountPrice",
+      label: "Discount Price",
+      type: "number",
+      placeholder:
+        "Optional discount price",
+
+      componentProps: {
+        min: 0,
+        step: "0.01",
+      },
+    },
+
+    {
+      name: "preparationTime",
+      label: "Preparation Time",
+      type: "number",
+      placeholder:
+        "Example: 20",
+      required: true,
+
+      componentProps: {
+        min: 1,
+      },
+    },
+
+    {
+      name: "isVeg",
+      label: "Vegetarian Food",
+      type: "switch",
+    },
+
+    {
+      name: "isAvailable",
+      label: "Available For Order",
+      type: "switch",
+    },
+
+    {
+      name: "description",
+      label: "Description",
+      type: "textarea",
+      placeholder:
+        "Write food description...",
+
+      rows: 4,
+      fullWidth: true,
+    },
+
+    {
+      name: "image",
+      label: "Food Image",
+      type: "file",
+      fullWidth: true,
+
+      componentProps: {
+        accept:
+          "image/png,image/jpeg,image/jpg,image/webp",
+      },
+    },
+  ];
+};
