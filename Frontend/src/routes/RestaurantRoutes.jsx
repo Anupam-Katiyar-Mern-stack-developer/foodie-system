@@ -20,6 +20,7 @@ import RestaurantFoodForm
   from "../pages/restaurant/Foods/RestaurantFoodForm";
 import RestaurantCategories from "../pages/restaurant/categories/RestaurantCategories";
 import RestaurantProfile from "../pages/restaurant/Profile/RestaurantProfile";
+import RestaurantBusinessHours from "../pages/restaurant/Business/RestaurantBusinessHours";
 
 const Screen = ({
   title,
@@ -142,9 +143,7 @@ const RestaurantRoutes = () => {
         <Route
           path="business-hours"
           element={
-            <div>
-              Restaurant Business Hours
-            </div>
+            <RestaurantBusinessHours />
           }
         />
       </Route>
