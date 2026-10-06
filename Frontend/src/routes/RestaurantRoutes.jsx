@@ -12,6 +12,11 @@ import RestaurantLayout
 import RestaurantDashboard
   from "../pages/restaurant/Dashboard/RestaurantDashboard";
 
+
+import RestaurantOrders from "../pages/restaurant/Orders/RestaurantOrders";
+import RestaurantOrderDetails from "../pages/restaurant/RestaurantOrderDetails/RestaurantOrderDetails";
+import RestaurantFoods from "../pages/restaurant/Foods/RestaurantFoods";
+
 const Screen = ({
   title,
 }) => {
@@ -69,7 +74,7 @@ const RestaurantRoutes = () => {
           path="orders"
           element={
             <div>
-              Restaurant Orders
+             <RestaurantOrders />
             </div>
           }
         />
@@ -78,7 +83,7 @@ const RestaurantRoutes = () => {
           path="orders/:orderNumber"
           element={
             <div>
-              Restaurant Order Details
+              <RestaurantOrderDetails />
             </div>
           }
         />
@@ -89,9 +94,7 @@ const RestaurantRoutes = () => {
         <Route
           path="foods"
           element={
-            <div>
-              Restaurant Foods
-            </div>
+            <RestaurantFoods />
           }
         />
 

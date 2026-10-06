@@ -1,5 +1,12 @@
 import {
-  ArrowRight,
+  useState,
+} from "react";
+
+import {
+  useNavigate,
+} from "react-router-dom";
+
+import {
   CheckCircle2,
   ChefHat,
   Clock3,
@@ -12,11 +19,31 @@ import {
   Utensils,
 } from "lucide-react";
 
-import {
-  useNavigate,
-} from "react-router-dom";
 
-import Button from "../../../components/common/Button/Button";
+import PageHeader
+  from "../../../components/common/PageHeader/PageHeader";
+
+import Button
+  from "../../../components/common/Button/Button";
+
+import StatCard
+  from "../../../components/common/StatCard/StatCard";
+
+import StatusBadge
+  from "../../../components/common/StatusBadge/StatusBadge";
+
+import CommonTable
+  from "../../../components/common/CommonTable/CommonTable";
+
+import Skeleton
+  from "../../../components/common/Skeleton/Skeleton";
+
+import EmptyState
+  from "../../../components/common/EmptyState/EmptyState";
+
+import ErrorState
+  from "../../../components/common/ErrorState/ErrorState";
+
 
 
 const RestaurantDashboard = () => {
@@ -25,71 +52,176 @@ const RestaurantDashboard = () => {
 
 
   // =========================
-  // TEMP UI DATA
-  // Later API se aayega
+  // TEMP UI STATE
+  // Later Redux/API se aayega
+  // =========================
+
+  const [
+    restaurantOpen,
+    setRestaurantOpen,
+  ] = useState(true);
+
+
+  const dashboardLoading =
+    false;
+
+  const dashboardError =
+    null;
+
+
+  // =========================
+  // STATS
   // =========================
 
   const stats = [
     {
-      title: "Today's Orders",
-      value: "24",
-      subtitle: "4 new orders",
-      icon: ShoppingBag,
+      key:
+        "orders",
+
+      title:
+        "Today's Orders",
+
+      value:
+        "24",
+
+      description:
+        "4 new orders today",
+
+      icon:
+        ShoppingBag,
+
+      variant:
+        "orange",
     },
 
     {
-      title: "Today's Revenue",
-      value: "₹8,420",
-      subtitle: "Today's earning",
-      icon: IndianRupee,
+      key:
+        "revenue",
+
+      title:
+        "Today's Revenue",
+
+      value:
+        "₹8,420",
+
+      description:
+        "Total earning today",
+
+      icon:
+        IndianRupee,
+
+      variant:
+        "success",
     },
 
     {
-      title: "Active Orders",
-      value: "7",
-      subtitle: "Currently processing",
-      icon: Clock3,
+      key:
+        "activeOrders",
+
+      title:
+        "Active Orders",
+
+      value:
+        "7",
+
+      description:
+        "Currently processing",
+
+      icon:
+        Clock3,
+
+      variant:
+        "warning",
     },
 
     {
-      title: "Active Foods",
-      value: "38",
-      subtitle: "42 total foods",
-      icon: Utensils,
+      key:
+        "foods",
+
+      title:
+        "Active Foods",
+
+      value:
+        "38",
+
+      description:
+        "42 total menu items",
+
+      icon:
+        Utensils,
+
+      variant:
+        "purple",
     },
   ];
 
+
+  // =========================
+  // ORDER PIPELINE
+  // =========================
 
   const pipeline = [
     {
-      label: "Placed",
-      status: "PLACED",
-      count: 3,
-      icon: PackageOpen,
+      label:
+        "Placed",
+
+      status:
+        "PLACED",
+
+      count:
+        3,
+
+      icon:
+        PackageOpen,
     },
 
     {
-      label: "Confirmed",
-      status: "CONFIRMED",
-      count: 2,
-      icon: CheckCircle2,
+      label:
+        "Confirmed",
+
+      status:
+        "CONFIRMED",
+
+      count:
+        2,
+
+      icon:
+        CheckCircle2,
     },
 
     {
-      label: "Preparing",
-      status: "PREPARING",
-      count: 4,
-      icon: ChefHat,
+      label:
+        "Preparing",
+
+      status:
+        "PREPARING",
+
+      count:
+        4,
+
+      icon:
+        ChefHat,
     },
 
     {
-      label: "Ready",
-      status: "READY_FOR_PICKUP",
-      count: 2,
-      icon: PackageCheck,
+      label:
+        "Ready",
+
+      status:
+        "READY_FOR_PICKUP",
+
+      count:
+        2,
+
+      icon:
+        PackageCheck,
     },
   ];
 
+
+  // =========================
+  // RECENT ORDERS
+  // =========================
 
   const recentOrders = [
     {
@@ -163,49 +295,208 @@ const RestaurantDashboard = () => {
 
 
   // =========================
-  // STATUS STYLE
+  // STATUS CONFIG
   // =========================
 
-  const getStatusClass = (
-    status
-  ) => {
-    switch (status) {
-      case "PLACED":
-        return `
-          border-amber-200
-          bg-amber-50
-          text-amber-700
-        `;
+  const statusConfig = {
+    PLACED: {
+      label:
+        "Placed",
 
-      case "CONFIRMED":
-        return `
-          border-blue-200
-          bg-blue-50
-          text-blue-700
-        `;
+      variant:
+        "warning",
+    },
 
-      case "PREPARING":
-        return `
-          border-orange-200
-          bg-orange-50
-          text-orange-700
-        `;
+    CONFIRMED: {
+      label:
+        "Confirmed",
 
-      case "READY_FOR_PICKUP":
-        return `
-          border-emerald-200
-          bg-emerald-50
-          text-emerald-700
-        `;
+      variant:
+        "info",
+    },
 
-      default:
-        return `
-          border-slate-200
-          bg-slate-50
-          text-slate-600
-        `;
-    }
+    PREPARING: {
+      label:
+        "Preparing",
+
+      variant:
+        "purple",
+    },
+
+    READY_FOR_PICKUP: {
+      label:
+        "Ready",
+
+      variant:
+        "success",
+    },
   };
+
+
+  // =========================
+  // TABLE COLUMNS
+  // =========================
+
+  const orderColumns = [
+    {
+      key:
+        "orderNumber",
+
+      label:
+        "Order",
+
+      render:
+        (row) => (
+          <button
+            type="button"
+
+            onClick={() =>
+              navigate(
+                `/restaurant/orders/${row.orderNumber}`
+              )
+            }
+
+            className="
+              font-black
+              text-slate-900
+
+              transition
+
+              hover:text-orange-600
+            "
+          >
+            {
+              row.orderNumber
+            }
+          </button>
+        ),
+    },
+
+    {
+      key:
+        "customer",
+
+      label:
+        "Customer",
+    },
+
+    {
+      key:
+        "total",
+
+      label:
+        "Amount",
+
+      render:
+        (row) => (
+          <span
+            className="
+              font-black
+              text-slate-900
+            "
+          >
+            {row.total}
+          </span>
+        ),
+    },
+
+    {
+      key:
+        "status",
+
+      label:
+        "Status",
+
+      render:
+        (row) => {
+          const config =
+            statusConfig[
+              row.status
+            ] || {
+              label:
+                row.status,
+
+              variant:
+                "neutral",
+            };
+
+
+          return (
+            <StatusBadge
+              variant={
+                config.variant
+              }
+
+              size="sm"
+
+              dot
+            >
+              {
+                config.label
+              }
+            </StatusBadge>
+          );
+        },
+    },
+
+    {
+      key:
+        "time",
+
+      label:
+        "Time",
+    },
+
+    {
+      key:
+        "action",
+
+      label:
+        "Action",
+
+      align:
+        "right",
+
+      render:
+        (row) => (
+          <Button
+            type="button"
+
+            variant="ghost"
+
+            onClick={() =>
+              navigate(
+                `/restaurant/orders/${row.orderNumber}`
+              )
+            }
+          >
+            View
+          </Button>
+        ),
+    },
+  ];
+
+
+  // =========================
+  // ERROR
+  // =========================
+
+  if (
+    dashboardError
+  ) {
+    return (
+      <ErrorState
+        title="Unable to load dashboard"
+
+        description={
+          typeof dashboardError ===
+          "string"
+            ? dashboardError
+            : "Something went wrong while loading dashboard."
+        }
+      />
+    );
+  }
 
 
   return (
@@ -215,80 +506,44 @@ const RestaurantDashboard = () => {
       "
     >
       {/* =========================
-          HEADER
+          PAGE HEADER
       ========================== */}
 
-      <section
+      <div
         className="
           flex
           flex-col
-          gap-5
+          gap-4
 
-          xl:flex-row
-          xl:items-center
-          xl:justify-between
+          lg:flex-row
+          lg:items-start
+          lg:justify-between
         "
       >
-        <div>
-          <p
-            className="
-              text-xs
-              font-black
-              uppercase
-              tracking-[0.16em]
-              text-orange-500
-            "
-          >
-            Restaurant Dashboard
-          </p>
+        <PageHeader
+          title="Restaurant Dashboard"
 
-
-          <h1
-            className="
-              mt-2
-
-              text-2xl
-              font-black
-              tracking-tight
-              text-slate-950
-
-              sm:text-3xl
-            "
-          >
-            Welcome back,
-            Foodie Kitchen
-          </h1>
-
-
-          <p
-            className="
-              mt-2
-
-              max-w-2xl
-
-              text-sm
-              leading-6
-              text-slate-500
-            "
-          >
-            Track orders,
+          description="
+            Track your orders,
+            revenue, menu and
             restaurant performance
-            and manage your menu
             from one place.
-          </p>
-        </div>
+          "
+        />
 
 
         <div
           className="
             flex
             flex-wrap
-            items-center
             gap-3
           "
         >
           <Button
+            type="button"
+
             variant="outline"
+
             onClick={() =>
               navigate(
                 "/restaurant/orders"
@@ -300,6 +555,8 @@ const RestaurantDashboard = () => {
 
 
           <Button
+            type="button"
+
             onClick={() =>
               navigate(
                 "/restaurant/foods/add"
@@ -308,7 +565,7 @@ const RestaurantDashboard = () => {
           >
             <span
               className="
-                flex
+                inline-flex
                 items-center
                 gap-2
               "
@@ -324,180 +581,198 @@ const RestaurantDashboard = () => {
             </span>
           </Button>
         </div>
-      </section>
+      </div>
 
 
       {/* =========================
           RESTAURANT STATUS
       ========================== */}
 
-      <section
-        className="
-          rounded-[1.75rem]
+      {dashboardLoading ? (
+        <Skeleton
+          width="w-full"
 
-          border
-          border-orange-100
+          height="h-[120px]"
 
-          bg-gradient-to-r
-          from-orange-50
-          via-white
-          to-rose-50
-
-          p-5
-
-          shadow-sm
-
-          sm:p-6
-        "
-      >
-        <div
+          rounded="rounded-[1.5rem]"
+        />
+      ) : (
+        <section
           className="
-            flex
-            flex-col
-            gap-5
+            rounded-[1.5rem]
 
-            sm:flex-row
-            sm:items-center
-            sm:justify-between
+            border
+            border-orange-100
+
+            bg-gradient-to-r
+            from-orange-50
+            via-white
+            to-rose-50
+
+            p-5
+
+            shadow-sm
+
+            sm:p-6
           "
         >
           <div
             className="
               flex
-              items-center
-              gap-4
+              flex-col
+              gap-5
+
+              sm:flex-row
+              sm:items-center
+              sm:justify-between
             "
           >
             <div
               className="
                 flex
-                h-14
-                w-14
-                shrink-0
                 items-center
-                justify-center
-
-                rounded-2xl
-
-                bg-white
-
-                text-orange-600
-
-                shadow-sm
+                gap-4
               "
             >
-              <Store
-                className="
-                  h-6
-                  w-6
-                "
-              />
-            </div>
-
-
-            <div>
               <div
                 className="
                   flex
-                  flex-wrap
+                  h-12
+                  w-12
+                  shrink-0
                   items-center
-                  gap-2
+                  justify-center
+
+                  rounded-xl
+
+                  bg-white
+
+                  text-orange-600
+
+                  shadow-sm
                 "
               >
-                <h2
+                <Store
                   className="
-                    text-lg
-                    font-black
-                    text-slate-950
+                    h-5
+                    w-5
                   "
-                >
-                  Foodie Kitchen
-                </h2>
-
-
-                <span
-                  className="
-                    inline-flex
-                    items-center
-                    gap-1.5
-
-                    rounded-full
-
-                    bg-emerald-100
-
-                    px-2.5
-                    py-1
-
-                    text-[11px]
-                    font-black
-                    text-emerald-700
-                  "
-                >
-                  <span
-                    className="
-                      h-2
-                      w-2
-
-                      rounded-full
-
-                      bg-emerald-500
-                    "
-                  />
-
-                  OPEN
-                </span>
+                />
               </div>
 
 
-              <p
-                className="
-                  mt-1
-                  text-sm
-                  text-slate-500
-                "
-              >
-                Your restaurant is
-                accepting customer
-                orders.
-              </p>
+              <div>
+                <div
+                  className="
+                    flex
+                    flex-wrap
+                    items-center
+                    gap-2
+                  "
+                >
+                  <h2
+                    className="
+                      text-lg
+                      font-black
+                      text-slate-950
+                    "
+                  >
+                    Foodie Kitchen
+                  </h2>
+
+
+                  <StatusBadge
+                    variant={
+                      restaurantOpen
+                        ? "success"
+                        : "danger"
+                    }
+
+                    size="sm"
+
+                    dot
+                  >
+                    {restaurantOpen
+                      ? "Open"
+                      : "Closed"}
+                  </StatusBadge>
+                </div>
+
+
+                <p
+                  className="
+                    mt-1
+
+                    text-sm
+                    text-slate-500
+                  "
+                >
+                  {restaurantOpen
+                    ? "Your restaurant is accepting customer orders."
+                    : "Your restaurant is currently not accepting orders."}
+                </p>
+              </div>
             </div>
-          </div>
 
 
-          <button
-            type="button"
-            className="
-              relative
+            {/* OPEN / CLOSE */}
 
-              h-8
-              w-16
+            <button
+              type="button"
 
-              rounded-full
+              onClick={() =>
+                setRestaurantOpen(
+                  (previous) =>
+                    !previous
+                )
+              }
 
-              bg-emerald-500
+              aria-label="Change restaurant status"
 
-              transition
-            "
-          >
-            <span
-              className="
-                absolute
-                left-9
-                top-1
+              className={`
+                relative
 
-                h-6
-                w-6
+                h-8
+                w-16
 
                 rounded-full
 
-                bg-white
+                transition-colors
 
-                shadow
-              "
-            />
-          </button>
-        </div>
-      </section>
+                ${
+                  restaurantOpen
+                    ? "bg-emerald-500"
+                    : "bg-slate-300"
+                }
+              `}
+            >
+              <span
+                className={`
+                  absolute
+                  top-1
+
+                  h-6
+                  w-6
+
+                  rounded-full
+
+                  bg-white
+
+                  shadow-sm
+
+                  transition-all
+
+                  ${
+                    restaurantOpen
+                      ? "left-9"
+                      : "left-1"
+                  }
+                `}
+              />
+            </button>
+          </div>
+        </section>
+      )}
 
 
       {/* =========================
@@ -514,125 +789,74 @@ const RestaurantDashboard = () => {
         "
       >
         {stats.map(
-          (item) => {
-            const Icon =
-              item.icon;
+          (stat) => (
+            <StatCard
+              key={
+                stat.key
+              }
 
-            return (
-              <article
-                key={
-                  item.title
-                }
-                className="
-                  rounded-[1.5rem]
+              title={
+                stat.title
+              }
 
-                  border
-                  border-slate-200
+              value={
+                stat.value
+              }
 
-                  bg-white
+              description={
+                stat.description
+              }
 
-                  p-5
+              icon={
+                stat.icon
+              }
 
-                  shadow-sm
+              variant={
+                stat.variant
+              }
 
-                  transition-all
+              loading={
+                dashboardLoading
+              }
 
-                  hover:-translate-y-0.5
-                  hover:border-orange-200
-                  hover:shadow-md
-                "
-              >
-                <div
-                  className="
-                    flex
-                    items-start
-                    justify-between
-                    gap-3
-                  "
-                >
-                  <div>
-                    <p
-                      className="
-                        text-sm
-                        font-semibold
-                        text-slate-500
-                      "
-                    >
-                      {
-                        item.title
-                      }
-                    </p>
+              onClick={
+                stat.key ===
+                "orders"
+                  ? () =>
+                      navigate(
+                        "/restaurant/orders"
+                      )
+                  : stat.key ===
+                    "foods"
+                  ? () =>
+                      navigate(
+                        "/restaurant/foods"
+                      )
+                  : undefined
+              }
 
-
-                    <p
-                      className="
-                        mt-3
-
-                        text-3xl
-                        font-black
-                        tracking-tight
-                        text-slate-950
-                      "
-                    >
-                      {
-                        item.value
-                      }
-                    </p>
-                  </div>
-
-
-                  <span
-                    className="
-                      flex
-                      h-11
-                      w-11
-                      items-center
-                      justify-center
-
-                      rounded-xl
-
-                      bg-orange-50
-
-                      text-orange-600
-                    "
-                  >
-                    <Icon
-                      className="
-                        h-5
-                        w-5
-                      "
-                    />
-                  </span>
-                </div>
-
-
-                <p
-                  className="
-                    mt-4
-
-                    text-xs
-                    font-semibold
-                    text-slate-400
-                  "
-                >
-                  {
-                    item.subtitle
-                  }
-                </p>
-              </article>
-            );
-          }
+              actionLabel={
+                stat.key ===
+                "orders"
+                  ? "View orders"
+                  : stat.key ===
+                    "foods"
+                  ? "Manage foods"
+                  : undefined
+              }
+            />
+          )
         )}
       </section>
 
 
       {/* =========================
-          ORDER PIPELINE
+          ACTIVE ORDER PIPELINE
       ========================== */}
 
       <section
         className="
-          rounded-[1.75rem]
+          rounded-[1.5rem]
 
           border
           border-slate-200
@@ -657,7 +881,7 @@ const RestaurantDashboard = () => {
           <div>
             <h2
               className="
-                text-xl
+                text-lg
                 font-black
                 text-slate-950
               "
@@ -668,6 +892,7 @@ const RestaurantDashboard = () => {
             <p
               className="
                 mt-1
+
                 text-sm
                 text-slate-500
               "
@@ -678,147 +903,166 @@ const RestaurantDashboard = () => {
           </div>
 
 
-          <button
+          <Button
             type="button"
+
+            variant="ghost"
+
             onClick={() =>
               navigate(
                 "/restaurant/orders"
               )
             }
+          >
+            View All
+          </Button>
+        </div>
+
+
+        {dashboardLoading ? (
+          <div
             className="
-              hidden
-              items-center
-              gap-2
+              mt-5
 
-              text-sm
-              font-black
-              text-orange-600
+              grid
+              gap-3
 
-              sm:flex
+              sm:grid-cols-2
+              xl:grid-cols-4
             "
           >
-            View all
-
-            <ArrowRight
-              className="
-                h-4
-                w-4
-              "
-            />
-          </button>
-        </div>
-
-
-        <div
-          className="
-            mt-6
-
-            grid
-            gap-3
-
-            sm:grid-cols-2
-            xl:grid-cols-4
-          "
-        >
-          {pipeline.map(
-            (item) => {
-              const Icon =
-                item.icon;
-
-              return (
-                <button
+            {Array.from({
+              length: 4,
+            }).map(
+              (
+                _,
+                index
+              ) => (
+                <Skeleton
                   key={
-                    item.status
+                    index
                   }
 
-                  type="button"
+                  width="w-full"
 
-                  onClick={() =>
-                    navigate(
-                      `/restaurant/orders?status=${item.status}`
-                    )
-                  }
+                  height="h-[90px]"
 
-                  className="
-                    flex
-                    items-center
-                    gap-4
+                  rounded="rounded-2xl"
+                />
+              )
+            )}
+          </div>
+        ) : (
+          <div
+            className="
+              mt-5
 
-                    rounded-2xl
+              grid
+              gap-3
 
-                    border
-                    border-slate-200
+              sm:grid-cols-2
+              xl:grid-cols-4
+            "
+          >
+            {pipeline.map(
+              (item) => {
+                const Icon =
+                  item.icon;
 
-                    bg-slate-50/60
+                return (
+                  <button
+                    key={
+                      item.status
+                    }
 
-                    p-4
+                    type="button"
 
-                    text-left
+                    onClick={() =>
+                      navigate(
+                        `/restaurant/orders?status=${item.status}`
+                      )
+                    }
 
-                    transition
-
-                    hover:border-orange-200
-                    hover:bg-orange-50
-                  "
-                >
-                  <span
                     className="
                       flex
-                      h-11
-                      w-11
-                      shrink-0
                       items-center
-                      justify-center
+                      gap-4
 
-                      rounded-xl
+                      rounded-2xl
 
-                      bg-white
+                      border
+                      border-slate-200
 
-                      text-orange-600
+                      bg-slate-50/70
 
-                      shadow-sm
+                      p-4
+
+                      text-left
+
+                      transition
+
+                      hover:border-orange-200
+                      hover:bg-orange-50
                     "
                   >
-                    <Icon
+                    <div
                       className="
-                        h-5
-                        w-5
-                      "
-                    />
-                  </span>
+                        flex
+                        h-11
+                        w-11
+                        shrink-0
+                        items-center
+                        justify-center
 
+                        rounded-xl
 
-                  <div>
-                    <p
-                      className="
-                        text-2xl
-                        font-black
-                        text-slate-950
-                      "
-                    >
-                      {
-                        item.count
-                      }
-                    </p>
+                        bg-white
 
+                        text-orange-600
 
-                    <p
-                      className="
-                        text-xs
-                        font-bold
-                        text-slate-500
+                        shadow-sm
                       "
                     >
-                      {
-                        item.label
-                      }
-                    </p>
-                  </div>
-                </button>
-              );
-            }
-          )}
-        </div>
+                      <Icon
+                        className="
+                          h-5
+                          w-5
+                        "
+                      />
+                    </div>
+
+
+                    <div>
+                      <p
+                        className="
+                          text-2xl
+                          font-black
+                          text-slate-950
+                        "
+                      >
+                        {
+                          item.count
+                        }
+                      </p>
+
+                      <p
+                        className="
+                          text-xs
+                          font-bold
+                          text-slate-500
+                        "
+                      >
+                        {
+                          item.label
+                        }
+                      </p>
+                    </div>
+                  </button>
+                );
+              }
+            )}
+          </div>
+        )}
       </section>
 
 
@@ -828,37 +1072,34 @@ const RestaurantDashboard = () => {
 
       <section
         className="
-          overflow-hidden
-
-          rounded-[1.75rem]
+          rounded-[1.5rem]
 
           border
           border-slate-200
 
           bg-white
 
+          p-5
+
           shadow-sm
+
+          sm:p-6
         "
       >
         <div
           className="
+            mb-5
+
             flex
             items-center
             justify-between
             gap-4
-
-            border-b
-            border-slate-100
-
-            p-5
-
-            sm:p-6
           "
         >
           <div>
             <h2
               className="
-                text-xl
+                text-lg
                 font-black
                 text-slate-950
               "
@@ -873,300 +1114,55 @@ const RestaurantDashboard = () => {
                 text-slate-500
               "
             >
-              Latest orders received
-              by your restaurant.
+              Latest customer
+              orders received.
             </p>
           </div>
 
 
-          <button
+          <Button
             type="button"
+
+            variant="ghost"
+
             onClick={() =>
               navigate(
                 "/restaurant/orders"
               )
             }
-            className="
-              flex
-              items-center
-              gap-1.5
-
-              text-sm
-              font-black
-              text-orange-600
-            "
           >
-            View all
-
-            <ArrowRight
-              className="
-                h-4
-                w-4
-              "
-            />
-          </button>
+            View All
+          </Button>
         </div>
 
 
-        <div
-          className="
-            overflow-x-auto
-          "
-        >
-          <table
-            className="
-              w-full
-              min-w-[760px]
-            "
-          >
-            <thead
-              className="
-                bg-slate-50
-              "
-            >
-              <tr>
-                <th
-                  className="
-                    px-5
-                    py-3.5
+        {!dashboardLoading &&
+        recentOrders.length ===
+          0 ? (
+          <EmptyState
+            icon={
+              ShoppingBag
+            }
 
-                    text-left
+            title="No orders yet"
 
-                    text-[11px]
-                    font-black
-                    uppercase
-                    tracking-wide
-                    text-slate-400
-                  "
-                >
-                  Order
-                </th>
+            description="New customer orders will appear here."
+          />
+        ) : (
+          <CommonTable
+            columns={
+              orderColumns
+            }
 
-                <th
-                  className="
-                    px-5
-                    py-3.5
+            data={
+              recentOrders
+            }
 
-                    text-left
-
-                    text-[11px]
-                    font-black
-                    uppercase
-                    tracking-wide
-                    text-slate-400
-                  "
-                >
-                  Customer
-                </th>
-
-                <th
-                  className="
-                    px-5
-                    py-3.5
-
-                    text-left
-
-                    text-[11px]
-                    font-black
-                    uppercase
-                    tracking-wide
-                    text-slate-400
-                  "
-                >
-                  Amount
-                </th>
-
-                <th
-                  className="
-                    px-5
-                    py-3.5
-
-                    text-left
-
-                    text-[11px]
-                    font-black
-                    uppercase
-                    tracking-wide
-                    text-slate-400
-                  "
-                >
-                  Status
-                </th>
-
-                <th
-                  className="
-                    px-5
-                    py-3.5
-
-                    text-left
-
-                    text-[11px]
-                    font-black
-                    uppercase
-                    tracking-wide
-                    text-slate-400
-                  "
-                >
-                  Time
-                </th>
-
-                <th
-                  className="
-                    px-5
-                    py-3.5
-                  "
-                />
-              </tr>
-            </thead>
-
-
-            <tbody
-              className="
-                divide-y
-                divide-slate-100
-              "
-            >
-              {recentOrders.map(
-                (order) => (
-                  <tr
-                    key={
-                      order.orderNumber
-                    }
-                    className="
-                      transition
-
-                      hover:bg-orange-50/40
-                    "
-                  >
-                    <td
-                      className="
-                        px-5
-                        py-4
-
-                        text-sm
-                        font-black
-                        text-slate-900
-                      "
-                    >
-                      {
-                        order.orderNumber
-                      }
-                    </td>
-
-
-                    <td
-                      className="
-                        px-5
-                        py-4
-
-                        text-sm
-                        font-semibold
-                        text-slate-600
-                      "
-                    >
-                      {
-                        order.customer
-                      }
-                    </td>
-
-
-                    <td
-                      className="
-                        px-5
-                        py-4
-
-                        text-sm
-                        font-black
-                        text-slate-900
-                      "
-                    >
-                      {
-                        order.total
-                      }
-                    </td>
-
-
-                    <td
-                      className="
-                        px-5
-                        py-4
-                      "
-                    >
-                      <span
-                        className={`
-                          inline-flex
-
-                          rounded-full
-
-                          border
-
-                          px-2.5
-                          py-1
-
-                          text-[10px]
-                          font-black
-
-                          ${getStatusClass(
-                            order.status
-                          )}
-                        `}
-                      >
-                        {
-                          order.status
-                        }
-                      </span>
-                    </td>
-
-
-                    <td
-                      className="
-                        px-5
-                        py-4
-
-                        text-xs
-                        text-slate-400
-                      "
-                    >
-                      {
-                        order.time
-                      }
-                    </td>
-
-
-                    <td
-                      className="
-                        px-5
-                        py-4
-
-                        text-right
-                      "
-                    >
-                      <button
-                        type="button"
-
-                        onClick={() =>
-                          navigate(
-                            `/restaurant/orders/${order.orderNumber}`
-                          )
-                        }
-
-                        className="
-                          text-xs
-                          font-black
-                          text-orange-600
-
-                          hover:text-orange-700
-                        "
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                )
-              )}
-            </tbody>
-          </table>
-        </div>
+            loading={
+              dashboardLoading
+            }
+          />
+        )}
       </section>
     </div>
   );
