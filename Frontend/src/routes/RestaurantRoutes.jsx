@@ -18,6 +18,8 @@ import RestaurantOrderDetails from "../pages/restaurant/RestaurantOrderDetails/R
 import RestaurantFoods from "../pages/restaurant/Foods/RestaurantFoods";
 import RestaurantFoodForm
   from "../pages/restaurant/Foods/RestaurantFoodForm";
+import RestaurantCategories from "../pages/restaurant/categories/RestaurantCategories";
+import RestaurantProfile from "../pages/restaurant/Profile/RestaurantProfile";
 
 const Screen = ({
   title,
@@ -120,9 +122,7 @@ const RestaurantRoutes = () => {
         <Route
           path="categories"
           element={
-            <div>
-              Restaurant Categories
-            </div>
+            <RestaurantCategories />
           }
         />
 
@@ -132,9 +132,7 @@ const RestaurantRoutes = () => {
         <Route
           path="profile"
           element={
-            <div>
-              Restaurant Profile
-            </div>
+           <RestaurantProfile />
           }
         />
 
