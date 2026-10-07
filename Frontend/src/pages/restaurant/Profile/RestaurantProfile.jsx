@@ -4,6 +4,20 @@ import {
 } from "react";
 
 import {
+  useEffect,
+} from "react";
+
+import {
+  useDispatch,
+  useSelector,
+} from "react-redux";
+
+import {
+  getRestaurantProfile,
+  updateRestaurantProfile,
+} from "../../../redux/thunks/restaurant/restaurantProfile.thunk";
+
+import {
   CheckCircle2,
   Mail,
   MapPin,
@@ -50,62 +64,31 @@ const RestaurantProfile = () => {
   // state.restaurantProfile.profile
   // =========================================
 
-  const [
-    restaurant,
-    setRestaurant,
-  ] = useState({
-    ownerName:
-      "Ankit Sharma",
+  const dispatch =
+    useDispatch();
 
-    restaurantName:
-      "Foodie Kitchen",
 
-    email:
-      "foodiekitchen@example.com",
+  const {
+    profile,
+    fetchLoading,
+    updateLoading,
+    error,
+  } = useSelector(
+    (state) =>
+      state.restaurantProfile
+  ) || {
+      profile: null,
+      fetchLoading: false,
+      updateLoading: false,
+      error: null,
+    };
 
-    phone:
-      "9876543210",
+  // =========================
+  // RESTAURANT DATA
+  // =========================
 
-    description:
-      "Fresh and delicious food prepared with quality ingredients.",
-
-    addressLine:
-      "117/45 Main Road, Kakadeo",
-
-    city:
-      "Kanpur",
-
-    state:
-      "Uttar Pradesh",
-
-    pincode:
-      "208025",
-
-    latitude:
-      26.4812,
-
-    longitude:
-      80.3041,
-
-    logo:
-      "/uploads/restaurants/foodie-kitchen.jpg",
-
-    slug:
-      "foodie-kitchen",
-
-    approvalStatus:
-      "APPROVED",
-
-    emailVerified:
-      true,
-
-    isBlocked:
-      false,
-
-    createdAt:
-      "2026-08-20T10:30:00.000Z",
-  });
-
+  const restaurant =
+    profile;
 
   // =========================================
   // UI/API-LIKE STATE
@@ -113,86 +96,53 @@ const RestaurantProfile = () => {
   // Later Redux state se replace
   // =========================================
 
-  const [
-    fetchLoading,
-    setFetchLoading,
-  ] = useState(false);
-
-
-  const [
-    updateLoading,
-    setUpdateLoading,
-  ] = useState(false);
-
-
-  const [
-    error,
-    setError,
-  ] = useState(null);
-
+  useEffect(() => {
+    dispatch(
+      getRestaurantProfile()
+    );
+  }, [dispatch]);
 
   // =========================================
   // DEFAULT FORM VALUES
   // =========================================
 
   const formValues =
-    useMemo(() => {
-      if (!restaurant) {
-        return {};
-      }
-
-
-      return {
+    useMemo(
+      () => ({
         ownerName:
-          restaurant.ownerName ||
+          profile?.ownerName ||
           "",
 
         restaurantName:
-          restaurant.restaurantName ||
+          profile?.restaurantName ||
           "",
 
         phone:
-          restaurant.phone ||
+          profile?.phone ||
           "",
 
         description:
-          restaurant.description ||
+          profile?.description ||
           "",
 
         addressLine:
-          restaurant.addressLine ||
+          profile?.addressLine ||
           "",
 
         city:
-          restaurant.city ||
+          profile?.city ||
           "",
 
         state:
-          restaurant.state ||
+          profile?.state ||
           "",
 
         pincode:
-          restaurant.pincode ||
+          profile?.pincode ||
           "",
-
-        latitude:
-          restaurant.latitude ??
-          "",
-
-        longitude:
-          restaurant.longitude ??
-          "",
-
-        /*
-         * Existing image URL
-         * file input me set nahi karenge.
-         */
-        logo:
-          null,
-      };
-    }, [
-      restaurant,
-    ]);
+      }),
+      [profile]
+    );
 
 
   // =========================================
@@ -206,89 +156,20 @@ const RestaurantProfile = () => {
   // =========================================
 
   const handleUpdate =
-    async (
-      values
-    ) => {
-      setUpdateLoading(
-        true
-      );
+    async (values) => {
+      try {
+        await dispatch(
+          updateRestaurantProfile(
+            values
+          )
+        ).unwrap();
 
-
-      const payload = {
-        ...values,
-
-        latitude:
-          values.latitude ??
-          null,
-
-        longitude:
-          values.longitude ??
-          null,
-      };
-
-
-      console.log(
-        "RESTAURANT PROFILE PAYLOAD:",
-        payload
-      );
-
-
-      // =========================
-      // UI MOCK UPDATE
-      // =========================
-
-      setRestaurant(
-        (
-          previous
-        ) => ({
-          ...previous,
-
-          ownerName:
-            payload.ownerName,
-
-          restaurantName:
-            payload.restaurantName,
-
-          phone:
-            payload.phone,
-
-          description:
-            payload.description,
-
-          addressLine:
-            payload.addressLine,
-
-          city:
-            payload.city,
-
-          state:
-            payload.state,
-
-          pincode:
-            payload.pincode,
-
-          latitude:
-            payload.latitude,
-
-          longitude:
-            payload.longitude,
-
-          /*
-           * New File ko fake URL
-           * me convert nahi karenge.
-           *
-           * Actual backend response
-           * se new logo URL aayega.
-           */
-          logo:
-            previous.logo,
-        })
-      );
-
-
-      setUpdateLoading(
-        false
-      );
+      } catch (error) {
+        console.error(
+          "PROFILE UPDATE ERROR:",
+          error
+        );
+      }
     };
 
 
@@ -338,7 +219,7 @@ const RestaurantProfile = () => {
 
         description={
           typeof error ===
-          "string"
+            "string"
             ? error
             : "Something went wrong while loading restaurant profile."
         }
@@ -525,12 +406,12 @@ const RestaurantProfile = () => {
               <StatusBadge
                 variant={
                   restaurant.approvalStatus ===
-                  "APPROVED"
+                    "APPROVED"
                     ? "success"
                     : restaurant.approvalStatus ===
                       "REJECTED"
-                    ? "danger"
-                    : "warning"
+                      ? "danger"
+                      : "warning"
                 }
 
                 size="sm"
@@ -990,7 +871,9 @@ const RestaurantProfile = () => {
 
         <CommonForm
           key={
-            restaurant.slug
+            profile?.updatedAt ||
+            profile?.slug ||
+            "restaurant-profile"
           }
 
           fields={

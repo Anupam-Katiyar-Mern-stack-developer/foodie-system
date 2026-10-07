@@ -9,6 +9,8 @@ import publicProfileReducer from "./slices/public/profile.slice";
 import publicOrderReducer from "./slices/public/order.slice";
 import publicAuthReducer from "./slices/public/auth.slice";
 import restaurantAuthReducer from "./slices/restaurant/restaurantAuth.slice";
+import restaurantProfileReducer from "./slices/restaurant/restaurantProfile.slice";
+
 const store = configureStore({
   reducer: {
     publicCategory: publicCategoryReducer,
@@ -26,7 +28,10 @@ const store = configureStore({
     publicOrder: publicOrderReducer,
 
     publicAuth: publicAuthReducer,
+
     restaurantAuth: restaurantAuthReducer,
+    
+    restaurantProfile: restaurantProfileReducer,
   },
 });
 

@@ -9,6 +9,20 @@ import {
     Store,
 } from "lucide-react";
 
+import {
+    useEffect,
+
+} from "react";
+
+import {
+    useDispatch,
+    useSelector,
+} from "react-redux";
+
+import {
+    getRestaurantProfile,
+    updateRestaurantOpenStatus,
+} from "../../../redux/thunks/restaurant/restaurantProfile.thunk";
 
 import PageHeader
     from "../../../components/common/PageHeader/PageHeader";
@@ -41,48 +55,34 @@ const RestaurantBusinessHours = () => {
     // state se replace hoga
     // =========================================
 
-    const [
-        restaurant,
-        setRestaurant,
-    ] = useState({
-        restaurantName:
-            "Foodie Kitchen",
+    const dispatch =
+        useDispatch();
 
-        slug:
-            "foodie-kitchen",
 
-        isOpen:
-            true,
-
-        approvalStatus:
-            "APPROVED",
-
-        isBlocked:
-            false,
-    });
-
+    const {
+        profile: restaurant,
+        fetchLoading,
+        statusLoading,
+        error,
+    } = useSelector(
+        (state) =>
+            state.restaurantProfile
+    );
 
     // =========================================
     // API-LIKE STATE
     // =========================================
 
-    const [
-        fetchLoading,
-        setFetchLoading,
-    ] = useState(false);
-
-
-    const [
-        actionLoading,
-        setActionLoading,
-    ] = useState(false);
-
-
-    const [
-        error,
-        setError,
-    ] = useState(null);
-
+    useEffect(() => {
+        if (!restaurant) {
+            dispatch(
+                getRestaurantProfile()
+            );
+        }
+    }, [
+        dispatch,
+        restaurant,
+    ]);
 
     const [
         pendingStatus,
@@ -104,19 +104,11 @@ const RestaurantBusinessHours = () => {
     // REQUEST STATUS CHANGE
     // =========================================
 
-    const requestStatusChange =
+    const handleStatusRequest =
         (nextStatus) => {
             if (
                 nextStatus === true &&
                 !canOpen
-            ) {
-                return;
-            }
-
-
-            if (
-                nextStatus ===
-                restaurant.isOpen
             ) {
                 return;
             }
@@ -150,119 +142,61 @@ const RestaurantBusinessHours = () => {
             }
 
 
-            setActionLoading(
-                true
-            );
+            try {
+                await dispatch(
+                    updateRestaurantOpenStatus(
+                        pendingStatus
+                    )
+                ).unwrap();
 
 
-            console.log(
-                "RESTAURANT OPEN STATUS:",
-                {
-                    isOpen:
-                        pendingStatus,
-                }
-            );
-
-
-            // =========================
-            // UI MOCK UPDATE
-            // =========================
-
-            setRestaurant(
-                (
-                    previous
-                ) => ({
-                    ...previous,
-
-                    isOpen:
-                        pendingStatus,
-                })
-            );
-
-
-            setActionLoading(
-                false
-            );
-
-            setPendingStatus(
-                null
-            );
+                setPendingStatus(
+                    null
+                );
+            } catch (error) {
+                console.error(
+                    "RESTAURANT STATUS ERROR:",
+                    error
+                );
+            }
         };
 
 
     // =========================================
     // LOADING
     // =========================================
-
     if (fetchLoading) {
         return (
-            <div
-                className="
-          space-y-6
-        "
-            >
+            <div className="space-y-6 p-6">
                 <Skeleton
-                    width="w-72"
                     height="h-10"
-                    rounded="rounded-xl"
+                    width="w-72"
                 />
 
-
-                <div
-                    className="
-            grid
-            gap-4
-
-            md:grid-cols-3
-          "
-                >
-                    {Array.from({
-                        length: 3,
-                    }).map(
-                        (
-                            _,
-                            index
-                        ) => (
-                            <Skeleton
-                                key={
-                                    index
-                                }
-
-                                width="w-full"
-
-                                height="h-[150px]"
-
-                                rounded="rounded-[1.5rem]"
-                            />
-                        )
-                    )}
-                </div>
-
-
                 <Skeleton
+                    height="h-56"
                     width="w-full"
-                    height="h-[320px]"
-                    rounded="rounded-[1.75rem]"
+                    rounded="rounded-2xl"
                 />
             </div>
         );
     }
 
-
     // =========================================
     // ERROR
     // =========================================
-
-    if (error) {
+    if (
+        error &&
+        !restaurant
+    ) {
         return (
             <ErrorState
-                title="Unable to load restaurant availability"
-
-                description={
-                    typeof error ===
-                        "string"
-                        ? error
-                        : "Something went wrong while loading restaurant availability."
+                title="Unable to load restaurant"
+                description={error}
+                onRetry={() =>
+                    dispatch(
+                        getRestaurantProfile()
+                    )
                 }
             />
         );
@@ -591,17 +525,15 @@ const RestaurantBusinessHours = () => {
               "
                         >
                             <Button
-                                type="button"
-
-                                disabled={
-                                    restaurant.isOpen ||
-                                    !canOpen
-                                }
-
                                 onClick={() =>
-                                    requestStatusChange(
+                                    handleStatusRequest(
                                         true
                                     )
+                                }
+                                disabled={
+                                    restaurant?.isOpen ||
+                                    statusLoading ||
+                                    !canOpen
                                 }
                             >
                                 Open Restaurant
@@ -609,18 +541,14 @@ const RestaurantBusinessHours = () => {
 
 
                             <Button
-                                type="button"
-
-                                variant="danger"
-
-                                disabled={
-                                    !restaurant.isOpen
-                                }
-
                                 onClick={() =>
-                                    requestStatusChange(
+                                    handleStatusRequest(
                                         false
                                     )
+                                }
+                                disabled={
+                                    !restaurant?.isOpen ||
+                                    statusLoading
                                 }
                             >
                                 Close Restaurant
@@ -744,14 +672,14 @@ const RestaurantBusinessHours = () => {
 
                 title={
                     pendingStatus
-                        ? "Open restaurant?"
-                        : "Close restaurant?"
+                        ? "Open Restaurant?"
+                        : "Close Restaurant?"
                 }
 
                 description={
                     pendingStatus
-                        ? "Customers will be able to place new orders from your restaurant."
-                        : "Customers will temporarily be unable to place new orders from your restaurant."
+                        ? "Your restaurant will become available for customers to place orders."
+                        : "Customers will not be able to place new orders while your restaurant is closed."
                 }
 
                 confirmText={
@@ -761,17 +689,11 @@ const RestaurantBusinessHours = () => {
                 }
 
                 loading={
-                    actionLoading
+                    statusLoading
                 }
 
                 onConfirm={
                     handleConfirmStatus
-                }
-
-                variant={
-                    pendingStatus
-                        ? "primary"
-                        : "danger"
                 }
             />
         </div>
