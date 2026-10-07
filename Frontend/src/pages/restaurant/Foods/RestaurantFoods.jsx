@@ -2,6 +2,21 @@ import {
     useMemo,
     useState,
 } from "react";
+import {
+    useEffect,
+
+} from "react";
+
+import {
+    useDispatch,
+    useSelector,
+} from "react-redux";
+
+import {
+    getMyFoods,
+    deleteFood,
+    toggleAvailability,
+} from "../../../redux/thunks/restaurant/restaurantFood.thunk";
 
 import {
     useNavigate,
@@ -50,191 +65,35 @@ const RestaurantFoods = () => {
     const navigate =
         useNavigate();
 
-
+    const [
+        selectedFood,
+        setSelectedFood,
+    ] = useState(null);
     // =========================================
     // DUMMY STATE
     // Later Redux state se replace hoga
     // =========================================
 
-    const [
-        foods,
-        setFoods,
-    ] = useState([
-        {
-            slug:
-                "paneer-burger",
+    const dispatch =
+        useDispatch();
 
-            name:
-                "Paneer Burger",
 
-            description:
-                "Crispy paneer burger with fresh vegetables and signature sauce.",
-
-            image:
-                "/uploads/foods/paneer-burger.jpg",
-
-            price:
-                199,
-
-            discountPrice:
-                179,
-
-            preparationTime:
-                20,
-
-            isVeg:
-                true,
-
-            isAvailable:
-                true,
-
-            categorySlug:
-                "burgers",
-
-            categoryName:
-                "Burgers",
-        },
-
-        {
-            slug:
-                "veg-pizza",
-
-            name:
-                "Veg Pizza",
-
-            description:
-                "Loaded vegetable pizza with mozzarella cheese.",
-
-            image:
-                "/uploads/foods/veg-pizza.jpg",
-
-            price:
-                299,
-
-            discountPrice:
-                249,
-
-            preparationTime:
-                25,
-
-            isVeg:
-                true,
-
-            isAvailable:
-                true,
-
-            categorySlug:
-                "pizza",
-
-            categoryName:
-                "Pizza",
-        },
-
-        {
-            slug:
-                "chicken-burger",
-
-            name:
-                "Chicken Burger",
-
-            description:
-                "Juicy chicken patty with lettuce and house sauce.",
-
-            image:
-                "/uploads/foods/chicken-burger.jpg",
-
-            price:
-                249,
-
-            discountPrice:
-                null,
-
-            preparationTime:
-                20,
-
-            isVeg:
-                false,
-
-            isAvailable:
-                true,
-
-            categorySlug:
-                "burgers",
-
-            categoryName:
-                "Burgers",
-        },
-
-        {
-            slug:
-                "white-sauce-pasta",
-
-            name:
-                "White Sauce Pasta",
-
-            description:
-                "Creamy white sauce pasta with vegetables.",
-
-            image:
-                "/uploads/foods/white-sauce-pasta.jpg",
-
-            price:
-                229,
-
-            discountPrice:
-                199,
-
-            preparationTime:
-                18,
-
-            isVeg:
-                true,
-
-            isAvailable:
-                false,
-
-            categorySlug:
-                "pasta",
-
-            categoryName:
-                "Pasta",
-        },
-
-        {
-            slug:
-                "chicken-pizza",
-
-            name:
-                "Chicken Pizza",
-
-            description:
-                "Chicken pizza topped with cheese and signature seasoning.",
-
-            image:
-                "/uploads/foods/chicken-pizza.jpg",
-
-            price:
-                349,
-
-            discountPrice:
-                319,
-
-            preparationTime:
-                30,
-
-            isVeg:
-                false,
-
-            isAvailable:
-                true,
-
-            categorySlug:
-                "pizza",
-
-            categoryName:
-                "Pizza",
-        },
-    ]);
+    const {
+        foods = [],
+        fetchLoading,
+        deletingSlug,
+        togglingSlug,
+        error,
+    } = useSelector(
+        (state) =>
+            state.restaurantFood
+    ) || {
+            foods: [],
+            fetchLoading: false,
+            deletingSlug: null,
+            togglingSlug: null,
+            error: null,
+        };
 
 
     const [
@@ -248,34 +107,13 @@ const RestaurantFoods = () => {
     });
 
 
-    const [
-        fetchLoading,
-        setFetchLoading,
-    ] = useState(false);
 
 
-    const [
-        error,
-        setError,
-    ] = useState(null);
-
-
-    const [
-        togglingSlug,
-        setTogglingSlug,
-    ] = useState(null);
-
-
-    const [
-        deletingSlug,
-        setDeletingSlug,
-    ] = useState(null);
-
-
-    const [
-        selectedFood,
-        setSelectedFood,
-    ] = useState(null);
+    useEffect(() => {
+        dispatch(
+            getMyFoods()
+        );
+    }, [dispatch]);
 
 
     // =========================================
@@ -510,84 +348,64 @@ const RestaurantFoods = () => {
     //   })
     // )
     // =========================================
-
     const handleToggleAvailability =
-        (food) => {
-            setTogglingSlug(
-                food.slug
-            );
+        async (food) => {
+            if (
+                !food?.slug ||
+                togglingSlug
+            ) {
+                return;
+            }
 
 
-            setFoods(
-                (previous) =>
-                    previous.map(
-                        (item) =>
-                            item.slug ===
-                                food.slug
-                                ? {
-                                    ...item,
+            try {
+                await dispatch(
+                    toggleAvailability({
+                        foodSlug:
+                            food.slug,
 
-                                    isAvailable:
-                                        !item.isAvailable,
-                                }
-                                : item
-                    )
-            );
-
-
-            setTogglingSlug(
-                null
-            );
+                        isAvailable:
+                            !food.isAvailable,
+                    })
+                ).unwrap();
+            } catch (error) {
+                console.error(
+                    "FOOD AVAILABILITY ERROR:",
+                    error
+                );
+            }
         };
 
 
     // =========================================
     // DELETE
     // =========================================
-
     const handleDeleteConfirm =
-        () => {
-            if (!selectedFood) {
+        async () => {
+            if (
+                !selectedFood?.slug
+            ) {
                 return;
             }
 
 
-            setDeletingSlug(
-                selectedFood.slug
-            );
-
-
-            setFoods(
-                (previous) =>
-                    previous.filter(
-                        (food) =>
-                            food.slug !==
-                            selectedFood.slug
+            try {
+                await dispatch(
+                    deleteFood(
+                        selectedFood.slug
                     )
-            );
+                ).unwrap();
 
 
-            setPagination(
-                (previous) => ({
-                    ...previous,
-
-                    total:
-                        Math.max(
-                            0,
-                            previous.total -
-                            1
-                        ),
-                })
-            );
-
-
-            setDeletingSlug(
-                null
-            );
-
-            setSelectedFood(
-                null
-            );
+                setSelectedFood(
+                    null
+                );
+            } catch (error) {
+                console.error(
+                    "DELETE FOOD ERROR:",
+                    error
+                );
+            }
         };
 
 
@@ -851,26 +669,23 @@ const RestaurantFoods = () => {
               justify-end
               gap-2
             "
+                    ><Button
+                        onClick={() =>
+                            handleToggleAvailability(
+                                food
+                            )
+                        }
+                        disabled={
+                            togglingSlug ===
+                            food.slug
+                        }
                     >
-                        <Button
-                            type="button"
-
-                            variant="ghost"
-
-                            loading={
-                                togglingSlug ===
+                            {togglingSlug ===
                                 food.slug
-                            }
-
-                            onClick={() =>
-                                handleToggleAvailability(
-                                    food
-                                )
-                            }
-                        >
-                            {food.isAvailable
-                                ? "Disable"
-                                : "Enable"}
+                                ? "Updating..."
+                                : food.isAvailable
+                                    ? "Available"
+                                    : "Unavailable"}
                         </Button>
 
 
@@ -1358,15 +1173,17 @@ const RestaurantFoods = () => {
                     )
                 }
 
-                title="Delete food?"
+                title="Delete Food?"
 
                 description={
                     selectedFood
-                        ? `${selectedFood.name} will be permanently removed from your menu.`
+                        ? `Are you sure you want to delete ${selectedFood.name}?`
                         : ""
                 }
 
-                confirmText="Delete Food"
+                confirmText="Delete"
+
+                variant="danger"
 
                 loading={
                     deletingSlug ===

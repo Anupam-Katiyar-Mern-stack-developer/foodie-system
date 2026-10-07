@@ -10,6 +10,7 @@ import publicOrderReducer from "./slices/public/order.slice";
 import publicAuthReducer from "./slices/public/auth.slice";
 import restaurantAuthReducer from "./slices/restaurant/restaurantAuth.slice";
 import restaurantProfileReducer from "./slices/restaurant/restaurantProfile.slice";
+import restaurantFoodReducer from "./slices/restaurant/restaurantFood.slice";
 
 const store = configureStore({
   reducer: {
@@ -30,8 +31,9 @@ const store = configureStore({
     publicAuth: publicAuthReducer,
 
     restaurantAuth: restaurantAuthReducer,
-    
+
     restaurantProfile: restaurantProfileReducer,
+    restaurantFood: restaurantFoodReducer,
   },
 });
 

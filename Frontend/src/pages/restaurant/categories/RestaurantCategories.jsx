@@ -1,386 +1,237 @@
 import {
-    useMemo,
-    useState,
+  useMemo,
 } from "react";
 
 import {
-    FolderOpen,
-    ImageIcon,
-    Search,
-} from "lucide-react";
+  useSelector,
+} from "react-redux";
 
+import {
+  FaLayerGroup,
+} from "react-icons/fa";
+
+import Container
+  from "../../../components/common/Container/Container";
 
 import PageHeader
-    from "../../../components/common/PageHeader/PageHeader";
-
-import EmptyState
-    from "../../../components/common/EmptyState/EmptyState";
-
-import ErrorState
-    from "../../../components/common/ErrorState/ErrorState";
+  from "../../../components/common/PageHeader/PageHeader";
 
 import Skeleton
-    from "../../../components/common/Skeleton/Skeleton";
+  from "../../../components/common/Skeleton/Skeleton";
+
+import EmptyState
+  from "../../../components/common/EmptyState/EmptyState";
+
+import ErrorState
+  from "../../../components/common/ErrorState/ErrorState";
 
 import OptimizedImage
-    from "../../../components/common/OptimizedImage/OptimizedImage";
-
-import StatusBadge
-    from "../../../components/common/StatusBadge/StatusBadge";
+  from "../../../components/common/OptimizedImage/OptimizedImage";
 
 
 const RestaurantCategories = () => {
 
-    // =========================================
-    // DUMMY DATA
-    //
-    // Later:
-    // state.restaurantCategory.categories
-    // =========================================
+  // =============================
+  // REDUX
+  // =============================
 
-    const [
-        categories,
-        setCategories,
-    ] = useState([
-        {
-            name: "Burgers",
-            slug: "burgers",
-
-            image:
-                "/uploads/categories/burgers.jpg",
-
-            displayOrder: 1,
-
-            isActive: true,
-        },
-
-        {
-            name: "Pizza",
-            slug: "pizza",
-
-            image:
-                "/uploads/categories/pizza.jpg",
-
-            displayOrder: 2,
-
-            isActive: true,
-        },
-
-        {
-            name: "Pasta",
-            slug: "pasta",
-
-            image:
-                "/uploads/categories/pasta.jpg",
-
-            displayOrder: 3,
-
-            isActive: true,
-        },
-
-        {
-            name: "Beverages",
-            slug: "beverages",
-
-            image:
-                "/uploads/categories/beverages.jpg",
-
-            displayOrder: 4,
-
-            isActive: true,
-        },
-
-        {
-            name: "Desserts",
-            slug: "desserts",
-
-            image:
-                "/uploads/categories/desserts.jpg",
-
-            displayOrder: 5,
-
-            isActive: false,
-        },
-    ]);
+  const {
+    categories = [],
+    fetchLoading = false,
+    error = null,
+  } = useSelector(
+    (state) =>
+      state.publicCategory
+  ) || {};
 
 
-    const [
-        fetchLoading,
-        setFetchLoading,
-    ] = useState(false);
+  // =============================
+  // ACTIVE CATEGORIES
+  // =============================
+
+  const activeCategories =
+    useMemo(
+      () =>
+        categories.filter(
+          (category) =>
+            category.isActive !==
+            false
+        ),
+      [categories]
+    );
 
 
-    const [
-        error,
-        setError,
-    ] = useState(null);
+  // =============================
+  // LOADING
+  // =============================
 
-
-    const [
-        searchTerm,
-        setSearchTerm,
-    ] = useState("");
-
-
-    // =========================================
-    // FILTER
-    // =========================================
-
-    const filteredCategories =
-        useMemo(() => {
-            const search =
-                searchTerm
-                    .trim()
-                    .toLowerCase();
-
-
-            return [...categories]
-                .filter(
-                    (category) =>
-                        !search ||
-                        category.name
-                            ?.toLowerCase()
-                            .includes(search)
-                )
-                .sort(
-                    (a, b) =>
-                        Number(
-                            a.displayOrder || 0
-                        ) -
-                        Number(
-                            b.displayOrder || 0
-                        )
-                );
-        }, [
-            categories,
-            searchTerm,
-        ]);
-
-
-    // =========================================
-    // ERROR
-    // =========================================
-
-    if (error) {
-        return (
-            <ErrorState
-                title="Unable to load categories"
-
-                description={
-                    typeof error ===
-                        "string"
-                        ? error
-                        : "Something went wrong while loading categories."
-                }
-            />
-        );
-    }
-
-
+  if (fetchLoading) {
     return (
-        <div
+      <div
+        className="
+          min-h-screen
+          bg-[#fffaf5]
+          py-8
+        "
+      >
+        <Container>
+
+          <Skeleton
+            width="w-72"
+            height="h-10"
+          />
+
+          <div
             className="
-        space-y-6
+              mt-8
+              grid
+              gap-5
+              sm:grid-cols-2
+              lg:grid-cols-3
+              xl:grid-cols-4
+            "
+          >
+            {Array.from({
+              length: 8,
+            }).map(
+              (_, index) => (
+                <Skeleton
+                  key={index}
+                  width="w-full"
+                  height="h-64"
+                  rounded="rounded-2xl"
+                />
+              )
+            )}
+          </div>
+
+        </Container>
+      </div>
+    );
+  }
+
+
+  // =============================
+  // ERROR
+  // =============================
+
+  if (error) {
+    return (
+      <div
+        className="
+          min-h-screen
+          bg-[#fffaf5]
+          py-8
+        "
+      >
+        <Container>
+
+          <ErrorState
+            title="Unable to load categories"
+            description={
+              typeof error ===
+              "string"
+                ? error
+                : "Something went wrong while loading categories."
+            }
+          />
+
+        </Container>
+      </div>
+    );
+  }
+
+
+  return (
+    <div
+      className="
+        min-h-screen
+        bg-[#fffaf5]
+        py-8
       "
+    >
+      <Container>
+
+        {/* HEADER */}
+
+        <PageHeader
+          title="Categories"
+          description="Browse categories created and managed by the Foodie admin."
+        />
+
+
+        {/* INFO */}
+
+        <div
+          className="
+            mt-6
+
+            rounded-2xl
+
+            border
+            border-orange-200
+
+            bg-orange-50
+
+            px-5
+            py-4
+          "
         >
-            {/* =========================
-          HEADER
-      ========================== */}
+          <p
+            className="
+              text-sm
+              leading-6
+              text-orange-800
+            "
+          >
+            Categories are managed by
+            Foodie Admin. You can use
+            active categories while
+            adding or editing food
+            items.
+          </p>
+        </div>
 
-            <PageHeader
-                title="Categories"
 
-                description="Categories are managed by Admin. Use these categories when adding or editing food items."
+        {/* EMPTY */}
+
+        {activeCategories.length ===
+        0 ? (
+          <div className="mt-10">
+
+            <EmptyState
+              icon={FaLayerGroup}
+              title="No categories available"
+              description="There are currently no active food categories available."
             />
 
+          </div>
+        ) : (
 
-            {/* =========================
-          SEARCH
-      ========================== */}
+          /* CATEGORY GRID */
 
-            <div
-                className="
-          rounded-[1.5rem]
+          <div
+            className="
+              mt-8
 
-          border
-          border-slate-200
-
-          bg-white
-
-          p-4
-
-          shadow-sm
-        "
-            >
-                <div
-                    className="
-            relative
-
-            max-w-md
-          "
-                >
-                    <Search
-                        className="
-              pointer-events-none
-
-              absolute
-              left-4
-              top-1/2
-
-              h-4
-              w-4
-
-              -translate-y-1/2
-
-              text-slate-400
-            "
-                    />
-
-
-                    <input
-                        type="search"
-
-                        value={
-                            searchTerm
-                        }
-
-                        onChange={(
-                            event
-                        ) =>
-                            setSearchTerm(
-                                event.target.value
-                            )
-                        }
-
-                        placeholder="Search category..."
-
-                        className="
-              h-11
-              w-full
-
-              rounded-xl
-
-              border
-              border-slate-200
-
-              bg-slate-50
-
-              pl-11
-              pr-4
-
-              text-sm
-              text-slate-900
-
-              outline-none
-
-              placeholder:text-slate-400
-
-              transition
-
-              focus:border-orange-300
-              focus:bg-white
-              focus:ring-4
-              focus:ring-orange-50
-            "
-                    />
-                </div>
-            </div>
-
-
-            {/* =========================
-          LOADING
-      ========================== */}
-
-            {fetchLoading && (
-                <div
-                    className="
-            grid
-            gap-5
-
-            sm:grid-cols-2
-            xl:grid-cols-3
-          "
-                >
-                    {Array.from({
-                        length: 6,
-                    }).map(
-                        (
-                            _,
-                            index
-                        ) => (
-                            <Skeleton
-                                key={
-                                    index
-                                }
-
-                                width="w-full"
-
-                                height="h-[230px]"
-
-                                rounded="rounded-[1.5rem]"
-                            />
-                        )
-                    )}
-                </div>
-            )}
-
-
-            {/* =========================
-          EMPTY
-      ========================== */}
-
-            {!fetchLoading &&
-                filteredCategories.length ===
-                0 && (
-                    <EmptyState
-                        icon={
-                            FolderOpen
-                        }
-
-                        title={
-                            searchTerm
-                                ? "No category found"
-                                : "No categories available"
-                        }
-
-                        description={
-                            searchTerm
-                                ? "Try searching with another category name."
-                                : "Admin-created categories will appear here."
-                        }
-                    />
-                )}
-
-
-            {/* =========================
-          CATEGORY GRID
-      ========================== */}
-
-            {!fetchLoading &&
-                filteredCategories.length >
-                0 && (
-                    <div
-                        className="
               grid
               gap-5
 
               sm:grid-cols-2
-              xl:grid-cols-3
+              lg:grid-cols-3
+              xl:grid-cols-4
             "
-                    >
-                        {filteredCategories.map(
-                            (
-                                category
-                            ) => (
-                                <article
-                                    key={
-                                        category.slug
-                                    }
-
-                                    className="
+          >
+            {activeCategories.map(
+              (category) => (
+                <div
+                  key={
+                    category.slug
+                  }
+                  className="
                     overflow-hidden
 
-                    rounded-[1.5rem]
+                    rounded-2xl
 
                     border
                     border-slate-200
@@ -391,159 +242,136 @@ const RestaurantCategories = () => {
 
                     transition
 
-                    hover:-translate-y-0.5
-                    hover:shadow-md
+                    hover:-translate-y-1
+                    hover:shadow-lg
                   "
-                                >
-                                    {/* IMAGE */}
+                >
 
-                                    <div
-                                        className="
-                      relative
+                  {/* IMAGE */}
 
+                  <div
+                    className="
                       h-40
-
                       overflow-hidden
-
                       bg-slate-100
                     "
-                                    >
-                                        {category.image ? (
-                                            <OptimizedImage
-                                                src={
-                                                    category.image
-                                                }
-
-                                                alt={
-                                                    category.name
-                                                }
-
-                                                className="
+                  >
+                    {category.image ? (
+                      <OptimizedImage
+                        src={
+                          category.image
+                        }
+                        alt={
+                          category.name
+                        }
+                        rounded="rounded-none"
+                        className="
                           h-full
                           w-full
-
                           object-cover
                         "
-                                            />
-                                        ) : (
-                                            <div
-                                                className="
+                      />
+                    ) : (
+                      <div
+                        className="
                           flex
                           h-full
                           items-center
                           justify-center
 
+                          text-3xl
                           text-slate-300
                         "
-                                            >
-                                                <ImageIcon
-                                                    className="
-                            h-10
-                            w-10
-                          "
-                                                />
-                                            </div>
-                                        )}
+                      >
+                        <FaLayerGroup />
+                      </div>
+                    )}
+                  </div>
 
 
-                                        <div
-                                            className="
-                        absolute
-                        right-3
-                        top-3
-                      "
-                                        >
-                                            <StatusBadge
-                                                variant={
-                                                    category.isActive
-                                                        ? "success"
-                                                        : "danger"
-                                                }
+                  {/* CONTENT */}
 
-                                                size="sm"
+                  <div className="p-5">
 
-                                                dot
-                                            >
-                                                {category.isActive
-                                                    ? "Active"
-                                                    : "Inactive"}
-                                            </StatusBadge>
-                                        </div>
-                                    </div>
-
-
-                                    {/* CONTENT */}
-
-                                    <div
-                                        className="
-                      p-5
-                    "
-                                    >
-                                        <div
-                                            className="
+                    <div
+                      className="
                         flex
                         items-start
                         justify-between
-                        gap-4
+                        gap-3
                       "
-                                        >
-                                            <div>
-                                                <h3
-                                                    className="
-                            text-lg
+                    >
+                      <div
+                        className="
+                          min-w-0
+                        "
+                      >
+                        <h3
+                          className="
+                            truncate
+
+                            text-base
                             font-black
+
                             text-slate-950
                           "
-                                                >
-                                                    {
-                                                        category.name
-                                                    }
-                                                </h3>
+                        >
+                          {
+                            category.name
+                          }
+                        </h3>
 
-
-                                                <p
-                                                    className="
+                        <p
+                          className="
                             mt-1
 
+                            truncate
+
                             text-xs
-                            font-semibold
                             text-slate-400
                           "
-                                                >
-                                                    {
-                                                        category.slug
-                                                    }
-                                                </p>
-                                            </div>
+                        >
+                          {
+                            category.slug
+                          }
+                        </p>
+                      </div>
 
 
-                                            <span
-                                                className="
-                          rounded-lg
+                      <span
+                        className="
+                          shrink-0
 
-                          bg-orange-50
+                          rounded-full
+
+                          bg-emerald-50
 
                           px-2.5
                           py-1
 
-                          text-xs
-                          font-bold
-                          text-orange-600
+                          text-[10px]
+                          font-black
+                          uppercase
+
+                          text-emerald-700
                         "
-                                            >
-                                                #{
-                                                    category.displayOrder
-                                                }
-                                            </span>
-                                        </div>
-                                    </div>
-                                </article>
-                            )
-                        )}
+                      >
+                        Active
+                      </span>
+
                     </div>
-                )}
-        </div>
-    );
+
+                  </div>
+
+                </div>
+              )
+            )}
+          </div>
+        )}
+
+      </Container>
+    </div>
+  );
 };
 
 
