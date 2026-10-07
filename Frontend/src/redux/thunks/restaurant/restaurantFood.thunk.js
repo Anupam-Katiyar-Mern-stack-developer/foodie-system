@@ -1,9 +1,11 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
 import {
-  getMyFoodsService,
+  createFoodService,
   deleteFoodService,
+  getMyFoodsService,
   toggleFoodAvailabilityService,
+  updateFoodService,
 } from "../../../services/restaurant/restaurantFood.service";
 
 const getErrorMessage = (error) => {
@@ -28,6 +30,49 @@ export const getMyFoods = createAsyncThunk(
       }
 
       return data?.foods || [];
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+// =============================
+// CREATE FOOD
+// =============================
+
+export const createFood = createAsyncThunk(
+  "restaurantFood/createFood",
+
+  async (formData, { rejectWithValue }) => {
+    try {
+      const data = await createFoodService(formData);
+
+      return data?.food || data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+// =============================
+// UPDATE FOOD
+// =============================
+
+export const updateFood = createAsyncThunk(
+  "restaurantFood/updateFood",
+
+  async ({ foodSlug, formData }, { rejectWithValue }) => {
+    try {
+      const data = await updateFoodService({
+        foodSlug,
+        formData,
+      });
+
+      return {
+        originalSlug: foodSlug,
+
+        food: data?.food || data,
+      };
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }

@@ -1,7 +1,13 @@
 import {
+    useEffect,
     useMemo,
     useState,
 } from "react";
+
+import {
+    useDispatch,
+    useSelector,
+} from "react-redux";
 
 import {
     useNavigate,
@@ -11,7 +17,6 @@ import {
 import {
     ArrowLeft,
 } from "lucide-react";
-
 
 import PageHeader
     from "../../../components/common/PageHeader/PageHeader";
@@ -45,9 +50,149 @@ import {
 } from "../../../validations/restaurant/food.validation";
 
 
+import {
+    createFood,
+    getMyFoods,
+    updateFood,
+} from "../../../redux/thunks/restaurant/restaurantFood.thunk";
+
+
+// =========================================
+// BUILD FORM DATA
+// =========================================
+
+const buildFoodFormData = (
+    values
+) => {
+    const formData =
+        new FormData();
+
+
+    formData.append(
+        "name",
+        values.name?.trim() || ""
+    );
+
+
+    formData.append(
+        "description",
+        values.description?.trim() || ""
+    );
+
+
+    formData.append(
+        "categorySlug",
+        values.categorySlug || ""
+    );
+
+
+    formData.append(
+        "price",
+        String(
+            values.price ?? ""
+        )
+    );
+
+
+    formData.append(
+        "discountPrice",
+        values.discountPrice === "" ||
+        values.discountPrice === null ||
+        values.discountPrice === undefined
+            ? ""
+            : String(
+                values.discountPrice
+            )
+    );
+
+
+    formData.append(
+        "preparationTime",
+        String(
+            values.preparationTime ?? ""
+        )
+    );
+
+
+    formData.append(
+        "isVeg",
+        String(
+            Boolean(
+                values.isVeg
+            )
+        )
+    );
+
+
+    formData.append(
+        "isAvailable",
+        String(
+            values.isAvailable !== false
+        )
+    );
+
+
+    // =========================================
+    // IMAGE
+    // =========================================
+
+    let imageFile = null;
+
+
+    if (
+        values.image instanceof File
+    ) {
+        imageFile =
+            values.image;
+    }
+
+
+    if (
+        !imageFile &&
+        values.image instanceof FileList
+    ) {
+        imageFile =
+            values.image[0];
+    }
+
+
+    if (
+        !imageFile &&
+        Array.isArray(
+            values.image
+        )
+    ) {
+        imageFile =
+            values.image[0];
+    }
+
+
+    if (
+        imageFile instanceof File
+    ) {
+        formData.append(
+            "image",
+            imageFile
+        );
+    }
+
+
+    return formData;
+};
+
+
+// =========================================
+// COMPONENT
+// =========================================
+
 const RestaurantFoodForm = () => {
+
+    const dispatch =
+        useDispatch();
+
     const navigate =
         useNavigate();
+
 
     const {
         foodSlug,
@@ -65,151 +210,164 @@ const RestaurantFoodForm = () => {
 
 
     // =========================================
-    // DUMMY CATEGORIES
-    //
-    // Later:
-    // state.restaurantCategory.categories
+    // REDUX FOOD
+    // =========================================
+
+    const {
+        foods = [],
+
+        fetchLoading,
+
+        createLoading,
+
+        updateLoading,
+
+        error,
+    } = useSelector(
+        (state) =>
+            state.restaurantFood
+    ) || {};
+
+
+    // =========================================
+    // REDUX CATEGORY
+    // =========================================
+
+    const {
+        categories = [],
+    } = useSelector(
+        (state) =>
+            state.publicCategory
+    ) || {};
+
+
+    // =========================================
+    // DIRECT EDIT PAGE LOAD STATE
     // =========================================
 
     const [
-        categories,
-        setCategories,
-    ] = useState([
-        {
-            name:
-                "Burgers",
+        hasRequestedFoods,
+        setHasRequestedFoods,
+    ] = useState(false);
 
-            slug:
-                "burgers",
 
-            isActive:
-                true,
-        },
+    // =========================================
+    // LOAD FOODS FOR EDIT
+    // =========================================
 
-        {
-            name:
-                "Pizza",
+    useEffect(() => {
 
-            slug:
-                "pizza",
+        if (
+            !isEditMode
+        ) {
+            return;
+        }
 
-            isActive:
-                true,
-        },
 
-        {
-            name:
-                "Pasta",
+        if (
+            foods.length > 0
+        ) {
+            return;
+        }
 
-            slug:
-                "pasta",
 
-            isActive:
-                true,
-        },
+        setHasRequestedFoods(
+            true
+        );
 
-        {
-            name:
-                "Beverages",
 
-            slug:
-                "beverages",
+        dispatch(
+            getMyFoods()
+        );
 
-            isActive:
-                true,
-        },
-
-        {
-            name:
-                "Desserts",
-
-            slug:
-                "desserts",
-
-            isActive:
-                true,
-        },
+    }, [
+        dispatch,
+        isEditMode,
+        foods.length,
     ]);
 
 
     // =========================================
-    // DUMMY SELECTED FOOD
-    //
-    // Later:
-    // state.restaurantFood.selectedFood
+    // CURRENT FOOD
     // =========================================
 
-    const [
-        selectedFood,
-        setSelectedFood,
-    ] = useState(
-        isEditMode
-            ? {
-                slug:
-                    foodSlug,
+    const editingFood =
+        useMemo(
+            () => {
 
-                name:
-                    "Paneer Burger",
+                if (
+                    !isEditMode
+                ) {
+                    return null;
+                }
 
-                description:
-                    "Crispy paneer burger with fresh vegetables and signature sauce.",
 
-                image:
-                    "/uploads/foods/paneer-burger.jpg",
+                return (
+                    foods.find(
+                        (food) =>
+                            food.slug ===
+                            foodSlug
+                    ) ||
+                    null
+                );
 
-                price:
-                    199,
-
-                discountPrice:
-                    179,
-
-                preparationTime:
-                    20,
-
-                isVeg:
-                    true,
-
-                isAvailable:
-                    true,
-
-                categorySlug:
-                    "burgers",
-
-                categoryName:
-                    "Burgers",
-            }
-            : null
-    );
+            },
+            [
+                foods,
+                foodSlug,
+                isEditMode,
+            ]
+        );
 
 
     // =========================================
-    // API-LIKE UI STATE
-    //
-    // Later Redux state se replace hoga
+    // ACTIVE CATEGORIES
     // =========================================
 
-    const [
-        detailLoading,
-        setDetailLoading,
-    ] = useState(false);
+    const activeCategories =
+        useMemo(
+            () =>
+                categories.filter(
+                    (category) =>
+                        category.isActive !==
+                        false
+                ),
+            [
+                categories,
+            ]
+        );
 
 
-    const [
-        createLoading,
-        setCreateLoading,
-    ] = useState(false);
+    // =========================================
+    // CURRENT CATEGORY
+    // =========================================
+
+    const editingCategory =
+        useMemo(
+            () => {
+
+                if (
+                    !editingFood
+                ) {
+                    return null;
+                }
 
 
-    const [
-        updateLoading,
-        setUpdateLoading,
-    ] = useState(false);
+                return (
+                    activeCategories.find(
+                        (category) =>
+                            category.slug ===
+                            editingFood.categorySlug
+                    ) ||
+                    null
+                );
 
-
-    const [
-        error,
-        setError,
-    ] = useState(null);
+            },
+            [
+                activeCategories,
+                editingFood,
+            ]
+        );
 
 
     // =========================================
@@ -220,11 +378,10 @@ const RestaurantFoodForm = () => {
         useMemo(
             () =>
                 getFoodFields(
-                    categories
+                    activeCategories
                 ),
-
             [
-                categories,
+                activeCategories,
             ]
         );
 
@@ -239,7 +396,6 @@ const RestaurantFoodForm = () => {
                 getFoodSchema({
                     isEditMode,
                 }),
-
             [
                 isEditMode,
             ]
@@ -247,72 +403,93 @@ const RestaurantFoodForm = () => {
 
 
     // =========================================
-    // DEFAULT VALUES
+    // FORM DEFAULT VALUES
     // =========================================
 
     const formValues =
-        useMemo(() => {
-            if (
-                !isEditMode ||
-                !selectedFood
-            ) {
-                return (
-                    foodDefaultValues
-                );
-            }
+        useMemo(
+            () => {
+
+                // =============================
+                // ADD MODE
+                // =============================
+
+                if (
+                    !isEditMode
+                ) {
+                    return {
+                        ...foodDefaultValues,
+                    };
+                }
 
 
-            return {
-                name:
-                    selectedFood.name ||
-                    "",
+                // =============================
+                // EDIT DATA NOT LOADED
+                // =============================
 
-                description:
-                    selectedFood
-                        .description ||
-                    "",
+                if (
+                    !editingFood
+                ) {
+                    return {
+                        ...foodDefaultValues,
+                    };
+                }
 
-                categorySlug:
-                    selectedFood
-                        .categorySlug ||
-                    "",
 
-                price:
-                    selectedFood.price ??
-                    "",
+                // =============================
+                // EDIT MODE
+                // =============================
 
-                discountPrice:
-                    selectedFood
-                        .discountPrice ??
-                    "",
+                return {
+                    name:
+                        editingFood.name ||
+                        "",
 
-                preparationTime:
-                    selectedFood
-                        .preparationTime ??
-                    "",
+                    description:
+                        editingFood.description ||
+                        "",
 
-                isVeg:
-                    Boolean(
-                        selectedFood.isVeg
-                    ),
+                    categorySlug:
+                        editingFood.categorySlug ||
+                        "",
 
-                isAvailable:
-                    Boolean(
-                        selectedFood
-                            .isAvailable
-                    ),
+                    price:
+                        editingFood.price ??
+                        "",
 
-                /*
-                 * Existing URL ko file
-                 * input me nahi dena.
-                 */
-                image:
-                    null,
-            };
-        }, [
-            isEditMode,
-            selectedFood,
-        ]);
+                    discountPrice:
+                        editingFood.discountPrice ??
+                        "",
+
+                    preparationTime:
+                        editingFood.preparationTime ??
+                        "",
+
+                    isVeg:
+                        Boolean(
+                            editingFood.isVeg
+                        ),
+
+                    isAvailable:
+                        editingFood.isAvailable !==
+                        false,
+
+                    /*
+                     * Existing image URL
+                     * file input me nahi deni.
+                     *
+                     * New image select hogi
+                     * tabhi backend ko jayegi.
+                     */
+                    image: "",
+                };
+
+            },
+            [
+                isEditMode,
+                editingFood,
+            ]
+        );
 
 
     // =========================================
@@ -323,112 +500,71 @@ const RestaurantFoodForm = () => {
         async (
             values
         ) => {
-            const payload = {
-                ...values,
 
-                discountPrice:
-                    values.discountPrice ??
-                    null,
-            };
+            try {
 
-
-            /*
-             * EDIT
-             */
-
-            if (
-                isEditMode
-            ) {
-                setUpdateLoading(
-                    true
-                );
+                const formData =
+                    buildFoodFormData(
+                        values
+                    );
 
 
-                /*
-                 * Later:
-                 *
-                 * await dispatch(
-                 *   updateRestaurantFood({
-                 *     foodSlug,
-                 *     payload,
-                 *   })
-                 * ).unwrap();
-                 */
+                // =============================
+                // UPDATE
+                // =============================
+
+                if (
+                    isEditMode
+                ) {
+
+                    await dispatch(
+                        updateFood({
+                            foodSlug,
+
+                            formData,
+                        })
+                    ).unwrap();
 
 
-                console.log(
-                    "UPDATE FOOD PAYLOAD:",
-                    {
-                        foodSlug,
-                        payload,
-                    }
-                );
+                    navigate(
+                        "/restaurant/foods",
+                        {
+                            replace: true,
+                        }
+                    );
 
 
-                setSelectedFood(
-                    (
-                        previous
-                    ) => ({
-                        ...previous,
-                        ...payload,
-
-                        /*
-                         * image File ko fake
-                         * URL me convert nahi karna.
-                         */
-                        image:
-                            previous?.image,
-                    })
-                );
+                    return;
+                }
 
 
-                setUpdateLoading(
-                    false
-                );
+                // =============================
+                // CREATE
+                // =============================
+
+                await dispatch(
+                    createFood(
+                        formData
+                    )
+                ).unwrap();
 
 
                 navigate(
-                    "/restaurant/foods"
+                    "/restaurant/foods",
+                    {
+                        replace: true,
+                    }
                 );
 
-                return;
+            } catch (submitError) {
+
+                console.error(
+                    "FOOD SUBMIT ERROR:",
+                    submitError
+                );
+
             }
 
-
-            /*
-             * ADD
-             */
-
-            setCreateLoading(
-                true
-            );
-
-
-            /*
-             * Later:
-             *
-             * await dispatch(
-             *   createRestaurantFood(
-             *     payload
-             *   )
-             * ).unwrap();
-             */
-
-
-            console.log(
-                "CREATE FOOD PAYLOAD:",
-                payload
-            );
-
-
-            setCreateLoading(
-                false
-            );
-
-
-            navigate(
-                "/restaurant/foods"
-            );
         };
 
 
@@ -438,9 +574,11 @@ const RestaurantFoodForm = () => {
 
     const handleCancel =
         () => {
+
             navigate(
                 "/restaurant/foods"
             );
+
         };
 
 
@@ -448,15 +586,24 @@ const RestaurantFoodForm = () => {
     // EDIT LOADING
     // =========================================
 
-    if (
+    const editLoading =
         isEditMode &&
-        detailLoading
+        foods.length === 0 &&
+        (
+            !hasRequestedFoods ||
+            fetchLoading
+        );
+
+
+    if (
+        editLoading
     ) {
+
         return (
             <div
                 className="
-          space-y-6
-        "
+                    space-y-6
+                "
             >
                 <Skeleton
                     width="w-72"
@@ -472,6 +619,7 @@ const RestaurantFoodForm = () => {
                 />
             </div>
         );
+
     }
 
 
@@ -479,7 +627,10 @@ const RestaurantFoodForm = () => {
     // ERROR
     // =========================================
 
-    if (error) {
+    if (
+        error
+    ) {
+
         return (
             <ErrorState
                 title={
@@ -490,23 +641,27 @@ const RestaurantFoodForm = () => {
 
                 description={
                     typeof error ===
-                        "string"
+                    "string"
                         ? error
                         : "Something went wrong. Please try again."
                 }
             />
         );
+
     }
 
 
     // =========================================
-    // EDIT FOOD NOT FOUND
+    // FOOD NOT FOUND
     // =========================================
 
     if (
         isEditMode &&
-        !selectedFood
+        hasRequestedFoods &&
+        !fetchLoading &&
+        !editingFood
     ) {
+
         return (
             <ErrorState
                 title="Food not found"
@@ -514,18 +669,20 @@ const RestaurantFoodForm = () => {
                 description="The requested food item could not be found."
             />
         );
+
     }
 
 
     return (
         <div
             className="
-        space-y-6
-      "
+                space-y-6
+            "
         >
-            {/* =========================
-          BACK
-      ========================== */}
+
+            {/* =================================
+                BACK
+            ================================= */}
 
             <Button
                 type="button"
@@ -538,16 +695,16 @@ const RestaurantFoodForm = () => {
             >
                 <span
                     className="
-            inline-flex
-            items-center
-            gap-2
-          "
+                        inline-flex
+                        items-center
+                        gap-2
+                    "
                 >
                     <ArrowLeft
                         className="
-              h-4
-              w-4
-            "
+                            h-4
+                            w-4
+                        "
                     />
 
                     Back to Foods
@@ -555,9 +712,9 @@ const RestaurantFoodForm = () => {
             </Button>
 
 
-            {/* =========================
-          HEADER
-      ========================== */}
+            {/* =================================
+                HEADER
+            ================================= */}
 
             <PageHeader
                 title={
@@ -574,103 +731,108 @@ const RestaurantFoodForm = () => {
             />
 
 
-            {/* =========================
-          EXISTING FOOD PREVIEW
-      ========================== */}
+            {/* =================================
+                EXISTING FOOD PREVIEW
+            ================================= */}
 
             {isEditMode &&
-                selectedFood && (
+                editingFood && (
+
                     <section
                         className="
-              flex
-              flex-col
-              gap-4
+                            flex
+                            flex-col
+                            gap-4
 
-              rounded-[1.5rem]
+                            rounded-[1.5rem]
 
-              border
-              border-slate-200
+                            border
+                            border-slate-200
 
-              bg-white
+                            bg-white
 
-              p-4
+                            p-4
 
-              shadow-sm
+                            shadow-sm
 
-              sm:flex-row
-              sm:items-center
-            "
+                            sm:flex-row
+                            sm:items-center
+                        "
                     >
+
                         <OptimizedImage
                             src={
-                                selectedFood.image
+                                editingFood.image
                             }
 
                             alt={
-                                selectedFood.name
+                                editingFood.name
                             }
 
                             className="
-                h-28
-                w-full
+                                h-28
+                                w-full
 
-                rounded-xl
+                                rounded-xl
 
-                object-cover
+                                object-cover
 
-                sm:h-24
-                sm:w-28
-              "
+                                sm:h-24
+                                sm:w-28
+                            "
                         />
 
 
                         <div
                             className="
-                min-w-0
-                flex-1
-              "
+                                min-w-0
+                                flex-1
+                            "
                         >
+
                             <h2
                                 className="
-                  text-lg
-                  font-black
-                  text-slate-950
-                "
+                                    text-lg
+                                    font-black
+                                    text-slate-950
+                                "
                             >
                                 {
-                                    selectedFood.name
+                                    editingFood.name
                                 }
                             </h2>
 
 
                             <p
                                 className="
-                  mt-1
+                                    mt-1
 
-                  text-sm
-                  font-semibold
-                  text-slate-500
-                "
+                                    text-sm
+                                    font-semibold
+                                    text-slate-500
+                                "
                             >
                                 {
-                                    selectedFood
-                                        .categoryName
+                                    editingFood.categoryName ||
+                                    editingCategory?.name ||
+                                    "Category"
                                 }
                             </p>
 
 
                             <div
                                 className="
-                  mt-3
+                                    mt-3
 
-                  flex
-                  flex-wrap
-                  gap-2
-                "
+                                    flex
+                                    flex-wrap
+                                    gap-2
+                                "
                             >
+
                                 <StatusBadge
                                     variant={
-                                        selectedFood.isVeg
+                                        editingFood.isVeg
                                             ? "success"
                                             : "danger"
                                     }
@@ -679,16 +841,17 @@ const RestaurantFoodForm = () => {
 
                                     dot
                                 >
-                                    {selectedFood.isVeg
-                                        ? "Veg"
-                                        : "Non Veg"}
+                                    {
+                                        editingFood.isVeg
+                                            ? "Veg"
+                                            : "Non Veg"
+                                    }
                                 </StatusBadge>
 
 
                                 <StatusBadge
                                     variant={
-                                        selectedFood
-                                            .isAvailable
+                                        editingFood.isAvailable
                                             ? "success"
                                             : "danger"
                                     }
@@ -697,57 +860,64 @@ const RestaurantFoodForm = () => {
 
                                     dot
                                 >
-                                    {selectedFood
-                                        .isAvailable
-                                        ? "Available"
-                                        : "Unavailable"}
+                                    {
+                                        editingFood.isAvailable
+                                            ? "Available"
+                                            : "Unavailable"
+                                    }
                                 </StatusBadge>
+
                             </div>
+
                         </div>
 
 
                         <p
                             className="
-                text-xs
-                leading-5
-                text-slate-400
+                                text-xs
+                                leading-5
+                                text-slate-400
 
-                sm:max-w-[210px]
-              "
+                                sm:max-w-[210px]
+                            "
                         >
                             Upload a new image
                             only if you want to
                             replace the current
                             food image.
                         </p>
+
                     </section>
+
                 )}
 
 
-            {/* =========================
-          COMMON FORM
-      ========================== */}
+            {/* =================================
+                FORM
+            ================================= */}
 
             <section
                 className="
-          rounded-[1.75rem]
+                    rounded-[1.75rem]
 
-          border
-          border-slate-200
+                    border
+                    border-slate-200
 
-          bg-white
+                    bg-white
 
-          p-5
+                    p-5
 
-          shadow-sm
+                    shadow-sm
 
-          sm:p-6
-        "
+                    sm:p-6
+                "
             >
+
                 <CommonForm
                     key={
                         isEditMode
-                            ? selectedFood?.slug
+                            ? editingFood?.slug ||
+                              foodSlug
                             : "new-food"
                     }
 
@@ -785,9 +955,12 @@ const RestaurantFoodForm = () => {
 
                     columns={2}
                 />
+
             </section>
+
         </div>
     );
+
 };
 
 

@@ -1106,9 +1106,7 @@ const RestaurantFoods = () => {
                 filteredFoods.length ===
                 0 ? (
                 <EmptyState
-                    icon={
-                        ChefHat
-                    }
+                    icon={ChefHat}
 
                     title="No foods found"
 
@@ -1119,24 +1117,43 @@ const RestaurantFoods = () => {
                     }
 
                     action={
-                        hasFilters
-                            ? {
-                                label:
-                                    "Clear Filters",
+                        hasFilters ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={
+                                    clearFilters
+                                }
+                            >
+                                Clear Filters
+                            </Button>
+                        ) : (
+                            <Button
+                                type="button"
+                                onClick={() =>
+                                    navigate(
+                                        "/restaurant/foods/add"
+                                    )
+                                }
+                            >
+                                <span
+                                    className="
+            inline-flex
+            items-center
+            gap-2
+          "
+                                >
+                                    <Plus
+                                        className="
+              h-4
+              w-4
+            "
+                                    />
 
-                                onClick:
-                                    clearFilters,
-                            }
-                            : {
-                                label:
-                                    "Add Food",
-
-                                onClick:
-                                    () =>
-                                        navigate(
-                                            "/restaurant/foods/add"
-                                        ),
-                            }
+                                    Add Food
+                                </span>
+                            </Button>
+                        )
                     }
                 />
             ) : (

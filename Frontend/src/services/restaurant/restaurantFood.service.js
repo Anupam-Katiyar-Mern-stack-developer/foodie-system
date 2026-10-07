@@ -11,6 +11,38 @@ export const getMyFoodsService = async () => {
 };
 
 // =============================
+// CREATE FOOD
+// =============================
+
+export const createFoodService = async (formData) => {
+  const response = await apiClient.post("/restaurant/foods", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return response.data?.data ?? response.data;
+};
+
+// =============================
+// UPDATE FOOD
+// =============================
+
+export const updateFoodService = async ({ foodSlug, formData }) => {
+  const response = await apiClient.patch(
+    `/restaurant/foods/${foodSlug}`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return response.data?.data ?? response.data;
+};
+
+// =============================
 // DELETE FOOD
 // =============================
 
