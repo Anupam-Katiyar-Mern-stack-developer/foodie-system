@@ -1,5 +1,17 @@
 import { useState } from "react";
+import {
+    useDispatch,
+    useSelector,
+} from "react-redux";
 
+import {
+    useLocation,
+    useNavigate,
+} from "react-router-dom";
+
+import {
+    loginRestaurant,
+} from "../../../redux/thunks/restaurant/restaurantAuth.thunk";
 import { Link } from "react-router-dom";
 
 import {
@@ -22,23 +34,57 @@ import {
 } from "../../../validations/restaurant/login.validation";
 
 const RestaurantLogin = () => {
-    const [loginLoading] = useState(false);
-    const [previewMessage, setPreviewMessage] = useState("");
+    const dispatch =
+        useDispatch();
 
+    const navigate =
+        useNavigate();
+
+    const location =
+        useLocation();
+
+
+    const {
+        loginLoading,
+        error,
+    } = useSelector(
+        (state) =>
+            state.restaurantAuth
+    );
     // =========================================
     // LOGIN
     // API integration later
     // =========================================
 
-    const handleLogin = async (values) => {
-        // Later:
-        // await dispatch(loginRestaurant(values)).unwrap();
-        // navigate("/restaurant/dashboard");
+    const handleLogin =
+        async (values) => {
+            try {
+                await dispatch(
+                    loginRestaurant(
+                        values
+                    )
+                ).unwrap();
 
-        setPreviewMessage(
-            "Login form validated. Authentication API will be connected next."
-        );
-    };
+
+                navigate(
+                    "/restaurant/dashboard",
+                    {
+                        replace:
+                            true,
+                    }
+                );
+            } catch {
+                /*
+                  Backend ka actual
+                  error Redux me aa jayega.
+          
+                  Example:
+                  pending approval
+                  invalid password
+                  blocked etc.
+                */
+            }
+        };
 
     return (
         <div className="min-h-screen bg-[#fffaf5]">
@@ -178,9 +224,11 @@ const RestaurantLogin = () => {
                                 columns={1}
                             />
 
-                            {previewMessage && (
-                                <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700">
-                                    {previewMessage}
+                            {error && (
+                                <div
+                                    className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm  text-rose-700 "
+                                >
+                                    {error}
                                 </div>
                             )}
 

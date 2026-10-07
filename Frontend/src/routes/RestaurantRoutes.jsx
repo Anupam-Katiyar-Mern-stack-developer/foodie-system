@@ -150,7 +150,9 @@ const RestaurantRoutes = () => {
           }
         />
 
-        {/* RESTAURANT AUTH */}
+        
+      </Route>
+      {/* RESTAURANT AUTH */}
 
         <Route
           path="login"
@@ -161,7 +163,6 @@ const RestaurantRoutes = () => {
           path="register"
           element={<RestaurantRegister />}
         />
-      </Route>
     </Routes>
   );
 };

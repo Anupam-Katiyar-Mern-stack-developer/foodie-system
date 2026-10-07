@@ -1,5 +1,16 @@
 import { useState } from "react";
+import {
+    useDispatch,
+    useSelector,
+} from "react-redux";
 
+import {
+    useNavigate,
+} from "react-router-dom";
+
+import {
+    registerRestaurant,
+} from "../../../redux/thunks/restaurant/restaurantAuth.thunk";
 import { Link } from "react-router-dom";
 
 import {
@@ -23,35 +34,65 @@ import {
 } from "../../../validations/restaurant/register.validation";
 
 const RestaurantRegister = () => {
-    const [registerLoading] = useState(false);
-    const [previewMessage, setPreviewMessage] = useState("");
+
+
+    const dispatch =
+        useDispatch();
+
+    const navigate =
+        useNavigate();
+
+
+    const {
+        registerLoading,
+        error,
+    } = useSelector(
+        (state) =>
+            state.restaurantAuth
+    );
+
+
 
     // =========================================
     // REGISTER
     // Later Redux + API integration
     // =========================================
 
-    const handleRegister = async (values) => {
-        const {
-            confirmPassword,
-            ...payload
-        } = values;
+    const handleRegister =
+        async (values) => {
+            const {
+                confirmPassword,
+                ...payload
+            } = values;
 
-        // Later:
-        //
-        // await dispatch(
-        //   registerRestaurant(payload)
-        // ).unwrap();
-        //
-        // navigate("/restaurant/login");
 
-        // UI-only: do not submit or store credentials yet.
-        void payload;
+            try {
+                await dispatch(
+                    registerRestaurant(
+                        payload
+                    )
+                ).unwrap();
 
-        setPreviewMessage(
-            "Registration form validated. Account creation will be enabled after API integration."
-        );
-    };
+
+                navigate(
+                    "/restaurant/login",
+                    {
+                        replace:
+                            true,
+
+                        state: {
+                            registrationSuccess:
+                                true,
+                        },
+                    }
+                );
+            } catch {
+                /*
+                  Redux slice me error
+                  already set ho chuka hai.
+                */
+            }
+        };
 
     return (
         <div className="min-h-screen bg-[#fffaf5]">
@@ -212,13 +253,22 @@ const RestaurantRegister = () => {
                                 submitText="Submit Restaurant Registration"
                                 columns={2}
                             />
+                            {error && (
+                                <div
+                                    className=" mt-4 rounded-xl border
+      border-rose-200
 
-                            {previewMessage && (
-                                <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-700">
-                                    {previewMessage}
+      bg-rose-50
+
+      p-4
+
+      text-sm
+      text-rose-700
+    "
+                                >
+                                    {error}
                                 </div>
                             )}
-
                             {/* LOGIN LINK */}
 
                             <div className="mt-8 border-t border-slate-100 pt-6 text-center">

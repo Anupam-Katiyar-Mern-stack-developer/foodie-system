@@ -56,9 +56,6 @@ export const restaurantRegisterSchema = z
       .trim()
       .regex(/^[0-9]{6}$/, "Enter a valid 6 digit pincode"),
 
-    latitude: optionalCoordinate(-90, 90),
-
-    longitude: optionalCoordinate(-180, 180),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",

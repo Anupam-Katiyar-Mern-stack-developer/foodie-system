@@ -13,8 +13,6 @@ export const restaurantRegisterDefaultValues = {
   state: "",
   pincode: "",
 
-  latitude: "",
-  longitude: "",
 };
 
 export const restaurantRegisterFields = [
@@ -97,16 +95,5 @@ export const restaurantRegisterFields = [
     placeholder: "6 digit pincode",
     required: true,
   },
-  {
-    name: "latitude",
-    label: "Latitude",
-    type: "number",
-    placeholder: "Example: 26.4499",
-  },
-  {
-    name: "longitude",
-    label: "Longitude",
-    type: "number",
-    placeholder: "Example: 80.3319",
-  },
+
 ];
