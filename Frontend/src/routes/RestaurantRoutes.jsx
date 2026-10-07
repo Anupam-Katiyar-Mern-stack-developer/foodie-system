@@ -5,164 +5,194 @@ import {
 } from "react-router-dom";
 
 
-
 import RestaurantLayout
   from "../layouts/RestaurantLayout";
+
+
+import ProtectedRestaurantRoute
+  from "../protectedRoutes/ProtectedRestaurantRoute";
+
+
+import RestaurantLogin
+  from "../pages/restaurant/Auth/RestaurantLogin";
+
+import RestaurantRegister
+  from "../pages/restaurant/Auth/RestaurantRegister";
+
 
 import RestaurantDashboard
   from "../pages/restaurant/Dashboard/RestaurantDashboard";
 
+import RestaurantOrders
+  from "../pages/restaurant/Orders/RestaurantOrders";
 
-import RestaurantOrders from "../pages/restaurant/Orders/RestaurantOrders";
-import RestaurantOrderDetails from "../pages/restaurant/RestaurantOrderDetails/RestaurantOrderDetails";
-import RestaurantFoods from "../pages/restaurant/Foods/RestaurantFoods";
+import RestaurantOrderDetails
+  from "../pages/restaurant/RestaurantOrderDetails/RestaurantOrderDetails";
+
+import RestaurantFoods
+  from "../pages/restaurant/Foods/RestaurantFoods";
+
 import RestaurantFoodForm
   from "../pages/restaurant/Foods/RestaurantFoodForm";
-import RestaurantCategories from "../pages/restaurant/categories/RestaurantCategories";
-import RestaurantProfile from "../pages/restaurant/Profile/RestaurantProfile";
-import RestaurantBusinessHours from "../pages/restaurant/Business/RestaurantBusinessHours";
-import RestaurantLogin from "../pages/restaurant/Auth/RestaurantLogin";
 
-import RestaurantRegister from "../pages/restaurant/Auth/RestaurantRegister";
+import RestaurantCategories
+  from "../pages/restaurant/categories/RestaurantCategories";
 
-const Screen = ({
-  title,
-}) => {
-  return (
-    <div className="p-8">
-      <h1
-        className="
-          text-2xl
-          font-bold
-          text-gray-900
-        "
-      >
-        {title}
-      </h1>
-    </div>
-  );
-};
+import RestaurantProfile
+  from "../pages/restaurant/Profile/RestaurantProfile";
+
+import RestaurantBusinessHours
+  from "../pages/restaurant/Business/RestaurantBusinessHours";
+
+// import RestaurantNotifications
+//   from "../pages/restaurant/Notifications/RestaurantNotifications";
 
 
 const RestaurantRoutes = () => {
   return (
     <Routes>
-      <Route
 
+      {/* =========================
+          PUBLIC AUTH ROUTES
+      ========================== */}
+
+      <Route
+        path="login"
         element={
-          <RestaurantLayout />
+          <RestaurantLogin />
+        }
+      />
+
+      <Route
+        path="register"
+        element={
+          <RestaurantRegister />
+        }
+      />
+
+
+      {/* =========================
+          PROTECTED RESTAURANT
+      ========================== */}
+
+      <Route
+        element={
+          <ProtectedRestaurantRoute />
         }
       >
-        {/* DEFAULT */}
 
         <Route
-          index
           element={
-            <Navigate
-              to="dashboard"
-              replace
-            />
+            <RestaurantLayout />
           }
-        />
+        >
+
+          {/* DEFAULT */}
+
+          <Route
+            index
+            element={
+              <Navigate
+                to="dashboard"
+                replace
+              />
+            }
+          />
 
 
-        {/* DASHBOARD */}
+          {/* DASHBOARD */}
 
-        <Route
-          path="dashboard"
-          element={
-            <RestaurantDashboard />
-          }
-        />
+          <Route
+            path="dashboard"
+            element={
+              <RestaurantDashboard />
+            }
+          />
 
 
-        {/* ORDERS */}
+          {/* ORDERS */}
 
-        <Route
-          path="orders"
-          element={
-            <div>
+          <Route
+            path="orders"
+            element={
               <RestaurantOrders />
-            </div>
-          }
-        />
+            }
+          />
 
-        <Route
-          path="orders/:orderNumber"
-          element={
-            <div>
+          <Route
+            path="orders/:orderNumber"
+            element={
               <RestaurantOrderDetails />
-            </div>
-          }
-        />
+            }
+          />
 
 
-        {/* FOODS */}
+          {/* FOODS */}
 
-        <Route
-          path="foods"
-          element={
-            <RestaurantFoods />
-          }
-        />
+          <Route
+            path="foods"
+            element={
+              <RestaurantFoods />
+            }
+          />
 
-        <Route
-          path="foods/add"
-          element={
-            <RestaurantFoodForm />
-          }
-        />
+          <Route
+            path="foods/add"
+            element={
+              <RestaurantFoodForm />
+            }
+          />
 
-        <Route
-          path="foods/:foodSlug/edit"
-          element={
-            <RestaurantFoodForm />
-          }
-        />
-
-
-        {/* CATEGORIES */}
-
-        <Route
-          path="categories"
-          element={
-            <RestaurantCategories />
-          }
-        />
+          <Route
+            path="foods/:foodSlug/edit"
+            element={
+              <RestaurantFoodForm />
+            }
+          />
 
 
-        {/* PROFILE */}
+          {/* CATEGORIES */}
 
-        <Route
-          path="profile"
-          element={
-            <RestaurantProfile />
-          }
-        />
+          <Route
+            path="categories"
+            element={
+              <RestaurantCategories />
+            }
+          />
 
 
-        {/* BUSINESS HOURS */}
+          {/* PROFILE */}
 
-        <Route
-          path="business-hours"
-          element={
-            <RestaurantBusinessHours />
-          }
-        />
+          <Route
+            path="profile"
+            element={
+              <RestaurantProfile />
+            }
+          />
 
-        
+
+          {/* OPEN / CLOSE */}
+
+          <Route
+            path="business-hours"
+            element={
+              <RestaurantBusinessHours />
+            }
+          />
+
+
+          {/* NOTIFICATIONS */}
+
+          {/* <Route
+            path="notifications"
+            element={
+              <RestaurantNotifications />
+            }
+          /> */}
+
+        </Route>
       </Route>
-      {/* RESTAURANT AUTH */}
 
-        <Route
-          path="login"
-          element={<RestaurantLogin />}
-        />
-
-        <Route
-          path="register"
-          element={<RestaurantRegister />}
-        />
     </Routes>
   );
 };
