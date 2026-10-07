@@ -21,6 +21,9 @@ import RestaurantFoodForm
 import RestaurantCategories from "../pages/restaurant/categories/RestaurantCategories";
 import RestaurantProfile from "../pages/restaurant/Profile/RestaurantProfile";
 import RestaurantBusinessHours from "../pages/restaurant/Business/RestaurantBusinessHours";
+import RestaurantLogin from "../pages/restaurant/Auth/RestaurantLogin";
+
+import RestaurantRegister from "../pages/restaurant/Auth/RestaurantRegister";
 
 const Screen = ({
   title,
@@ -133,7 +136,7 @@ const RestaurantRoutes = () => {
         <Route
           path="profile"
           element={
-           <RestaurantProfile />
+            <RestaurantProfile />
           }
         />
 
@@ -145,6 +148,18 @@ const RestaurantRoutes = () => {
           element={
             <RestaurantBusinessHours />
           }
+        />
+
+        {/* RESTAURANT AUTH */}
+
+        <Route
+          path="login"
+          element={<RestaurantLogin />}
+        />
+
+        <Route
+          path="register"
+          element={<RestaurantRegister />}
         />
       </Route>
     </Routes>
