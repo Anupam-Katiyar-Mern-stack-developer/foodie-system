@@ -1,6 +1,5 @@
 import {
     useEffect,
-    useMemo,
     useState,
 } from "react";
 
@@ -11,42 +10,58 @@ import {
 
 import {
     useNavigate,
+    useParams,
 } from "react-router-dom";
 
 import {
+    ArrowLeft,
+    CalendarDays,
+    CheckCircle2,
     ChefHat,
+    Clock3,
+    CreditCard,
+    Hash,
+    MapPin,
     PackageCheck,
-    PackageOpen,
-    Search,
+    Phone,
+    ReceiptText,
     ShoppingBag,
+    UserRound,
+    XCircle,
 } from "lucide-react";
 
-
-import PageHeader
-    from "../../../components/common/PageHeader/PageHeader";
-
-import StatCard
-    from "../../../components/common/StatCard/StatCard";
-
-import StatusBadge
-    from "../../../components/common/StatusBadge/StatusBadge";
-
-import CommonTable
-    from "../../../components/common/CommonTable/CommonTable";
 
 import Button
     from "../../../components/common/Button/Button";
 
-import EmptyState
-    from "../../../components/common/EmptyState/EmptyState";
+import StatusBadge
+    from "../../../components/common/StatusBadge/StatusBadge";
+
+import Skeleton
+    from "../../../components/common/Skeleton/Skeleton";
 
 import ErrorState
     from "../../../components/common/ErrorState/ErrorState";
 
+import EmptyState
+    from "../../../components/common/EmptyState/EmptyState";
+
+import OptimizedImage
+    from "../../../components/common/OptimizedImage/OptimizedImage";
+
 
 import {
-    getRestaurantOrders,
+    getRestaurantOrder,
+    acceptRestaurantOrder,
+    rejectRestaurantOrder,
+    markRestaurantOrderPreparing,
+    markRestaurantOrderReady,
 } from "../../../redux/thunks/restaurant/restaurantOrder.thunk";
+
+
+import {
+    clearSelectedOrder,
+} from "../../../redux/slices/restaurant/restaurantOrder.slice";
 
 
 // =========================================
@@ -56,122 +71,89 @@ import {
 const statusConfig = {
 
     PLACED: {
-        label: "Placed",
-        variant: "warning",
+        label:
+            "Placed",
+
+        variant:
+            "warning",
     },
 
     CONFIRMED: {
-        label: "Confirmed",
-        variant: "info",
+        label:
+            "Confirmed",
+
+        variant:
+            "info",
     },
 
     PREPARING: {
-        label: "Preparing",
-        variant: "purple",
+        label:
+            "Preparing",
+
+        variant:
+            "purple",
     },
 
     READY_FOR_PICKUP: {
-        label: "Ready",
-        variant: "success",
+        label:
+            "Ready For Pickup",
+
+        variant:
+            "success",
     },
 
     DELIVERY_ASSIGNED: {
-        label: "Delivery Assigned",
-        variant: "info",
+        label:
+            "Delivery Assigned",
+
+        variant:
+            "info",
     },
 
     PICKED_UP: {
-        label: "Picked Up",
-        variant: "info",
+        label:
+            "Picked Up",
+
+        variant:
+            "info",
     },
 
     OUT_FOR_DELIVERY: {
-        label: "Out For Delivery",
-        variant: "warning",
+        label:
+            "Out For Delivery",
+
+        variant:
+            "warning",
     },
 
     DELIVERED: {
-        label: "Delivered",
-        variant: "success",
+        label:
+            "Delivered",
+
+        variant:
+            "success",
     },
 
     REJECTED: {
-        label: "Rejected",
-        variant: "danger",
+        label:
+            "Rejected",
+
+        variant:
+            "danger",
     },
 
     CANCELLED: {
-        label: "Cancelled",
-        variant: "danger",
+        label:
+            "Cancelled",
+
+        variant:
+            "danger",
     },
 };
 
 
 // =========================================
-// STATUS FILTER OPTIONS
-// =========================================
-
-const statusOptions = [
-
-    {
-        label: "All Orders",
-        value: "ALL",
-    },
-
-    {
-        label: "Placed",
-        value: "PLACED",
-    },
-
-    {
-        label: "Confirmed",
-        value: "CONFIRMED",
-    },
-
-    {
-        label: "Preparing",
-        value: "PREPARING",
-    },
-
-    {
-        label: "Ready",
-        value: "READY_FOR_PICKUP",
-    },
-
-    {
-        label: "Delivery Assigned",
-        value: "DELIVERY_ASSIGNED",
-    },
-
-    {
-        label: "Picked Up",
-        value: "PICKED_UP",
-    },
-
-    {
-        label: "Out For Delivery",
-        value: "OUT_FOR_DELIVERY",
-    },
-
-    {
-        label: "Delivered",
-        value: "DELIVERED",
-    },
-
-    {
-        label: "Rejected",
-        value: "REJECTED",
-    },
-
-    {
-        label: "Cancelled",
-        value: "CANCELLED",
-    },
-];
-
-
-// =========================================
-// PRICE
+// PRICE FORMAT
 // =========================================
 
 const formatPrice = (
@@ -181,9 +163,17 @@ const formatPrice = (
     return new Intl.NumberFormat(
         "en-IN",
         {
-            style: "currency",
-            currency: "INR",
-            maximumFractionDigits: 0,
+            style:
+                "currency",
+
+            currency:
+                "INR",
+
+            minimumFractionDigits:
+                2,
+
+            maximumFractionDigits:
+                2,
         }
     ).format(
         Number(
@@ -194,7 +184,7 @@ const formatPrice = (
 
 
 // =========================================
-// DATE
+// DATE FORMAT
 // =========================================
 
 const formatDate = (
@@ -209,10 +199,20 @@ const formatDate = (
     return new Intl.DateTimeFormat(
         "en-IN",
         {
-            day: "2-digit",
-            month: "short",
-            hour: "2-digit",
-            minute: "2-digit",
+            day:
+                "2-digit",
+
+            month:
+                "short",
+
+            year:
+                "numeric",
+
+            hour:
+                "2-digit",
+
+            minute:
+                "2-digit",
         }
     ).format(
         new Date(date)
@@ -224,7 +224,7 @@ const formatDate = (
 // COMPONENT
 // =========================================
 
-const RestaurantOrders = () => {
+const RestaurantOrderDetails = () => {
 
     const dispatch =
         useDispatch();
@@ -233,24 +233,27 @@ const RestaurantOrders = () => {
         useNavigate();
 
 
+    const {
+        orderNumber,
+    } = useParams();
+
+
     // =========================================
     // REDUX
     // =========================================
 
     const {
 
-        orders = [],
+        selectedOrder:
+        order,
 
-        pagination = {
-            page: 1,
-            limit: 10,
-            total: 0,
-            totalPages: 1,
-        },
+        detailLoading,
 
-        fetchLoading,
+        detailError,
 
-        error,
+        actionLoading,
+
+        actionError,
 
     } = useSelector(
         (state) =>
@@ -259,529 +262,198 @@ const RestaurantOrders = () => {
 
 
     // =========================================
-    // LOCAL STATE
+    // REJECT STATE
     // =========================================
 
     const [
-        searchTerm,
-        setSearchTerm,
+        showRejectForm,
+        setShowRejectForm,
+    ] = useState(false);
+
+
+    const [
+        rejectionReason,
+        setRejectionReason,
     ] = useState("");
 
 
-    const [
-        statusFilter,
-        setStatusFilter,
-    ] = useState("ALL");
-
-
-    const [
-        page,
-        setPage,
-    ] = useState(1);
-
-
-    const limit = 10;
-
-
     // =========================================
-    // FETCH ORDERS
+    // FETCH ORDER
     // =========================================
 
     useEffect(() => {
 
+        if (!orderNumber) {
+            return;
+        }
+
+
         dispatch(
-            getRestaurantOrders({
-
-                page,
-
-                limit,
-
-                status:
-                    statusFilter ===
-                        "ALL"
-                        ? undefined
-                        : statusFilter,
-            })
+            getRestaurantOrder(
+                orderNumber
+            )
         );
+
+
+        return () => {
+
+            dispatch(
+                clearSelectedOrder()
+            );
+        };
 
     }, [
         dispatch,
-        page,
-        statusFilter,
+        orderNumber,
     ]);
 
 
     // =========================================
-    // SEARCH
-    // =========================================
-    //
-    // Status backend handle kar raha hai.
-    //
-    // Search current loaded page par
-    // frontend me rahega.
+    // ACCEPT
     // =========================================
 
-    const filteredOrders =
-        useMemo(
-            () => {
+    const handleAccept =
+        async () => {
 
-                const search =
-                    searchTerm
-                        .trim()
-                        .toLowerCase();
+            try {
 
-
-                if (!search) {
-                    return orders;
-                }
+                await dispatch(
+                    acceptRestaurantOrder(
+                        orderNumber
+                    )
+                ).unwrap();
 
 
-                return orders.filter(
-                    (order) => {
-
-                        return (
-
-                            order.orderNumber
-                                ?.toLowerCase()
-                                .includes(
-                                    search
-                                ) ||
-
-                            order.customerName
-                                ?.toLowerCase()
-                                .includes(
-                                    search
-                                ) ||
-
-                            order.checkoutNumber
-                                ?.toLowerCase()
-                                .includes(
-                                    search
-                                )
-                        );
-                    }
+                dispatch(
+                    getRestaurantOrder(
+                        orderNumber
+                    )
                 );
 
-            },
-            [
-                orders,
-                searchTerm,
-            ]
-        );
-
-
-    // =========================================
-    // STATS
-    // =========================================
-
-    const stats =
-        useMemo(
-            () => {
-
-                return [
-
-                    {
-                        title:
-                            "Total Orders",
-
-                        value:
-                            pagination?.total ??
-                            orders.length,
-
-                        description:
-                            statusFilter === "ALL"
-                                ? "All restaurant orders"
-                                : "Orders in selected status",
-
-                        icon:
-                            ShoppingBag,
-
-                        variant:
-                            "orange",
-                    },
-
-
-                    {
-                        title:
-                            "New Orders",
-
-                        value:
-                            orders.filter(
-                                (order) =>
-                                    order.status ===
-                                    "PLACED"
-                            ).length,
-
-                        description:
-                            "On current page",
-
-                        icon:
-                            PackageOpen,
-
-                        variant:
-                            "warning",
-                    },
-
-
-                    {
-                        title:
-                            "Preparing",
-
-                        value:
-                            orders.filter(
-                                (order) =>
-                                    order.status ===
-                                    "PREPARING"
-                            ).length,
-
-                        description:
-                            "On current page",
-
-                        icon:
-                            ChefHat,
-
-                        variant:
-                            "purple",
-                    },
-
-
-                    {
-                        title:
-                            "Ready",
-
-                        value:
-                            orders.filter(
-                                (order) =>
-                                    order.status ===
-                                    "READY_FOR_PICKUP"
-                            ).length,
-
-                        description:
-                            "On current page",
-
-                        icon:
-                            PackageCheck,
-
-                        variant:
-                            "success",
-                    },
-                ];
-
-            },
-            [
-                orders,
-                pagination?.total,
-                statusFilter,
-            ]
-        );
-
-
-    // =========================================
-    // TABLE COLUMNS
-    // =========================================
-
-    const columns = [
-
-        {
-            key:
-                "orderNumber",
-
-            label:
-                "Order",
-
-            render:
-                (order) => (
-
-                    <button
-                        type="button"
-
-                        onClick={() =>
-                            navigate(
-                                `/restaurant/orders/${order.orderNumber}`
-                            )
-                        }
-
-                        className="
-                            text-left
-                            font-black
-                            text-slate-900
-
-                            transition
-
-                            hover:text-orange-600
-                        "
-                    >
-                        {
-                            order.orderNumber
-                        }
-                    </button>
-                ),
-        },
-
-
-        {
-            key:
-                "customerName",
-
-            label:
-                "Customer",
-
-            render:
-                (order) => (
-
-                    <div>
-
-                        <p
-                            className="
-                                font-bold
-                                text-slate-800
-                            "
-                        >
-                            {
-                                order.customerName ||
-                                "-"
-                            }
-                        </p>
-
-
-                        <p
-                            className="
-                                mt-0.5
-                                text-xs
-                                text-slate-400
-                            "
-                        >
-                            {
-                                order.totalItems ??
-                                0
-                            }{" "}
-                            items
-                        </p>
-
-                    </div>
-                ),
-        },
-
-
-        {
-            key:
-                "totalAmount",
-
-            label:
-                "Amount",
-
-            render:
-                (order) => (
-
-                    <span
-                        className="
-                            font-black
-                            text-slate-900
-                        "
-                    >
-                        {
-                            formatPrice(
-                                order.totalAmount
-                            )
-                        }
-                    </span>
-                ),
-        },
-
-
-        {
-            key:
-                "paymentStatus",
-
-            label:
-                "Payment",
-
-            render:
-                (order) => (
-
-                    <div
-                        className="
-                            space-y-1
-                        "
-                    >
-
-                        <StatusBadge
-                            variant={
-                                order.paymentStatus ===
-                                    "PAID"
-                                    ? "success"
-                                    : "warning"
-                            }
-
-                            size="sm"
-
-                            dot
-                        >
-                            {
-                                order.paymentStatus ||
-                                "-"
-                            }
-                        </StatusBadge>
-
-
-                        <p
-                            className="
-                                text-[11px]
-                                font-semibold
-                                text-slate-400
-                            "
-                        >
-                            {
-                                order.paymentMethod ||
-                                "-"
-                            }
-                        </p>
-
-                    </div>
-                ),
-        },
-
-
-        {
-            key:
-                "status",
-
-            label:
-                "Status",
-
-            render:
-                (order) => {
-
-                    const config =
-                        statusConfig[
-                            order.status
-                        ] || {
-                            label:
-                                order.status ||
-                                "-",
-
-                            variant:
-                                "neutral",
-                        };
-
-
-                    return (
-
-                        <StatusBadge
-                            variant={
-                                config.variant
-                            }
-
-                            size="sm"
-
-                            dot
-                        >
-                            {
-                                config.label
-                            }
-                        </StatusBadge>
-                    );
-                },
-        },
-
-
-        {
-            key:
-                "createdAt",
-
-            label:
-                "Received",
-
-            render:
-                (order) => (
-
-                    <span
-                        className="
-                            text-sm
-                            text-slate-500
-                        "
-                    >
-                        {
-                            formatDate(
-                                order.createdAt
-                            )
-                        }
-                    </span>
-                ),
-        },
-
-
-        {
-            key:
-                "action",
-
-            label:
-                "Action",
-
-            align:
-                "right",
-
-            render:
-                (order) => (
-
-                    <Button
-                        type="button"
-
-                        variant="ghost"
-
-                        onClick={() =>
-                            navigate(
-                                `/restaurant/orders/${order.orderNumber}`
-                            )
-                        }
-                    >
-                        View
-                    </Button>
-                ),
-        },
-    ];
-
-
-    // =========================================
-    // STATUS CHANGE
-    // =========================================
-
-    const handleStatusChange =
-        (
-            event
-        ) => {
-
-            setStatusFilter(
-                event.target.value
-            );
-
-            setPage(1);
+            } catch (error) {
+
+                console.error(
+                    "ACCEPT ORDER ERROR:",
+                    error
+                );
+            }
         };
 
 
     // =========================================
-    // CLEAR FILTER
+    // REJECT
     // =========================================
 
-    const clearFilters =
-        () => {
+    const handleReject =
+        async () => {
 
-            setSearchTerm("");
+            const reason =
+                rejectionReason
+                    .trim();
 
-            setStatusFilter(
-                "ALL"
-            );
 
-            setPage(1);
+            if (!reason) {
+                return;
+            }
+
+
+            try {
+
+                await dispatch(
+                    rejectRestaurantOrder({
+                        orderNumber,
+                        reason,
+                    })
+                ).unwrap();
+
+
+                setShowRejectForm(
+                    false
+                );
+
+                setRejectionReason(
+                    ""
+                );
+
+
+                dispatch(
+                    getRestaurantOrder(
+                        orderNumber
+                    )
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "REJECT ORDER ERROR:",
+                    error
+                );
+            }
         };
 
 
-    const hasFilters =
-        Boolean(
-            searchTerm.trim()
-        ) ||
-        statusFilter !==
-            "ALL";
+    // =========================================
+    // PREPARING
+    // =========================================
+
+    const handlePreparing =
+        async () => {
+
+            try {
+
+                await dispatch(
+                    markRestaurantOrderPreparing(
+                        orderNumber
+                    )
+                ).unwrap();
+
+
+                dispatch(
+                    getRestaurantOrder(
+                        orderNumber
+                    )
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "PREPARING ORDER ERROR:",
+                    error
+                );
+            }
+        };
+
+
+    // =========================================
+    // READY
+    // =========================================
+
+    const handleReady =
+        async () => {
+
+            try {
+
+                await dispatch(
+                    markRestaurantOrderReady(
+                        orderNumber
+                    )
+                ).unwrap();
+
+
+                dispatch(
+                    getRestaurantOrder(
+                        orderNumber
+                    )
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "READY ORDER ERROR:",
+                    error
+                );
+            }
+        };
 
 
     // =========================================
@@ -792,20 +464,70 @@ const RestaurantOrders = () => {
         () => {
 
             dispatch(
-                getRestaurantOrders({
-
-                    page,
-
-                    limit,
-
-                    status:
-                        statusFilter ===
-                            "ALL"
-                            ? undefined
-                            : statusFilter,
-                })
+                getRestaurantOrder(
+                    orderNumber
+                )
             );
         };
+
+
+    // =========================================
+    // LOADING
+    // =========================================
+
+    if (
+        detailLoading &&
+        !order
+    ) {
+
+        return (
+
+            <div
+                className="
+                    space-y-5
+                "
+            >
+
+                <Skeleton
+                    width="w-56"
+                    height="h-10"
+                    rounded="rounded-xl"
+                />
+
+
+                <Skeleton
+                    width="w-full"
+                    height="h-44"
+                    rounded="rounded-[1.75rem]"
+                />
+
+
+                <div
+                    className="
+                        grid
+                        gap-5
+
+                        lg:grid-cols-2
+                    "
+                >
+
+                    <Skeleton
+                        width="w-full"
+                        height="h-80"
+                        rounded="rounded-[1.75rem]"
+                    />
+
+                    <Skeleton
+                        width="w-full"
+                        height="h-80"
+                        rounded="rounded-[1.75rem]"
+                    />
+
+                </div>
+
+            </div>
+        );
+    }
 
 
     // =========================================
@@ -813,20 +535,20 @@ const RestaurantOrders = () => {
     // =========================================
 
     if (
-        error &&
-        orders.length === 0
+        detailError &&
+        !order
     ) {
 
         return (
 
             <ErrorState
-                title="Unable to load orders"
+                title="Unable to load order"
 
                 description={
-                    typeof error ===
+                    typeof detailError ===
                         "string"
-                        ? error
-                        : "Something went wrong while loading restaurant orders."
+                        ? detailError
+                        : "Unable to fetch order details."
                 }
 
                 onRetry={
@@ -838,6 +560,70 @@ const RestaurantOrders = () => {
 
 
     // =========================================
+    // EMPTY
+    // =========================================
+
+    if (!order) {
+
+        return (
+
+            <EmptyState
+                icon={ShoppingBag}
+                title="Order not found"
+                description="The requested restaurant order could not be found."
+
+                action={
+                    <Button
+                        type="button"
+                        onClick={() =>
+                            navigate(
+                                "/restaurant/orders"
+                            )
+                        }
+                    >
+                        Back to Orders
+                    </Button>
+                }
+            />
+        );
+    }
+
+
+    // =========================================
+    // DERIVED DATA
+    // =========================================
+
+    const currentStatus =
+        statusConfig[
+        order.status
+        ] || {
+
+            label:
+                order.status,
+
+            variant:
+                "neutral",
+        };
+
+
+    const customerAddress = [
+
+        order.addressLine,
+
+        order.landmark,
+
+        order.city,
+
+        order.state,
+
+        order.pincode,
+
+    ]
+        .filter(Boolean)
+        .join(", ");
+
+
+    // =========================================
     // RENDER
     // =========================================
 
@@ -845,94 +631,56 @@ const RestaurantOrders = () => {
 
         <div
             className="
-                space-y-7
+                space-y-6
             "
         >
 
             {/* =========================
-                PAGE HEADER
+                BACK BUTTON
             ========================== */}
 
-            <PageHeader
-                title="Orders"
+            <Button
+                type="button"
 
-                description="
-                    View and manage all orders
-                    received by your restaurant.
-                "
-            />
+                variant="ghost"
 
-
-            {/* =========================
-                STATS
-            ========================== */}
-
-            <section
-                className="
-                    grid
-                    gap-4
-
-                    sm:grid-cols-2
-                    xl:grid-cols-4
-                "
-            >
-
-                {
-                    stats.map(
-                        (stat) => (
-
-                            <StatCard
-                                key={
-                                    stat.title
-                                }
-
-                                title={
-                                    stat.title
-                                }
-
-                                value={
-                                    stat.value
-                                }
-
-                                description={
-                                    stat.description
-                                }
-
-                                icon={
-                                    stat.icon
-                                }
-
-                                variant={
-                                    stat.variant
-                                }
-
-                                loading={
-                                    fetchLoading
-                                }
-                            />
-                        )
+                onClick={() =>
+                    navigate(
+                        "/restaurant/orders"
                     )
                 }
+            >
 
-            </section>
+                <ArrowLeft
+                    className="
+                        mr-2
+                        h-4
+                        w-4
+                    "
+                />
+
+                Back to Orders
+
+            </Button>
 
 
             {/* =========================
-                FILTERS
+                ORDER HEADER
             ========================== */}
 
             <section
                 className="
-                    rounded-[1.5rem]
+                    rounded-[1.75rem]
 
                     border
                     border-slate-200
 
                     bg-white
 
-                    p-4
-
+                    p-5
                     shadow-sm
+
+                    sm:p-6
                 "
             >
 
@@ -940,182 +688,256 @@ const RestaurantOrders = () => {
                     className="
                         flex
                         flex-col
-                        gap-3
+                        gap-5
 
-                        xl:flex-row
-                        xl:items-center
-                        xl:justify-between
+                        lg:flex-row
+                        lg:items-center
+                        lg:justify-between
                     "
                 >
 
-                    {/* SEARCH */}
+                    <div>
 
-                    <div
-                        className="
-                            relative
-                            w-full
-
-                            xl:max-w-md
-                        "
-                    >
-
-                        <Search
+                        <div
                             className="
-                                pointer-events-none
-
-                                absolute
-                                left-4
-                                top-1/2
-
-                                h-4
-                                w-4
-
-                                -translate-y-1/2
-
-                                text-slate-400
+                                flex
+                                flex-wrap
+                                items-center
+                                gap-3
                             "
-                        />
+                        >
+
+                            <h1
+                                className="
+                                    text-2xl
+                                    font-black
+                                    text-slate-900
+
+                                    sm:text-3xl
+                                "
+                            >
+                                Order{" "}
+                                {
+                                    order.orderNumber
+                                }
+                            </h1>
 
 
-                        <input
-                            type="search"
+                            <StatusBadge
+                                variant={
+                                    currentStatus
+                                        .variant
+                                }
 
-                            value={
-                                searchTerm
-                            }
+                                dot
+                            >
+                                {
+                                    currentStatus
+                                        .label
+                                }
+                            </StatusBadge>
 
-                            onChange={(
-                                event
-                            ) =>
-                                setSearchTerm(
-                                    event.target
-                                        .value
-                                )
-                            }
+                        </div>
 
-                            placeholder="
-                                Search order,
-                                customer or checkout...
-                            "
 
+                        <div
                             className="
-                                h-11
-                                w-full
-
-                                rounded-xl
-
-                                border
-                                border-slate-200
-
-                                bg-slate-50
-
-                                pl-11
-                                pr-4
+                                mt-3
+                                flex
+                                flex-wrap
+                                gap-x-5
+                                gap-y-2
 
                                 text-sm
-                                text-slate-900
-
-                                outline-none
-
-                                transition
-
-                                placeholder:text-slate-400
-
-                                focus:border-orange-300
-                                focus:bg-white
-                                focus:ring-4
-                                focus:ring-orange-50
+                                font-semibold
+                                text-slate-500
                             "
-                        />
+                        >
+
+                            <span
+                                className="
+                                    flex
+                                    items-center
+                                    gap-2
+                                "
+                            >
+
+                                <Hash
+                                    className="
+                                        h-4
+                                        w-4
+                                    "
+                                />
+
+                                Checkout:{" "}
+
+                                {
+                                    order.checkoutNumber ||
+                                    "-"
+                                }
+
+                            </span>
+
+
+                            <span
+                                className="
+                                    flex
+                                    items-center
+                                    gap-2
+                                "
+                            >
+
+                                <CalendarDays
+                                    className="
+                                        h-4
+                                        w-4
+                                    "
+                                />
+
+                                {
+                                    formatDate(
+                                        order.createdAt
+                                    )
+                                }
+
+                            </span>
+
+                        </div>
 
                     </div>
 
 
-                    {/* STATUS */}
+                    {/* ACTION BUTTONS */}
 
                     <div
                         className="
                             flex
                             flex-wrap
-                            items-center
                             gap-2
                         "
                     >
 
-                        <select
-                            value={
-                                statusFilter
-                            }
+                        {
+                            order.status ===
+                            "PLACED" && (
 
-                            onChange={
-                                handleStatusChange
-                            }
+                                <>
 
-                            className="
-                                h-11
+                                    <Button
+                                        type="button"
 
-                                rounded-xl
+                                        disabled={
+                                            actionLoading
+                                        }
 
-                                border
-                                border-slate-200
+                                        onClick={
+                                            handleAccept
+                                        }
+                                    >
 
-                                bg-white
+                                        <CheckCircle2
+                                            className="
+                                                mr-2
+                                                h-4
+                                                w-4
+                                            "
+                                        />
 
-                                px-4
+                                        Accept Order
 
-                                text-sm
-                                font-bold
-                                text-slate-700
+                                    </Button>
 
-                                outline-none
 
-                                transition
+                                    <Button
+                                        type="button"
 
-                                focus:border-orange-300
-                                focus:ring-4
-                                focus:ring-orange-50
-                            "
-                        >
+                                        variant="danger"
 
-                            {
-                                statusOptions.map(
-                                    (
-                                        option
-                                    ) => (
+                                        disabled={
+                                            actionLoading
+                                        }
 
-                                        <option
-                                            key={
-                                                option.value
-                                            }
+                                        onClick={() =>
+                                            setShowRejectForm(
+                                                true
+                                            )
+                                        }
+                                    >
 
-                                            value={
-                                                option.value
-                                            }
-                                        >
-                                            {
-                                                option.label
-                                            }
-                                        </option>
-                                    )
-                                )
-                            }
+                                        <XCircle
+                                            className="
+                                                mr-2
+                                                h-4
+                                                w-4
+                                            "
+                                        />
 
-                        </select>
+                                        Reject
+
+                                    </Button>
+
+                                </>
+                            )
+                        }
 
 
                         {
-                            hasFilters && (
+                            order.status ===
+                            "CONFIRMED" && (
 
                                 <Button
                                     type="button"
 
-                                    variant="ghost"
+                                    disabled={
+                                        actionLoading
+                                    }
 
                                     onClick={
-                                        clearFilters
+                                        handlePreparing
                                     }
                                 >
-                                    Clear
+
+                                    <ChefHat
+                                        className="
+                                            mr-2
+                                            h-4
+                                            w-4
+                                        "
+                                    />
+
+                                    Start Preparing
+
+                                </Button>
+                            )
+                        }
+
+
+                        {
+                            order.status ===
+                            "PREPARING" && (
+
+                                <Button
+                                    type="button"
+
+                                    disabled={
+                                        actionLoading
+                                    }
+
+                                    onClick={
+                                        handleReady
+                                    }
+                                >
+
+                                    <PackageCheck
+                                        className="
+                                            mr-2
+                                            h-4
+                                            w-4
+                                        "
+                                    />
+
+                                    Mark Ready
+
                                 </Button>
                             )
                         }
@@ -1124,163 +946,379 @@ const RestaurantOrders = () => {
 
                 </div>
 
+
+                {
+                    actionError && (
+
+                        <div
+                            className="
+                                mt-4
+
+                                rounded-xl
+
+                                border
+                                border-red-200
+
+                                bg-red-50
+
+                                px-4
+                                py-3
+
+                                text-sm
+                                font-semibold
+                                text-red-700
+                            "
+                        >
+                            {
+                                actionError
+                            }
+                        </div>
+                    )
+                }
+
+
+                {/* REJECT FORM */}
+
+                {
+                    showRejectForm &&
+                    order.status ===
+                    "PLACED" && (
+
+                        <div
+                            className="
+                                mt-5
+
+                                rounded-2xl
+
+                                border
+                                border-red-100
+
+                                bg-red-50/60
+
+                                p-4
+                            "
+                        >
+
+                            <label
+                                className="
+                                    text-sm
+                                    font-black
+                                    text-slate-800
+                                "
+                            >
+                                Why are you rejecting
+                                this order?
+                            </label>
+
+
+                            <textarea
+                                rows={4}
+
+                                value={
+                                    rejectionReason
+                                }
+
+                                onChange={(
+                                    event
+                                ) =>
+                                    setRejectionReason(
+                                        event.target
+                                            .value
+                                    )
+                                }
+
+                                placeholder="
+                                    Example:
+                                    Ordered item is
+                                    currently unavailable.
+                                "
+
+                                className="
+                                    mt-3
+                                    w-full
+
+                                    resize-none
+
+                                    rounded-xl
+
+                                    border
+                                    border-slate-200
+
+                                    bg-white
+
+                                    px-4
+                                    py-3
+
+                                    text-sm
+
+                                    outline-none
+
+                                    focus:border-red-300
+                                    focus:ring-4
+                                    focus:ring-red-50
+                                "
+                            />
+
+
+                            <div
+                                className="
+                                    mt-3
+                                    flex
+                                    justify-end
+                                    gap-2
+                                "
+                            >
+
+                                <Button
+                                    type="button"
+
+                                    variant="ghost"
+
+                                    onClick={() => {
+
+                                        setShowRejectForm(
+                                            false
+                                        );
+
+                                        setRejectionReason(
+                                            ""
+                                        );
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
+
+
+                                <Button
+                                    type="button"
+
+                                    variant="danger"
+
+                                    disabled={
+                                        actionLoading ||
+                                        !rejectionReason
+                                            .trim()
+                                    }
+
+                                    onClick={
+                                        handleReject
+                                    }
+                                >
+                                    Confirm Reject
+                                </Button>
+
+                            </div>
+
+                        </div>
+                    )
+                }
+
             </section>
 
 
             {/* =========================
-                RESULT INFO
+                CUSTOMER DETAILS
             ========================== */}
 
             <div
                 className="
-                    flex
-                    flex-wrap
-                    items-center
-                    justify-between
-                    gap-3
+                    grid
+                    gap-5
+
+                    lg:grid-cols-2
                 "
             >
 
-                <p
+                <section
                     className="
-                        text-sm
-                        text-slate-500
+                        rounded-[1.75rem]
+
+                        border
+                        border-slate-200
+
+                        bg-white
+
+                        p-5
+
+                        shadow-sm
                     "
                 >
-                    Showing{" "}
-
-                    <span
-                        className="
-                            font-black
-                            text-slate-900
-                        "
-                    >
-                        {
-                            filteredOrders.length
-                        }
-                    </span>{" "}
-
-                    orders
-                </p>
-
-
-                {
-                    statusFilter !==
-                        "ALL" && (
-
-                        <StatusBadge
-                            variant={
-                                statusConfig[
-                                    statusFilter
-                                ]?.variant ||
-                                "neutral"
-                            }
-
-                            size="sm"
-
-                            dot
-                        >
-                            {
-                                statusConfig[
-                                    statusFilter
-                                ]?.label ||
-                                statusFilter
-                            }
-                        </StatusBadge>
-                    )
-                }
-
-            </div>
-
-
-            {/* =========================
-                TABLE
-            ========================== */}
-
-            {
-                !fetchLoading &&
-                filteredOrders.length ===
-                    0 ? (
-
-                    <EmptyState
-                        icon={
-                            ShoppingBag
-                        }
-
-                        title="No orders found"
-
-                        description={
-                            hasFilters
-                                ? "Try changing or clearing your filters."
-                                : "Customer orders will appear here."
-                        }
-
-                        action={
-                            hasFilters
-                                ? {
-                                    label:
-                                        "Clear Filters",
-
-                                    onClick:
-                                        clearFilters,
-                                }
-                                : undefined
-                        }
-                    />
-
-                ) : (
-
-                    <CommonTable
-                        columns={
-                            columns
-                        }
-
-                        data={
-                            filteredOrders
-                        }
-
-                        loading={
-                            fetchLoading
-                        }
-                    />
-                )
-            }
-
-
-            {/* =========================
-                PAGINATION
-            ========================== */}
-
-            {
-                !fetchLoading &&
-                orders.length > 0 &&
-                (
-                    pagination
-                        ?.totalPages ||
-                    1
-                ) > 1 && (
 
                     <div
                         className="
                             flex
-                            flex-col
+                            items-center
                             gap-3
+                        "
+                    >
 
-                            rounded-2xl
+                        <div
+                            className="
+                                flex
+                                h-11
+                                w-11
+                                items-center
+                                justify-center
 
-                            border
-                            border-slate-200
+                                rounded-xl
 
-                            bg-white
+                                bg-orange-50
 
-                            px-4
-                            py-3
+                                text-orange-600
+                            "
+                        >
+                            <UserRound
+                                className="
+                                    h-5
+                                    w-5
+                                "
+                            />
+                        </div>
 
-                            shadow-sm
 
-                            sm:flex-row
-                            sm:items-center
-                            sm:justify-between
+                        <div>
+
+                            <h2
+                                className="
+                                    font-black
+                                    text-slate-900
+                                "
+                            >
+                                Customer Details
+                            </h2>
+
+                            <p
+                                className="
+                                    text-xs
+                                    text-slate-400
+                                "
+                            >
+                                Customer who placed
+                                this order
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        className="
+                            mt-5
+                            space-y-4
+                        "
+                    >
+
+                        <DetailRow
+                            icon={
+                                UserRound
+                            }
+
+                            label="Customer Name"
+
+                            value={
+                                order.deliveryName ||
+                                "-"
+                            }
+                        />
+
+
+                        <DetailRow
+                            icon={
+                                Phone
+                            }
+
+                            label="Phone Number"
+
+                            value={
+                                order.deliveryPhone ||
+                                "-"
+                            }
+                        />
+
+                    </div>
+
+                </section>
+
+
+                {/* DELIVERY ADDRESS */}
+
+                <section
+                    className="
+                        rounded-[1.75rem]
+
+                        border
+                        border-slate-200
+
+                        bg-white
+
+                        p-5
+
+                        shadow-sm
+                    "
+                >
+
+                    <div
+                        className="
+                            flex
+                            items-center
+                            gap-3
+                        "
+                    >
+
+                        <div
+                            className="
+                                flex
+                                h-11
+                                w-11
+                                items-center
+                                justify-center
+
+                                rounded-xl
+
+                                bg-orange-50
+
+                                text-orange-600
+                            "
+                        >
+                            <MapPin
+                                className="
+                                    h-5
+                                    w-5
+                                "
+                            />
+                        </div>
+
+
+                        <div>
+
+                            <h2
+                                className="
+                                    font-black
+                                    text-slate-900
+                                "
+                            >
+                                Delivery Address
+                            </h2>
+
+                            <p
+                                className="
+                                    text-xs
+                                    text-slate-400
+                                "
+                            >
+                                Where this order
+                                needs to be delivered
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        className="
+                            mt-5
                         "
                     >
 
@@ -1288,119 +1326,1193 @@ const RestaurantOrders = () => {
                             className="
                                 text-sm
                                 font-semibold
-                                text-slate-500
+                                leading-7
+                                text-slate-700
                             "
                         >
-                            Page{" "}
-
-                            <span
-                                className="
-                                    font-black
-                                    text-slate-900
-                                "
-                            >
-                                {
-                                    pagination?.page ||
-                                    page
-                                }
-                            </span>
-
-                            {" "}of{" "}
-
-                            <span
-                                className="
-                                    font-black
-                                    text-slate-900
-                                "
-                            >
-                                {
-                                    pagination
-                                        ?.totalPages ||
-                                    1
-                                }
-                            </span>
-
-                            {" "}•{" "}
-
                             {
-                                pagination?.total ||
-                                0
-                            }{" "}
-
-                            orders
+                                customerAddress ||
+                                "Address unavailable"
+                            }
                         </p>
 
 
                         <div
                             className="
-                                flex
-                                items-center
-                                gap-2
+                                mt-4
+
+                                grid
+                                gap-3
+
+                                sm:grid-cols-2
                             "
                         >
 
-                            <Button
-                                type="button"
+                            <SmallDetail
+                                label="City"
 
-                                variant="ghost"
-
-                                disabled={
-                                    page <= 1 ||
-                                    fetchLoading
+                                value={
+                                    order.city
                                 }
+                            />
 
-                                onClick={() =>
-                                    setPage(
-                                        (
-                                            current
-                                        ) =>
-                                            Math.max(
-                                                current -
-                                                    1,
-                                                1
-                                            )
-                                    )
+
+                            <SmallDetail
+                                label="State"
+
+                                value={
+                                    order.state
                                 }
-                            >
-                                Previous
-                            </Button>
+                            />
 
 
-                            <Button
-                                type="button"
+                            <SmallDetail
+                                label="Pincode"
 
-                                disabled={
-                                    page >=
-                                        (
-                                            pagination
-                                                ?.totalPages ||
-                                            1
-                                        ) ||
-                                    fetchLoading
+                                value={
+                                    order.pincode
                                 }
+                            />
 
-                                onClick={() =>
-                                    setPage(
-                                        (
-                                            current
-                                        ) =>
-                                            current +
-                                            1
-                                    )
+
+                            <SmallDetail
+                                label="Landmark"
+
+                                value={
+                                    order.landmark
                                 }
-                            >
-                                Next
-                            </Button>
+                            />
 
                         </div>
 
                     </div>
-                )
-            }
+
+                </section>
+
+            </div>
+
+
+            {/* =========================
+                WHAT CUSTOMER ORDERED
+            ========================== */}
+
+            <section
+                className="
+                    rounded-[1.75rem]
+
+                    border
+                    border-slate-200
+
+                    bg-white
+
+                    p-5
+
+                    shadow-sm
+                "
+            >
+
+                <div
+                    className="
+                        flex
+                        flex-wrap
+                        items-center
+                        justify-between
+                        gap-3
+                    "
+                >
+
+                    <div
+                        className="
+                            flex
+                            items-center
+                            gap-3
+                        "
+                    >
+
+                        <div
+                            className="
+                                flex
+                                h-11
+                                w-11
+                                items-center
+                                justify-center
+
+                                rounded-xl
+
+                                bg-orange-50
+
+                                text-orange-600
+                            "
+                        >
+                            <ShoppingBag
+                                className="
+                                    h-5
+                                    w-5
+                                "
+                            />
+                        </div>
+
+
+                        <div>
+
+                            <h2
+                                className="
+                                    text-lg
+                                    font-black
+                                    text-slate-900
+                                "
+                            >
+                                Ordered Items
+                            </h2>
+
+                            <p
+                                className="
+                                    text-xs
+                                    text-slate-400
+                                "
+                            >
+                                Food items ordered
+                                by the customer
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <span
+                        className="
+                            rounded-full
+
+                            bg-slate-100
+
+                            px-3
+                            py-1.5
+
+                            text-xs
+                            font-black
+                            text-slate-600
+                        "
+                    >
+                        {
+                            order.items?.length ||
+                            0
+                        }{" "}
+                        items
+                    </span>
+
+                </div>
+
+
+                {
+                    order.items?.length > 0 ? (
+
+                        <div
+                            className="
+                                mt-5
+
+                                divide-y
+                                divide-slate-100
+                            "
+                        >
+
+                            {
+                                order.items.map(
+                                    (
+                                        item,
+                                        index
+                                    ) => (
+
+                                        <div
+                                            key={
+                                                item.slug ||
+                                                index
+                                            }
+
+                                            className="
+                                                flex
+                                                flex-col
+                                                gap-4
+                                                py-4
+
+                                                first:pt-0
+
+                                                sm:flex-row
+                                                sm:items-center
+                                            "
+                                        >
+
+                                            {/* IMAGE */}
+
+                                            <div
+                                                className="
+                                                    h-24
+                                                    w-24
+                                                    shrink-0
+
+                                                    overflow-hidden
+
+                                                    rounded-2xl
+
+                                                    bg-slate-100
+                                                "
+                                            >
+
+                                                {
+                                                    item.image ? (
+
+                                                        <OptimizedImage
+                                                            src={
+                                                                item.image
+                                                            }
+
+                                                            alt={
+                                                                item.name
+                                                            }
+
+                                                            className="
+                                                                h-full
+                                                                w-full
+                                                                object-cover
+                                                            "
+                                                        />
+
+                                                    ) : (
+
+                                                        <div
+                                                            className="
+                                                                flex
+                                                                h-full
+                                                                w-full
+                                                                items-center
+                                                                justify-center
+                                                            "
+                                                        >
+                                                            <ShoppingBag
+                                                                className="
+                                                                    h-6
+                                                                    w-6
+                                                                    text-slate-300
+                                                                "
+                                                            />
+                                                        </div>
+                                                    )
+                                                }
+
+                                            </div>
+
+
+                                            {/* FOOD DETAILS */}
+
+                                            <div
+                                                className="
+                                                    min-w-0
+                                                    flex-1
+                                                "
+                                            >
+
+                                                <h3
+                                                    className="
+                                                        font-black
+                                                        text-slate-900
+                                                    "
+                                                >
+                                                    {
+                                                        item.name
+                                                    }
+                                                </h3>
+
+
+                                                <p
+                                                    className="
+                                                        mt-1
+                                                        text-xs
+                                                        font-semibold
+                                                        text-slate-400
+                                                    "
+                                                >
+                                                    {
+                                                        item.slug
+                                                    }
+                                                </p>
+
+
+                                                <div
+                                                    className="
+                                                        mt-3
+
+                                                        flex
+                                                        flex-wrap
+                                                        gap-3
+                                                    "
+                                                >
+
+                                                    <span
+                                                        className="
+                                                            rounded-lg
+
+                                                            bg-slate-100
+
+                                                            px-2.5
+                                                            py-1.5
+
+                                                            text-xs
+                                                            font-bold
+                                                            text-slate-600
+                                                        "
+                                                    >
+                                                        Qty:{" "}
+
+                                                        {
+                                                            item.quantity
+                                                        }
+                                                    </span>
+
+
+                                                    <span
+                                                        className="
+                                                            rounded-lg
+
+                                                            bg-slate-100
+
+                                                            px-2.5
+                                                            py-1.5
+
+                                                            text-xs
+                                                            font-bold
+                                                            text-slate-600
+                                                        "
+                                                    >
+                                                        Unit:{" "}
+
+                                                        {
+                                                            formatPrice(
+                                                                item.unitPrice
+                                                            )
+                                                        }
+                                                    </span>
+
+                                                </div>
+
+                                            </div>
+
+
+                                            {/* TOTAL */}
+
+                                            <div
+                                                className="
+                                                    sm:text-right
+                                                "
+                                            >
+
+                                                <p
+                                                    className="
+                                                        text-xs
+                                                        font-bold
+                                                        uppercase
+                                                        tracking-wider
+                                                        text-slate-400
+                                                    "
+                                                >
+                                                    Item Total
+                                                </p>
+
+
+                                                <p
+                                                    className="
+                                                        mt-1
+                                                        text-lg
+                                                        font-black
+                                                        text-slate-900
+                                                    "
+                                                >
+                                                    {
+                                                        formatPrice(
+                                                            item.itemTotal
+                                                        )
+                                                    }
+                                                </p>
+
+                                            </div>
+
+                                        </div>
+                                    )
+                                )
+                            }
+
+                        </div>
+
+                    ) : (
+
+                        <div
+                            className="
+                                py-12
+                                text-center
+                            "
+                        >
+                            <ShoppingBag
+                                className="
+                                    mx-auto
+                                    h-8
+                                    w-8
+                                    text-slate-300
+                                "
+                            />
+
+                            <p
+                                className="
+                                    mt-3
+                                    text-sm
+                                    font-bold
+                                    text-slate-500
+                                "
+                            >
+                                No order items found.
+                            </p>
+                        </div>
+                    )
+                }
+
+            </section>
+
+
+            {/* =========================
+                PAYMENT + BILL
+            ========================== */}
+
+            <div
+                className="
+                    grid
+                    gap-5
+
+                    lg:grid-cols-[1fr_0.8fr]
+                "
+            >
+
+                {/* PAYMENT INFO */}
+
+                <section
+                    className="
+                        rounded-[1.75rem]
+
+                        border
+                        border-slate-200
+
+                        bg-white
+
+                        p-5
+
+                        shadow-sm
+                    "
+                >
+
+                    <div
+                        className="
+                            flex
+                            items-center
+                            gap-3
+                        "
+                    >
+
+                        <CreditCard
+                            className="
+                                h-5
+                                w-5
+                                text-orange-500
+                            "
+                        />
+
+
+                        <h2
+                            className="
+                                font-black
+                                text-slate-900
+                            "
+                        >
+                            Payment Details
+                        </h2>
+
+                    </div>
+
+
+                    <div
+                        className="
+                            mt-5
+
+                            grid
+                            gap-4
+
+                            sm:grid-cols-2
+                        "
+                    >
+
+                        <SmallDetail
+                            label="Payment Method"
+
+                            value={
+                                order.paymentMethod
+                            }
+                        />
+
+
+                        <div>
+
+                            <p
+                                className="
+                                    text-xs
+                                    font-bold
+                                    text-slate-400
+                                "
+                            >
+                                Payment Status
+                            </p>
+
+
+                            <div
+                                className="
+                                    mt-2
+                                "
+                            >
+
+                                <StatusBadge
+                                    variant={
+                                        order.paymentStatus ===
+                                            "PAID"
+                                            ? "success"
+                                            : "warning"
+                                    }
+
+                                    dot
+                                >
+                                    {
+                                        order.paymentStatus ||
+                                        "-"
+                                    }
+                                </StatusBadge>
+
+                            </div>
+
+                        </div>
+
+
+                        <SmallDetail
+                            label="Checkout Number"
+
+                            value={
+                                order.checkoutNumber
+                            }
+                        />
+
+
+                        <SmallDetail
+                            label="Order Date"
+
+                            value={
+                                formatDate(
+                                    order.createdAt
+                                )
+                            }
+                        />
+
+                    </div>
+
+                </section>
+
+
+                {/* BILL SUMMARY */}
+
+                <section
+                    className="
+                        rounded-[1.75rem]
+
+                        border
+                        border-slate-200
+
+                        bg-white
+
+                        p-5
+
+                        shadow-sm
+                    "
+                >
+
+                    <div
+                        className="
+                            flex
+                            items-center
+                            gap-3
+                        "
+                    >
+
+                        <ReceiptText
+                            className="
+                                h-5
+                                w-5
+                                text-orange-500
+                            "
+                        />
+
+
+                        <h2
+                            className="
+                                font-black
+                                text-slate-900
+                            "
+                        >
+                            Bill Summary
+                        </h2>
+
+                    </div>
+
+
+                    <div
+                        className="
+                            mt-5
+                            space-y-3
+                        "
+                    >
+
+                        <PriceRow
+                            label="Subtotal"
+
+                            value={
+                                order.subtotal
+                            }
+                        />
+
+
+                        <PriceRow
+                            label="Delivery Fee"
+
+                            value={
+                                order.deliveryFee
+                            }
+                        />
+
+
+                        <PriceRow
+                            label="Tax"
+
+                            value={
+                                order.taxAmount
+                            }
+                        />
+
+
+                        <div
+                            className="
+                                mt-4
+
+                                flex
+                                items-center
+                                justify-between
+
+                                border-t
+                                border-slate-100
+
+                                pt-4
+                            "
+                        >
+
+                            <span
+                                className="
+                                    font-black
+                                    text-slate-900
+                                "
+                            >
+                                Total Amount
+                            </span>
+
+
+                            <span
+                                className="
+                                    text-xl
+                                    font-black
+                                    text-orange-600
+                                "
+                            >
+                                {
+                                    formatPrice(
+                                        order.totalAmount
+                                    )
+                                }
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+            </div>
+
+
+            {/* =========================
+                ORDER TIMELINE
+            ========================== */}
+
+            <section
+                className="
+                    rounded-[1.75rem]
+
+                    border
+                    border-slate-200
+
+                    bg-white
+
+                    p-5
+
+                    shadow-sm
+                "
+            >
+
+                <div
+                    className="
+                        flex
+                        items-center
+                        gap-3
+                    "
+                >
+
+                    <Clock3
+                        className="
+                            h-5
+                            w-5
+                            text-orange-500
+                        "
+                    />
+
+
+                    <h2
+                        className="
+                            font-black
+                            text-slate-900
+                        "
+                    >
+                        Order Timeline
+                    </h2>
+
+                </div>
+
+
+                <div
+                    className="
+                        mt-5
+
+                        grid
+                        gap-3
+
+                        sm:grid-cols-2
+                        lg:grid-cols-4
+                    "
+                >
+
+                    <TimelineCard
+                        label="Placed"
+
+                        value={
+                            order.createdAt
+                        }
+                    />
+
+
+                    <TimelineCard
+                        label="Confirmed"
+
+                        value={
+                            order.confirmedAt
+                        }
+                    />
+
+
+                    <TimelineCard
+                        label="Preparing"
+
+                        value={
+                            order.preparingAt
+                        }
+                    />
+
+
+                    <TimelineCard
+                        label="Ready"
+
+                        value={
+                            order.readyAt
+                        }
+                    />
+
+
+                    <TimelineCard
+                        label="Picked Up"
+
+                        value={
+                            order.pickedUpAt
+                        }
+                    />
+
+
+                    <TimelineCard
+                        label="Delivered"
+
+                        value={
+                            order.deliveredAt
+                        }
+                    />
+
+
+                    <TimelineCard
+                        label="Cancelled"
+
+                        value={
+                            order.cancelledAt
+                        }
+                    />
+
+                </div>
+
+
+                {
+                    order.rejectionReason && (
+
+                        <div
+                            className="
+                                mt-5
+
+                                rounded-xl
+
+                                border
+                                border-red-100
+
+                                bg-red-50
+
+                                p-4
+                            "
+                        >
+
+                            <p
+                                className="
+                                    text-xs
+                                    font-black
+                                    uppercase
+                                    tracking-wider
+                                    text-red-500
+                                "
+                            >
+                                Rejection Reason
+                            </p>
+
+
+                            <p
+                                className="
+                                    mt-2
+                                    text-sm
+                                    font-semibold
+                                    text-red-700
+                                "
+                            >
+                                {
+                                    order.rejectionReason
+                                }
+                            </p>
+
+                        </div>
+                    )
+                }
+
+
+                {
+                    order.cancelledReason && (
+
+                        <div
+                            className="
+                                mt-5
+
+                                rounded-xl
+
+                                border
+                                border-slate-200
+
+                                bg-slate-50
+
+                                p-4
+                            "
+                        >
+
+                            <p
+                                className="
+                                    text-xs
+                                    font-black
+                                    uppercase
+                                    tracking-wider
+                                    text-slate-500
+                                "
+                            >
+                                Cancellation Reason
+                            </p>
+
+
+                            <p
+                                className="
+                                    mt-2
+                                    text-sm
+                                    font-semibold
+                                    text-slate-700
+                                "
+                            >
+                                {
+                                    order.cancelledReason
+                                }
+                            </p>
+
+                        </div>
+                    )
+                }
+
+            </section>
 
         </div>
     );
 };
 
 
-export default RestaurantOrders;
+// =========================================
+// DETAIL ROW
+// =========================================
+
+const DetailRow = ({
+    icon: Icon,
+    label,
+    value,
+}) => {
+
+    return (
+
+        <div
+            className="
+                flex
+                gap-3
+            "
+        >
+
+            <div
+                className="
+                    mt-0.5
+
+                    flex
+                    h-9
+                    w-9
+                    shrink-0
+                    items-center
+                    justify-center
+
+                    rounded-lg
+
+                    bg-slate-100
+
+                    text-slate-500
+                "
+            >
+                <Icon
+                    className="
+                        h-4
+                        w-4
+                    "
+                />
+            </div>
+
+
+            <div>
+
+                <p
+                    className="
+                        text-xs
+                        font-bold
+                        text-slate-400
+                    "
+                >
+                    {
+                        label
+                    }
+                </p>
+
+
+                <p
+                    className="
+                        mt-1
+                        font-black
+                        text-slate-800
+                    "
+                >
+                    {
+                        value ||
+                        "-"
+                    }
+                </p>
+
+            </div>
+
+        </div>
+    );
+};
+
+
+// =========================================
+// SMALL DETAIL
+// =========================================
+
+const SmallDetail = ({
+    label,
+    value,
+}) => {
+
+    return (
+
+        <div>
+
+            <p
+                className="
+                    text-xs
+                    font-bold
+                    text-slate-400
+                "
+            >
+                {
+                    label
+                }
+            </p>
+
+
+            <p
+                className="
+                    mt-1
+                    text-sm
+                    font-black
+                    text-slate-800
+                "
+            >
+                {
+                    value ||
+                    "-"
+                }
+            </p>
+
+        </div>
+    );
+};
+
+
+// =========================================
+// PRICE ROW
+// =========================================
+
+const PriceRow = ({
+    label,
+    value,
+}) => {
+
+    return (
+
+        <div
+            className="
+                flex
+                items-center
+                justify-between
+                gap-4
+            "
+        >
+
+            <span
+                className="
+                    text-sm
+                    font-semibold
+                    text-slate-500
+                "
+            >
+                {
+                    label
+                }
+            </span>
+
+
+            <span
+                className="
+                    text-sm
+                    font-black
+                    text-slate-800
+                "
+            >
+                {
+                    formatPrice(
+                        value
+                    )
+                }
+            </span>
+
+        </div>
+    );
+};
+
+
+// =========================================
+// TIMELINE CARD
+// =========================================
+
+const TimelineCard = ({
+    label,
+    value,
+}) => {
+
+    return (
+
+        <div
+            className="
+                rounded-xl
+
+                border
+                border-slate-100
+
+                bg-slate-50
+
+                p-4
+            "
+        >
+
+            <p
+                className="
+                    text-xs
+                    font-black
+                    uppercase
+                    tracking-wider
+                    text-slate-400
+                "
+            >
+                {
+                    label
+                }
+            </p>
+
+
+            <p
+                className="
+                    mt-2
+                    text-sm
+                    font-bold
+                    text-slate-800
+                "
+            >
+                {
+                    value
+                        ? formatDate(
+                            value
+                        )
+                        : "-"
+                }
+            </p>
+
+        </div>
+    );
+};
+
+
+export default RestaurantOrderDetails;
