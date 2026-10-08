@@ -257,7 +257,7 @@ const RestaurantOrders = () => {
             state.restaurantOrder
     ) || {};
 
-
+    console.log(orders);
     // =========================================
     // LOCAL STATE
     // =========================================
@@ -654,7 +654,7 @@ const RestaurantOrders = () => {
 
                     const config =
                         statusConfig[
-                            order.status
+                        order.status
                         ] || {
                             label:
                                 order.status ||
@@ -781,7 +781,7 @@ const RestaurantOrders = () => {
             searchTerm.trim()
         ) ||
         statusFilter !==
-            "ALL";
+        "ALL";
 
 
     // =========================================
@@ -1166,7 +1166,7 @@ const RestaurantOrders = () => {
 
                 {
                     statusFilter !==
-                        "ALL" && (
+                    "ALL" && (
 
                         <StatusBadge
                             variant={
@@ -1199,7 +1199,7 @@ const RestaurantOrders = () => {
 
             {
                 !fetchLoading &&
-                filteredOrders.length ===
+                    filteredOrders.length ===
                     0 ? (
 
                     <EmptyState
@@ -1238,6 +1238,8 @@ const RestaurantOrders = () => {
                         data={
                             filteredOrders
                         }
+
+                        rowKey="orderNumber"
 
                         loading={
                             fetchLoading
@@ -1356,7 +1358,7 @@ const RestaurantOrders = () => {
                                         ) =>
                                             Math.max(
                                                 current -
-                                                    1,
+                                                1,
                                                 1
                                             )
                                     )
@@ -1371,11 +1373,11 @@ const RestaurantOrders = () => {
 
                                 disabled={
                                     page >=
-                                        (
-                                            pagination
-                                                ?.totalPages ||
-                                            1
-                                        ) ||
+                                    (
+                                        pagination
+                                            ?.totalPages ||
+                                        1
+                                    ) ||
                                     fetchLoading
                                 }
 

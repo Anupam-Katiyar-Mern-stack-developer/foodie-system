@@ -3,6 +3,7 @@ import { getRestaurantOrdersService } from "../../services/order.service.js";
 export const getRestaurantOrders = async (req, res, next) => {
   try {
     const restaurantId = req.restaurant.restaurantId;
+    console.log(restaurantId);
 
     const page = Math.max(Number.parseInt(req.query.page) || 1, 1);
 
@@ -21,7 +22,7 @@ export const getRestaurantOrders = async (req, res, next) => {
       limit,
       status,
     });
-
+   
     return res.status(200).json({
       success: true,
 

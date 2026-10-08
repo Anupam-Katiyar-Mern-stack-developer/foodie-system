@@ -2,7 +2,20 @@ import { getRestaurantDashboardService } from "../../services/restaurant.service
 
 export const getRestaurantDashboardController = async (req, res, next) => {
   try {
-    const restaurantId = req.restaurant.id;
+    /*
+     * IMPORTANT:
+     *
+     * Yahan wahi restaurantId
+     * use karna jo tumhara existing
+     * restaurant auth middleware
+     * request me attach karta hai.
+     *
+     * Agar existing order controller
+     * me req.restaurant.id hai,
+     * ye correct hai.
+     */
+
+    const restaurantId = req.restaurant.restaurantId;
 
     const dashboard = await getRestaurantDashboardService({
       restaurantId,

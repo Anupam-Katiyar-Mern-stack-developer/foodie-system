@@ -1034,23 +1034,117 @@ export const getRestaurantsService = async ({ page = 1, limit = 20 }) => {
 
 // get restaurants dashboard
 export const getRestaurantDashboardService = async ({ restaurantId }) => {
-  // =========================
-  // ORDER STATS
-  // =========================
+  // =========================================
+  // RESTAURANT
+  // =========================================
 
-  const statsResult = await pool.query(
+  const restaurantResult = await pool.query(
     `
           SELECT
-            COUNT(*)::int
-              AS "totalOrders",
+            restaurant_name
+              AS "restaurantName",
 
+            is_open
+              AS "isOpen"
+
+          FROM restaurants
+
+          WHERE id = $1
+
+          LIMIT 1
+        `,
+    [restaurantId],
+  );
+
+  if (restaurantResult.rows.length === 0) {
+    const error = new Error("Restaurant not found");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  // =========================================
+  // ORDER STATS
+  // =========================================
+
+  const orderStatsResult = await pool.query(
+    `
+          SELECT
+
+            -- TODAY ORDERS
+            (
+              COUNT(*)
+              FILTER (
+                WHERE
+                  created_at >=
+                    CURRENT_DATE
+
+                AND
+                  created_at <
+                    CURRENT_DATE
+                    + INTERVAL '1 day'
+              )
+            )::int
+              AS "todayOrders",
+
+
+            -- TODAY NEW / PLACED
+            (
+              COUNT(*)
+              FILTER (
+                WHERE
+                  status = 'PLACED'
+
+                AND
+                  created_at >=
+                    CURRENT_DATE
+
+                AND
+                  created_at <
+                    CURRENT_DATE
+                    + INTERVAL '1 day'
+              )
+            )::int
+              AS "todayNewOrders",
+
+
+            -- ACTIVE ORDERS
+            (
+              COUNT(*)
+              FILTER (
+                WHERE status IN (
+                  'PLACED',
+                  'CONFIRMED',
+                  'PREPARING',
+                  'READY_FOR_PICKUP',
+                  'DELIVERY_ASSIGNED',
+                  'PICKED_UP',
+                  'OUT_FOR_DELIVERY'
+                )
+              )
+            )::int
+              AS "activeOrders",
+
+
+            -- PIPELINE
             (
               COUNT(*)
               FILTER (
                 WHERE status = 'PLACED'
               )
             )::int
-              AS "newOrders",
+              AS "placed",
+
+
+            (
+              COUNT(*)
+              FILTER (
+                WHERE status = 'CONFIRMED'
+              )
+            )::int
+              AS "confirmed",
+
 
             (
               COUNT(*)
@@ -1058,30 +1152,63 @@ export const getRestaurantDashboardService = async ({ restaurantId }) => {
                 WHERE status = 'PREPARING'
               )
             )::int
-              AS "preparingOrders",
+              AS "preparing",
+
 
             (
               COUNT(*)
               FILTER (
-                WHERE status = 'READY_FOR_PICKUP'
+                WHERE
+                  status =
+                    'READY_FOR_PICKUP'
               )
             )::int
-              AS "readyOrders"
+              AS "readyForPickup"
 
           FROM orders
 
-          WHERE restaurant_id = $1
+          WHERE
+            restaurant_id = $1
         `,
     [restaurantId],
   );
 
-  // =========================
+  // =========================================
+  // FOOD STATS
+  // =========================================
+
+  const foodStatsResult = await pool.query(
+    `
+          SELECT
+
+            COUNT(*)::int
+              AS "totalFoods",
+
+            (
+              COUNT(*)
+              FILTER (
+                WHERE
+                  is_available = true
+              )
+            )::int
+              AS "activeFoods"
+
+          FROM foods
+
+          WHERE
+            restaurant_id = $1
+        `,
+    [restaurantId],
+  );
+
+  // =========================================
   // RECENT ORDERS
-  // =========================
+  // =========================================
 
   const recentOrdersResult = await pool.query(
     `
           SELECT
+
             o.order_number
               AS "orderNumber",
 
@@ -1093,27 +1220,15 @@ export const getRestaurantDashboardService = async ({ restaurantId }) => {
             o.created_at
               AS "createdAt",
 
-            og.checkout_number
-              AS "checkoutNumber",
-
             og.delivery_name
-              AS "customerName",
-
-            (
-              SELECT
-                COUNT(*)::int
-
-              FROM order_items oi
-
-              WHERE
-                oi.order_id = o.id
-            ) AS "totalItems"
+              AS "customerName"
 
           FROM orders o
 
           INNER JOIN order_groups og
-            ON og.id =
-               o.order_group_id
+            ON
+              og.id =
+              o.order_group_id
 
           WHERE
             o.restaurant_id = $1
@@ -1126,8 +1241,48 @@ export const getRestaurantDashboardService = async ({ restaurantId }) => {
     [restaurantId],
   );
 
+  const orderStats = orderStatsResult.rows[0];
+
+  const foodStats = foodStatsResult.rows[0];
+
+  // =========================================
+  // FINAL RESPONSE
+  // =========================================
+
   return {
-    stats: statsResult.rows[0],
+    restaurant: restaurantResult.rows[0],
+
+    stats: {
+      todayOrders: orderStats.todayOrders,
+
+      todayNewOrders: orderStats.todayNewOrders,
+
+      activeOrders: orderStats.activeOrders,
+
+      activeFoods: foodStats.activeFoods,
+
+      totalFoods: foodStats.totalFoods,
+
+      /*
+       * Payment module abhi ready
+       * nahi hai.
+       *
+       * Fake revenue nahi bhejna.
+       */
+      revenue: null,
+
+      revenueAvailable: false,
+    },
+
+    pipeline: {
+      placed: orderStats.placed,
+
+      confirmed: orderStats.confirmed,
+
+      preparing: orderStats.preparing,
+
+      readyForPickup: orderStats.readyForPickup,
+    },
 
     recentOrders: recentOrdersResult.rows,
   };

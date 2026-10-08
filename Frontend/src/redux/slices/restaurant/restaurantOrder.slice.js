@@ -9,6 +9,10 @@ import {
   markRestaurantOrderReady,
 } from "../../thunks/restaurant/restaurantOrder.thunk";
 
+// =========================================
+// INITIAL STATE
+// =========================================
+
 const initialState = {
   orders: [],
 
@@ -40,25 +44,29 @@ const initialState = {
 // UPDATE ORDER HELPER
 // =========================================
 
-const updateOrderState = (state, updatedOrder) => {
-  if (!updatedOrder?.orderNumber) {
+const updateOrderInState = (state, updatedOrder) => {
+  if (!updatedOrder || !updatedOrder.orderNumber) {
     return;
   }
 
-  const index = state.orders.findIndex(
+  // Update order inside list
+  const orderIndex = state.orders.findIndex(
     (order) => order.orderNumber === updatedOrder.orderNumber,
   );
 
-  if (index !== -1) {
-    state.orders[index] = {
-      ...state.orders[index],
+  if (orderIndex !== -1) {
+    state.orders[orderIndex] = {
+      ...state.orders[orderIndex],
+
       ...updatedOrder,
     };
   }
 
+  // Update order details
   if (state.selectedOrder?.orderNumber === updatedOrder.orderNumber) {
     state.selectedOrder = {
       ...state.selectedOrder,
+
       ...updatedOrder,
     };
   }
@@ -74,11 +82,19 @@ const restaurantOrderSlice = createSlice({
   initialState,
 
   reducers: {
+    // =========================
+    // CLEAR SELECTED ORDER
+    // =========================
+
     clearSelectedOrder: (state) => {
       state.selectedOrder = null;
 
       state.detailError = null;
     },
+
+    // =========================
+    // CLEAR ERRORS
+    // =========================
 
     clearOrderError: (state) => {
       state.error = null;
@@ -89,12 +105,17 @@ const restaurantOrderSlice = createSlice({
     },
   },
 
+  // =========================================
+  // EXTRA REDUCERS
+  // =========================================
+
   extraReducers: (builder) => {
-    // =============================
-    // ORDERS LIST
-    // =============================
+    // =====================================
+    // GET RESTAURANT ORDERS
+    // =====================================
 
     builder
+
       .addCase(
         getRestaurantOrders.pending,
 
@@ -104,13 +125,32 @@ const restaurantOrderSlice = createSlice({
           state.error = null;
         },
       )
-
       .addCase(
         getRestaurantOrders.fulfilled,
 
         (state, action) => {
           state.fetchLoading = false;
 
+          state.error = null;
+
+          console.log("GET ORDERS PAYLOAD:", action.payload);
+
+          // payload direct array aa raha hai
+          if (Array.isArray(action.payload)) {
+            state.orders = action.payload;
+
+            state.pagination = {
+              page: 1,
+              limit: 10,
+              total: action.payload.length,
+              totalPages: 1,
+            };
+
+            return;
+          }
+
+          // future me object aaye to
+          // ye bhi support karega
           state.orders = action.payload?.orders || [];
 
           state.pagination =
@@ -124,15 +164,16 @@ const restaurantOrderSlice = createSlice({
         (state, action) => {
           state.fetchLoading = false;
 
-          state.error = action.payload;
+          state.error = action.payload || "Unable to fetch orders";
         },
       );
 
-    // =============================
-    // SINGLE ORDER
-    // =============================
+    // =====================================
+    // GET SINGLE RESTAURANT ORDER
+    // =====================================
 
     builder
+
       .addCase(
         getRestaurantOrder.pending,
 
@@ -140,6 +181,8 @@ const restaurantOrderSlice = createSlice({
           state.detailLoading = true;
 
           state.detailError = null;
+
+          state.selectedOrder = null;
         },
       )
 
@@ -148,6 +191,10 @@ const restaurantOrderSlice = createSlice({
 
         (state, action) => {
           state.detailLoading = false;
+
+          state.detailError = null;
+
+          console.log("SINGLE ORDER PAYLOAD:", action.payload);
 
           state.selectedOrder = action.payload;
         },
@@ -159,80 +206,209 @@ const restaurantOrderSlice = createSlice({
         (state, action) => {
           state.detailLoading = false;
 
-          state.detailError = action.payload;
+          state.detailError = action.payload || "Unable to fetch order";
         },
       );
 
-    // =============================
-    // ACTION PENDING
-    // =============================
+    // =====================================
+    // ACCEPT ORDER
+    // =====================================
 
-    builder.addMatcher(
-      (action) =>
-        [
-          acceptRestaurantOrder.pending.type,
-          rejectRestaurantOrder.pending.type,
-          markRestaurantOrderPreparing.pending.type,
-          markRestaurantOrderReady.pending.type,
-        ].includes(action.type),
+    builder
 
-      (state, action) => {
-        state.actionLoading = true;
+      .addCase(
+        acceptRestaurantOrder.pending,
 
-        state.actionError = null;
+        (state, action) => {
+          state.actionLoading = true;
 
-        state.actionOrderNumber =
-          action.meta.arg?.orderNumber || action.meta.arg || null;
-      },
-    );
+          state.actionError = null;
 
-    // =============================
-    // ACTION SUCCESS
-    // =============================
+          state.actionOrderNumber = action.meta.arg;
+        },
+      )
 
-    builder.addMatcher(
-      (action) =>
-        [
-          acceptRestaurantOrder.fulfilled.type,
-          rejectRestaurantOrder.fulfilled.type,
-          markRestaurantOrderPreparing.fulfilled.type,
-          markRestaurantOrderReady.fulfilled.type,
-        ].includes(action.type),
+      .addCase(
+        acceptRestaurantOrder.fulfilled,
 
-      (state, action) => {
-        state.actionLoading = false;
+        (state, action) => {
+          state.actionLoading = false;
 
-        state.actionOrderNumber = null;
+          state.actionOrderNumber = null;
 
-        updateOrderState(state, action.payload);
-      },
-    );
+          state.actionError = null;
 
-    // =============================
-    // ACTION ERROR
-    // =============================
+          console.log("ACCEPT ORDER:", action.payload);
 
-    builder.addMatcher(
-      (action) =>
-        [
-          acceptRestaurantOrder.rejected.type,
-          rejectRestaurantOrder.rejected.type,
-          markRestaurantOrderPreparing.rejected.type,
-          markRestaurantOrderReady.rejected.type,
-        ].includes(action.type),
+          updateOrderInState(state, action.payload);
+        },
+      )
 
-      (state, action) => {
-        state.actionLoading = false;
+      .addCase(
+        acceptRestaurantOrder.rejected,
 
-        state.actionOrderNumber = null;
+        (state, action) => {
+          state.actionLoading = false;
 
-        state.actionError = action.payload;
-      },
-    );
+          state.actionOrderNumber = null;
+
+          state.actionError = action.payload || "Unable to accept order";
+        },
+      );
+
+    // =====================================
+    // REJECT ORDER
+    // =====================================
+
+    builder
+
+      .addCase(
+        rejectRestaurantOrder.pending,
+
+        (state, action) => {
+          state.actionLoading = true;
+
+          state.actionError = null;
+
+          state.actionOrderNumber = action.meta.arg?.orderNumber || null;
+        },
+      )
+
+      .addCase(
+        rejectRestaurantOrder.fulfilled,
+
+        (state, action) => {
+          state.actionLoading = false;
+
+          state.actionOrderNumber = null;
+
+          state.actionError = null;
+
+          console.log("REJECT ORDER:", action.payload);
+
+          updateOrderInState(state, action.payload);
+        },
+      )
+
+      .addCase(
+        rejectRestaurantOrder.rejected,
+
+        (state, action) => {
+          state.actionLoading = false;
+
+          state.actionOrderNumber = null;
+
+          state.actionError = action.payload || "Unable to reject order";
+        },
+      );
+
+    // =====================================
+    // MARK PREPARING
+    // =====================================
+
+    builder
+
+      .addCase(
+        markRestaurantOrderPreparing.pending,
+
+        (state, action) => {
+          state.actionLoading = true;
+
+          state.actionError = null;
+
+          state.actionOrderNumber = action.meta.arg;
+        },
+      )
+
+      .addCase(
+        markRestaurantOrderPreparing.fulfilled,
+
+        (state, action) => {
+          state.actionLoading = false;
+
+          state.actionOrderNumber = null;
+
+          state.actionError = null;
+
+          console.log("PREPARING ORDER:", action.payload);
+
+          updateOrderInState(state, action.payload);
+        },
+      )
+
+      .addCase(
+        markRestaurantOrderPreparing.rejected,
+
+        (state, action) => {
+          state.actionLoading = false;
+
+          state.actionOrderNumber = null;
+
+          state.actionError =
+            action.payload || "Unable to move order to preparing";
+        },
+      );
+
+    // =====================================
+    // MARK READY
+    // =====================================
+
+    builder
+
+      .addCase(
+        markRestaurantOrderReady.pending,
+
+        (state, action) => {
+          state.actionLoading = true;
+
+          state.actionError = null;
+
+          state.actionOrderNumber = action.meta.arg;
+        },
+      )
+
+      .addCase(
+        markRestaurantOrderReady.fulfilled,
+
+        (state, action) => {
+          state.actionLoading = false;
+
+          state.actionOrderNumber = null;
+
+          state.actionError = null;
+
+          console.log("READY ORDER:", action.payload);
+
+          updateOrderInState(state, action.payload);
+        },
+      )
+
+      .addCase(
+        markRestaurantOrderReady.rejected,
+
+        (state, action) => {
+          state.actionLoading = false;
+
+          state.actionOrderNumber = null;
+
+          state.actionError = action.payload || "Unable to mark order ready";
+        },
+      );
   },
 });
 
-export const { clearSelectedOrder, clearOrderError } =
-  restaurantOrderSlice.actions;
+// =========================================
+// ACTIONS
+// =========================================
+
+export const {
+  clearSelectedOrder,
+
+  clearOrderError,
+} = restaurantOrderSlice.actions;
+
+// =========================================
+// REDUCER
+// =========================================
 
 export default restaurantOrderSlice.reducer;

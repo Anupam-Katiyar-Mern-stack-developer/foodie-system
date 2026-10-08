@@ -21,6 +21,7 @@ export const getRestaurantOrdersService = async ({
   const response = await apiClient.get("/restaurant/orders", {
     params,
   });
+  console.log(response);
 
   return response.data;
 };

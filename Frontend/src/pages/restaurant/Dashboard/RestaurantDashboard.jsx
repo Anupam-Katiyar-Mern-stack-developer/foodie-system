@@ -1,6 +1,16 @@
 import {
   useState,
 } from "react";
+import {
+  useEffect,
+  useMemo,
+} from "react";
+
+import {
+  useDispatch,
+  useSelector,
+} from "react-redux";
+
 
 import {
   useNavigate,
@@ -44,7 +54,9 @@ import EmptyState
 import ErrorState
   from "../../../components/common/ErrorState/ErrorState";
 
-
+import {
+  getRestaurantDashboard,
+} from "../../../redux/thunks/restaurant/restaurantDashboard.thunk";
 
 const RestaurantDashboard = () => {
   const navigate =
@@ -55,243 +67,308 @@ const RestaurantDashboard = () => {
   // TEMP UI STATE
   // Later Redux/API se aayega
   // =========================
-
-  const [
-    restaurantOpen,
-    setRestaurantOpen,
-  ] = useState(true);
+  const dispatch =
+    useDispatch();
 
 
-  const dashboardLoading =
-    false;
+  const {
+    restaurant,
 
-  const dashboardError =
-    null;
+    stats:
+    dashboardStats,
+
+    pipeline:
+    dashboardPipeline,
+
+    recentOrders,
+
+    loading:
+    dashboardLoading,
+
+    error:
+    dashboardError,
+
+  } = useSelector(
+    (state) =>
+      state.restaurantDashboard
+  );
 
 
+  useEffect(() => {
+
+    dispatch(
+      getRestaurantDashboard()
+    );
+
+  }, [
+    dispatch,
+  ]);
+
+  const restaurantOpen =
+    Boolean(
+      restaurant?.isOpen
+    );
   // =========================
   // STATS
   // =========================
 
-  const stats = [
-    {
-      key:
-        "orders",
+  const stats =
+    useMemo(
+      () => [
 
-      title:
-        "Today's Orders",
+        {
+          key:
+            "orders",
 
-      value:
-        "24",
+          title:
+            "Today's Orders",
 
-      description:
-        "4 new orders today",
+          value:
+            dashboardStats
+              ?.todayOrders ??
+            0,
 
-      icon:
-        ShoppingBag,
+          description:
+            `${dashboardStats
+              ?.todayNewOrders ??
+            0
+            } new orders today`,
 
-      variant:
-        "orange",
-    },
+          icon:
+            ShoppingBag,
 
-    {
-      key:
-        "revenue",
+          variant:
+            "orange",
+        },
 
-      title:
-        "Today's Revenue",
 
-      value:
-        "₹8,420",
+        {
+          key:
+            "revenue",
 
-      description:
-        "Total earning today",
+          title:
+            "Today's Revenue",
 
-      icon:
-        IndianRupee,
+          value:
+            dashboardStats
+              ?.revenueAvailable
+              ? `₹${Number(
+                dashboardStats
+                  .revenue ||
+                0
+              ).toLocaleString(
+                "en-IN"
+              )}`
+              : "—",
 
-      variant:
-        "success",
-    },
+          description:
+            dashboardStats
+              ?.revenueAvailable
+              ? "Total earning today"
+              : "Payment module coming soon",
 
-    {
-      key:
-        "activeOrders",
+          icon:
+            IndianRupee,
 
-      title:
-        "Active Orders",
+          variant:
+            "success",
+        },
 
-      value:
-        "7",
 
-      description:
-        "Currently processing",
+        {
+          key:
+            "activeOrders",
 
-      icon:
-        Clock3,
+          title:
+            "Active Orders",
 
-      variant:
-        "warning",
-    },
+          value:
+            dashboardStats
+              ?.activeOrders ??
+            0,
 
-    {
-      key:
-        "foods",
+          description:
+            "Currently processing",
 
-      title:
-        "Active Foods",
+          icon:
+            Clock3,
 
-      value:
-        "38",
+          variant:
+            "warning",
+        },
 
-      description:
-        "42 total menu items",
 
-      icon:
-        Utensils,
+        {
+          key:
+            "foods",
 
-      variant:
-        "purple",
-    },
-  ];
+          title:
+            "Active Foods",
+
+          value:
+            dashboardStats
+              ?.activeFoods ??
+            0,
+
+          description:
+            `${dashboardStats
+              ?.totalFoods ??
+            0
+            } total menu items`,
+
+          icon:
+            Utensils,
+
+          variant:
+            "purple",
+        },
+
+      ],
+      [
+        dashboardStats,
+      ]
+    );
 
 
   // =========================
   // ORDER PIPELINE
   // =========================
 
-  const pipeline = [
-    {
-      label:
-        "Placed",
+  const pipeline =
+    useMemo(
+      () => [
 
-      status:
-        "PLACED",
+        {
+          label:
+            "Placed",
 
-      count:
-        3,
+          status:
+            "PLACED",
 
-      icon:
-        PackageOpen,
-    },
+          count:
+            dashboardPipeline
+              ?.placed ??
+            0,
 
-    {
-      label:
-        "Confirmed",
+          icon:
+            PackageOpen,
+        },
 
-      status:
-        "CONFIRMED",
 
-      count:
-        2,
+        {
+          label:
+            "Confirmed",
 
-      icon:
-        CheckCircle2,
-    },
+          status:
+            "CONFIRMED",
 
-    {
-      label:
-        "Preparing",
+          count:
+            dashboardPipeline
+              ?.confirmed ??
+            0,
 
-      status:
-        "PREPARING",
+          icon:
+            CheckCircle2,
+        },
 
-      count:
-        4,
 
-      icon:
-        ChefHat,
-    },
+        {
+          label:
+            "Preparing",
 
-    {
-      label:
-        "Ready",
+          status:
+            "PREPARING",
 
-      status:
-        "READY_FOR_PICKUP",
+          count:
+            dashboardPipeline
+              ?.preparing ??
+            0,
 
-      count:
-        2,
+          icon:
+            ChefHat,
+        },
 
-      icon:
-        PackageCheck,
-    },
-  ];
+
+        {
+          label:
+            "Ready",
+
+          status:
+            "READY_FOR_PICKUP",
+
+          count:
+            dashboardPipeline
+              ?.readyForPickup ??
+            0,
+
+          icon:
+            PackageCheck,
+        },
+
+      ],
+      [
+        dashboardPipeline,
+      ]
+    );
 
 
   // =========================
   // RECENT ORDERS
   // =========================
 
-  const recentOrders = [
-    {
-      orderNumber:
-        "ORD-31FA3A64",
+  const formatPrice =
+    (amount) => {
 
-      customer:
-        "Rahul",
+      return new Intl.NumberFormat(
+        "en-IN",
+        {
+          style:
+            "currency",
 
-      total:
-        "₹349",
+          currency:
+            "INR",
 
-      status:
-        "PLACED",
+          maximumFractionDigits:
+            0,
+        }
+      ).format(
+        Number(
+          amount ||
+          0
+        )
+      );
 
-      time:
-        "2 min ago",
-    },
+    };
+  const formatDate =
+    (date) => {
 
-    {
-      orderNumber:
-        "ORD-82KL9B21",
+      if (!date) {
+        return "-";
+      }
 
-      customer:
-        "Aman",
 
-      total:
-        "₹599",
+      return new Intl.DateTimeFormat(
+        "en-IN",
+        {
+          day:
+            "2-digit",
 
-      status:
-        "CONFIRMED",
+          month:
+            "short",
 
-      time:
-        "7 min ago",
-    },
+          hour:
+            "2-digit",
 
-    {
-      orderNumber:
-        "ORD-52PT7C94",
+          minute:
+            "2-digit",
+        }
+      ).format(
+        new Date(
+          date
+        )
+      );
 
-      customer:
-        "Mohit",
-
-      total:
-        "₹429",
-
-      status:
-        "PREPARING",
-
-      time:
-        "12 min ago",
-    },
-
-    {
-      orderNumber:
-        "ORD-93MN6A43",
-
-      customer:
-        "Rohit",
-
-      total:
-        "₹799",
-
-      status:
-        "READY_FOR_PICKUP",
-
-      time:
-        "18 min ago",
-    },
-  ];
+    };
 
 
   // =========================
@@ -411,7 +488,7 @@ const RestaurantDashboard = () => {
         (row) => {
           const config =
             statusConfig[
-              row.status
+            row.status
             ] || {
               label:
                 row.status,
@@ -490,7 +567,7 @@ const RestaurantDashboard = () => {
 
         description={
           typeof dashboardError ===
-          "string"
+            "string"
             ? dashboardError
             : "Something went wrong while loading dashboard."
         }
@@ -677,7 +754,11 @@ const RestaurantDashboard = () => {
                       text-slate-950
                     "
                   >
-                    Foodie Kitchen
+                    {
+                      restaurant
+                        ?.restaurantName ||
+                      "Restaurant"
+                    }
                   </h2>
 
 
@@ -739,10 +820,9 @@ const RestaurantDashboard = () => {
 
                 transition-colors
 
-                ${
-                  restaurantOpen
-                    ? "bg-emerald-500"
-                    : "bg-slate-300"
+                ${restaurantOpen
+                  ? "bg-emerald-500"
+                  : "bg-slate-300"
                 }
               `}
             >
@@ -762,10 +842,9 @@ const RestaurantDashboard = () => {
 
                   transition-all
 
-                  ${
-                    restaurantOpen
-                      ? "left-9"
-                      : "left-1"
+                  ${restaurantOpen
+                    ? "left-9"
+                    : "left-1"
                   }
                 `}
               />
@@ -821,28 +900,28 @@ const RestaurantDashboard = () => {
 
               onClick={
                 stat.key ===
-                "orders"
+                  "orders"
                   ? () =>
-                      navigate(
-                        "/restaurant/orders"
-                      )
+                    navigate(
+                      "/restaurant/orders"
+                    )
                   : stat.key ===
                     "foods"
-                  ? () =>
+                    ? () =>
                       navigate(
                         "/restaurant/foods"
                       )
-                  : undefined
+                    : undefined
               }
 
               actionLabel={
                 stat.key ===
-                "orders"
+                  "orders"
                   ? "View orders"
                   : stat.key ===
                     "foods"
-                  ? "Manage foods"
-                  : undefined
+                    ? "Manage foods"
+                    : undefined
               }
             />
           )
@@ -1137,7 +1216,7 @@ const RestaurantDashboard = () => {
 
 
         {!dashboardLoading &&
-        recentOrders.length ===
+          recentOrders.length ===
           0 ? (
           <EmptyState
             icon={

@@ -29,7 +29,7 @@ export const getRestaurantOrders = createAsyncThunk(
   async (params, { rejectWithValue }) => {
     try {
       const response = await getRestaurantOrdersService(params);
-
+      console.log(response);
       return response.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -47,7 +47,7 @@ export const getRestaurantOrder = createAsyncThunk(
   async (orderNumber, { rejectWithValue }) => {
     try {
       const response = await getRestaurantOrderService(orderNumber);
-
+     
       return response.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));

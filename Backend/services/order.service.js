@@ -1019,7 +1019,7 @@ export const getRestaurantOrdersService = async ({
   );
 
   const total = countResult.rows[0].total;
-
+  
   return {
     orders: result.rows,
 

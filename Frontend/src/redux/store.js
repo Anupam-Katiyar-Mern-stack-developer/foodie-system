@@ -12,6 +12,7 @@ import restaurantAuthReducer from "./slices/restaurant/restaurantAuth.slice";
 import restaurantProfileReducer from "./slices/restaurant/restaurantProfile.slice";
 import restaurantFoodReducer from "./slices/restaurant/restaurantFood.slice";
 import restaurantOrderReducer from "./slices/restaurant/restaurantOrder.slice";
+import restaurantDashboardReducer from "./slices/restaurant/restaurantDashboard.slice";
 
 const store = configureStore({
   reducer: {
@@ -36,6 +37,7 @@ const store = configureStore({
     restaurantProfile: restaurantProfileReducer,
     restaurantFood: restaurantFoodReducer,
     restaurantOrder: restaurantOrderReducer,
+    restaurantDashboard: restaurantDashboardReducer,
   },
 });
 
