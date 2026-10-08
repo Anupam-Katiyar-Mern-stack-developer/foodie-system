@@ -1,21 +1,24 @@
 import {
+    useEffect,
     useMemo,
     useState,
 } from "react";
+
+import {
+    useDispatch,
+    useSelector,
+} from "react-redux";
 
 import {
     useNavigate,
 } from "react-router-dom";
 
 import {
-    CheckCircle2,
     ChefHat,
-    Clock3,
     PackageCheck,
     PackageOpen,
     Search,
     ShoppingBag,
-    XCircle,
 } from "lucide-react";
 
 
@@ -41,277 +44,222 @@ import ErrorState
     from "../../../components/common/ErrorState/ErrorState";
 
 
+import {
+    getRestaurantOrders,
+} from "../../../redux/thunks/restaurant/restaurantOrder.thunk";
+
+
+// =========================================
+// STATUS CONFIG
+// =========================================
+
+const statusConfig = {
+
+    PLACED: {
+        label: "Placed",
+        variant: "warning",
+    },
+
+    CONFIRMED: {
+        label: "Confirmed",
+        variant: "info",
+    },
+
+    PREPARING: {
+        label: "Preparing",
+        variant: "purple",
+    },
+
+    READY_FOR_PICKUP: {
+        label: "Ready",
+        variant: "success",
+    },
+
+    DELIVERY_ASSIGNED: {
+        label: "Delivery Assigned",
+        variant: "info",
+    },
+
+    PICKED_UP: {
+        label: "Picked Up",
+        variant: "info",
+    },
+
+    OUT_FOR_DELIVERY: {
+        label: "Out For Delivery",
+        variant: "warning",
+    },
+
+    DELIVERED: {
+        label: "Delivered",
+        variant: "success",
+    },
+
+    REJECTED: {
+        label: "Rejected",
+        variant: "danger",
+    },
+
+    CANCELLED: {
+        label: "Cancelled",
+        variant: "danger",
+    },
+};
+
+
+// =========================================
+// STATUS FILTER OPTIONS
+// =========================================
+
+const statusOptions = [
+
+    {
+        label: "All Orders",
+        value: "ALL",
+    },
+
+    {
+        label: "Placed",
+        value: "PLACED",
+    },
+
+    {
+        label: "Confirmed",
+        value: "CONFIRMED",
+    },
+
+    {
+        label: "Preparing",
+        value: "PREPARING",
+    },
+
+    {
+        label: "Ready",
+        value: "READY_FOR_PICKUP",
+    },
+
+    {
+        label: "Delivery Assigned",
+        value: "DELIVERY_ASSIGNED",
+    },
+
+    {
+        label: "Picked Up",
+        value: "PICKED_UP",
+    },
+
+    {
+        label: "Out For Delivery",
+        value: "OUT_FOR_DELIVERY",
+    },
+
+    {
+        label: "Delivered",
+        value: "DELIVERED",
+    },
+
+    {
+        label: "Rejected",
+        value: "REJECTED",
+    },
+
+    {
+        label: "Cancelled",
+        value: "CANCELLED",
+    },
+];
+
+
+// =========================================
+// PRICE
+// =========================================
+
+const formatPrice = (
+    amount
+) => {
+
+    return new Intl.NumberFormat(
+        "en-IN",
+        {
+            style: "currency",
+            currency: "INR",
+            maximumFractionDigits: 0,
+        }
+    ).format(
+        Number(
+            amount || 0
+        )
+    );
+};
+
+
+// =========================================
+// DATE
+// =========================================
+
+const formatDate = (
+    date
+) => {
+
+    if (!date) {
+        return "-";
+    }
+
+
+    return new Intl.DateTimeFormat(
+        "en-IN",
+        {
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+        }
+    ).format(
+        new Date(date)
+    );
+};
+
+
+// =========================================
+// COMPONENT
+// =========================================
 
 const RestaurantOrders = () => {
+
+    const dispatch =
+        useDispatch();
+
     const navigate =
         useNavigate();
 
 
     // =========================================
-    // DUMMY STATE
-    // Later exactly Redux state se replace hoga
+    // REDUX
     // =========================================
 
-    const [
-        orders,
-        setOrders,
-    ] = useState([
-        {
-            orderNumber:
-                "ORD-31FA3A64",
+    const {
 
-            status:
-                "PLACED",
+        orders = [],
 
-            subtotal:
-                320,
-
-            deliveryFee:
-                29,
-
-            taxAmount:
-                16,
-
-            totalAmount:
-                365,
-
-            createdAt:
-                "2026-10-06T09:20:00.000Z",
-
-            checkoutNumber:
-                "CHK-61ABC90",
-
-            paymentMethod:
-                "COD",
-
-            paymentStatus:
-                "PENDING",
-
-            customerName:
-                "Rahul Kumar",
-
-            totalItems:
-                2,
+        pagination = {
+            page: 1,
+            limit: 10,
+            total: 0,
+            totalPages: 1,
         },
 
-        {
-            orderNumber:
-                "ORD-82KL9B21",
-
-            status:
-                "CONFIRMED",
-
-            subtotal:
-                570,
-
-            deliveryFee:
-                29,
-
-            taxAmount:
-                28,
-
-            totalAmount:
-                627,
-
-            createdAt:
-                "2026-10-06T09:05:00.000Z",
-
-            checkoutNumber:
-                "CHK-91QWE72",
-
-            paymentMethod:
-                "ONLINE",
-
-            paymentStatus:
-                "PAID",
-
-            customerName:
-                "Aman Singh",
-
-            totalItems:
-                4,
-        },
-
-        {
-            orderNumber:
-                "ORD-52PT7C94",
-
-            status:
-                "PREPARING",
-
-            subtotal:
-                400,
-
-            deliveryFee:
-                29,
-
-            taxAmount:
-                20,
-
-            totalAmount:
-                449,
-
-            createdAt:
-                "2026-10-06T08:48:00.000Z",
-
-            checkoutNumber:
-                "CHK-81PLM29",
-
-            paymentMethod:
-                "COD",
-
-            paymentStatus:
-                "PENDING",
-
-            customerName:
-                "Mohit Sharma",
-
-            totalItems:
-                3,
-        },
-
-        {
-            orderNumber:
-                "ORD-93MN6A43",
-
-            status:
-                "READY_FOR_PICKUP",
-
-            subtotal:
-                720,
-
-            deliveryFee:
-                29,
-
-            taxAmount:
-                36,
-
-            totalAmount:
-                785,
-
-            createdAt:
-                "2026-10-06T08:35:00.000Z",
-
-            checkoutNumber:
-                "CHK-27RTY66",
-
-            paymentMethod:
-                "ONLINE",
-
-            paymentStatus:
-                "PAID",
-
-            customerName:
-                "Rohit Verma",
-
-            totalItems:
-                5,
-        },
-
-        {
-            orderNumber:
-                "ORD-48YU3M22",
-
-            status:
-                "DELIVERED",
-
-            subtotal:
-                280,
-
-            deliveryFee:
-                29,
-
-            taxAmount:
-                14,
-
-            totalAmount:
-                323,
-
-            createdAt:
-                "2026-10-06T07:50:00.000Z",
-
-            checkoutNumber:
-                "CHK-55POI12",
-
-            paymentMethod:
-                "ONLINE",
-
-            paymentStatus:
-                "PAID",
-
-            customerName:
-                "Neha Gupta",
-
-            totalItems:
-                2,
-        },
-
-        {
-            orderNumber:
-                "ORD-71LK5P18",
-
-            status:
-                "REJECTED",
-
-            subtotal:
-                450,
-
-            deliveryFee:
-                29,
-
-            taxAmount:
-                22,
-
-            totalAmount:
-                501,
-
-            createdAt:
-                "2026-10-06T07:20:00.000Z",
-
-            checkoutNumber:
-                "CHK-41GHJ80",
-
-            paymentMethod:
-                "COD",
-
-            paymentStatus:
-                "PENDING",
-
-            customerName:
-                "Ankit Yadav",
-
-            totalItems:
-                3,
-        },
-    ]);
-
-
-    const [
-        pagination,
-        setPagination,
-    ] = useState({
-        page: 1,
-        limit: 10,
-        total: 6,
-        totalPages: 1,
-    });
-
-
-    const [
         fetchLoading,
-        setFetchLoading,
-    ] = useState(false);
 
-
-    const [
         error,
-        setError,
-    ] = useState(null);
+
+    } = useSelector(
+        (state) =>
+            state.restaurantOrder
+    ) || {};
 
 
     // =========================================
-    // FILTER STATE
-    // Later API params banenge
+    // LOCAL STATE
     // =========================================
 
     const [
@@ -326,210 +274,100 @@ const RestaurantOrders = () => {
     ] = useState("ALL");
 
 
-    // =========================================
-    // STATUS CONFIG
-    // =========================================
+    const [
+        page,
+        setPage,
+    ] = useState(1);
 
-    const statusConfig = {
-        PLACED: {
-            label:
-                "Placed",
 
-            variant:
-                "warning",
-        },
-
-        CONFIRMED: {
-            label:
-                "Confirmed",
-
-            variant:
-                "info",
-        },
-
-        PREPARING: {
-            label:
-                "Preparing",
-
-            variant:
-                "purple",
-        },
-
-        READY_FOR_PICKUP: {
-            label:
-                "Ready",
-
-            variant:
-                "success",
-        },
-
-        DELIVERY_ASSIGNED: {
-            label:
-                "Delivery Assigned",
-
-            variant:
-                "info",
-        },
-
-        PICKED_UP: {
-            label:
-                "Picked Up",
-
-            variant:
-                "info",
-        },
-
-        OUT_FOR_DELIVERY: {
-            label:
-                "Out For Delivery",
-
-            variant:
-                "warning",
-        },
-
-        DELIVERED: {
-            label:
-                "Delivered",
-
-            variant:
-                "success",
-        },
-
-        REJECTED: {
-            label:
-                "Rejected",
-
-            variant:
-                "danger",
-        },
-
-        CANCELLED: {
-            label:
-                "Cancelled",
-
-            variant:
-                "danger",
-        },
-    };
+    const limit = 10;
 
 
     // =========================================
-    // FORMAT PRICE
+    // FETCH ORDERS
     // =========================================
 
-    const formatPrice = (
-        amount
-    ) => {
-        return new Intl.NumberFormat(
-            "en-IN",
-            {
-                style:
-                    "currency",
+    useEffect(() => {
 
-                currency:
-                    "INR",
+        dispatch(
+            getRestaurantOrders({
 
-                maximumFractionDigits:
-                    0,
-            }
-        ).format(
-            Number(
-                amount || 0
-            )
+                page,
+
+                limit,
+
+                status:
+                    statusFilter ===
+                        "ALL"
+                        ? undefined
+                        : statusFilter,
+            })
         );
-    };
+
+    }, [
+        dispatch,
+        page,
+        statusFilter,
+    ]);
 
 
     // =========================================
-    // FORMAT DATE
+    // SEARCH
     // =========================================
-
-    const formatDate = (
-        date
-    ) => {
-        if (!date) return "-";
-
-
-        return new Intl.DateTimeFormat(
-            "en-IN",
-            {
-                day:
-                    "2-digit",
-
-                month:
-                    "short",
-
-                hour:
-                    "2-digit",
-
-                minute:
-                    "2-digit",
-            }
-        ).format(
-            new Date(date)
-        );
-    };
-
-
-    // =========================================
-    // FILTERED ORDERS
-    // UI ONLY
     //
-    // Later:
-    // getRestaurantOrders({
-    //   page,
-    //   limit,
-    //   status,
-    // })
+    // Status backend handle kar raha hai.
+    //
+    // Search current loaded page par
+    // frontend me rahega.
     // =========================================
 
     const filteredOrders =
-        useMemo(() => {
-            const search =
-                searchTerm
-                    .trim()
-                    .toLowerCase();
+        useMemo(
+            () => {
+
+                const search =
+                    searchTerm
+                        .trim()
+                        .toLowerCase();
 
 
-            return orders.filter(
-                (order) => {
-                    const matchesStatus =
-                        statusFilter ===
-                        "ALL" ||
-                        order.status ===
-                        statusFilter;
-
-
-                    const matchesSearch =
-                        !search ||
-                        order.orderNumber
-                            ?.toLowerCase()
-                            .includes(
-                                search
-                            ) ||
-                        order.customerName
-                            ?.toLowerCase()
-                            .includes(
-                                search
-                            ) ||
-                        order.checkoutNumber
-                            ?.toLowerCase()
-                            .includes(
-                                search
-                            );
-
-
-                    return (
-                        matchesStatus &&
-                        matchesSearch
-                    );
+                if (!search) {
+                    return orders;
                 }
-            );
-        }, [
-            orders,
-            searchTerm,
-            statusFilter,
-        ]);
+
+
+                return orders.filter(
+                    (order) => {
+
+                        return (
+
+                            order.orderNumber
+                                ?.toLowerCase()
+                                .includes(
+                                    search
+                                ) ||
+
+                            order.customerName
+                                ?.toLowerCase()
+                                .includes(
+                                    search
+                                ) ||
+
+                            order.checkoutNumber
+                                ?.toLowerCase()
+                                .includes(
+                                    search
+                                )
+                        );
+                    }
+                );
+
+            },
+            [
+                orders,
+                searchTerm,
+            ]
+        );
 
 
     // =========================================
@@ -537,184 +375,105 @@ const RestaurantOrders = () => {
     // =========================================
 
     const stats =
-        useMemo(() => {
-            return [
-                {
-                    title:
-                        "Total Orders",
+        useMemo(
+            () => {
 
-                    value:
-                        orders.length,
+                return [
 
-                    description:
-                        "All restaurant orders",
+                    {
+                        title:
+                            "Total Orders",
 
-                    icon:
-                        ShoppingBag,
+                        value:
+                            pagination?.total ??
+                            orders.length,
 
-                    variant:
-                        "orange",
-                },
+                        description:
+                            statusFilter === "ALL"
+                                ? "All restaurant orders"
+                                : "Orders in selected status",
 
-                {
-                    title:
-                        "New Orders",
+                        icon:
+                            ShoppingBag,
 
-                    value:
-                        orders.filter(
-                            (order) =>
-                                order.status ===
-                                "PLACED"
-                        ).length,
-
-                    description:
-                        "Waiting for response",
-
-                    icon:
-                        PackageOpen,
-
-                    variant:
-                        "warning",
-                },
-
-                {
-                    title:
-                        "Preparing",
-
-                    value:
-                        orders.filter(
-                            (order) =>
-                                order.status ===
-                                "PREPARING"
-                        ).length,
-
-                    description:
-                        "Currently cooking",
-
-                    icon:
-                        ChefHat,
-
-                    variant:
-                        "purple",
-                },
-
-                {
-                    title:
-                        "Ready",
-
-                    value:
-                        orders.filter(
-                            (order) =>
-                                order.status ===
-                                "READY_FOR_PICKUP"
-                        ).length,
-
-                    description:
-                        "Waiting for pickup",
-
-                    icon:
-                        PackageCheck,
-
-                    variant:
-                        "success",
-                },
-            ];
-        }, [orders]);
+                        variant:
+                            "orange",
+                    },
 
 
-    // =========================================
-    // FILTER OPTIONS
-    // =========================================
+                    {
+                        title:
+                            "New Orders",
 
-    const statusOptions = [
-        {
-            label:
-                "All Orders",
+                        value:
+                            orders.filter(
+                                (order) =>
+                                    order.status ===
+                                    "PLACED"
+                            ).length,
 
-            value:
-                "ALL",
-        },
+                        description:
+                            "On current page",
 
-        {
-            label:
-                "Placed",
+                        icon:
+                            PackageOpen,
 
-            value:
-                "PLACED",
-        },
+                        variant:
+                            "warning",
+                    },
 
-        {
-            label:
-                "Confirmed",
 
-            value:
-                "CONFIRMED",
-        },
+                    {
+                        title:
+                            "Preparing",
 
-        {
-            label:
-                "Preparing",
+                        value:
+                            orders.filter(
+                                (order) =>
+                                    order.status ===
+                                    "PREPARING"
+                            ).length,
 
-            value:
-                "PREPARING",
-        },
+                        description:
+                            "On current page",
 
-        {
-            label:
-                "Ready",
+                        icon:
+                            ChefHat,
 
-            value:
-                "READY_FOR_PICKUP",
-        },
+                        variant:
+                            "purple",
+                    },
 
-        {
-            label:
-                "Delivery Assigned",
 
-            value:
-                "DELIVERY_ASSIGNED",
-        },
+                    {
+                        title:
+                            "Ready",
 
-        {
-            label:
-                "Picked Up",
+                        value:
+                            orders.filter(
+                                (order) =>
+                                    order.status ===
+                                    "READY_FOR_PICKUP"
+                            ).length,
 
-            value:
-                "PICKED_UP",
-        },
+                        description:
+                            "On current page",
 
-        {
-            label:
-                "Out For Delivery",
+                        icon:
+                            PackageCheck,
 
-            value:
-                "OUT_FOR_DELIVERY",
-        },
+                        variant:
+                            "success",
+                    },
+                ];
 
-        {
-            label:
-                "Delivered",
-
-            value:
-                "DELIVERED",
-        },
-
-        {
-            label:
-                "Rejected",
-
-            value:
-                "REJECTED",
-        },
-
-        {
-            label:
-                "Cancelled",
-
-            value:
-                "CANCELLED",
-        },
-    ];
+            },
+            [
+                orders,
+                pagination?.total,
+                statusFilter,
+            ]
+        );
 
 
     // =========================================
@@ -722,6 +481,7 @@ const RestaurantOrders = () => {
     // =========================================
 
     const columns = [
+
         {
             key:
                 "orderNumber",
@@ -731,6 +491,7 @@ const RestaurantOrders = () => {
 
             render:
                 (order) => (
+
                     <button
                         type="button"
 
@@ -741,14 +502,14 @@ const RestaurantOrders = () => {
                         }
 
                         className="
-              text-left
-              font-black
-              text-slate-900
+                            text-left
+                            font-black
+                            text-slate-900
 
-              transition
+                            transition
 
-              hover:text-orange-600
-            "
+                            hover:text-orange-600
+                        "
                     >
                         {
                             order.orderNumber
@@ -756,6 +517,7 @@ const RestaurantOrders = () => {
                     </button>
                 ),
         },
+
 
         {
             key:
@@ -766,34 +528,40 @@ const RestaurantOrders = () => {
 
             render:
                 (order) => (
+
                     <div>
+
                         <p
                             className="
-                font-bold
-                text-slate-800
-              "
+                                font-bold
+                                text-slate-800
+                            "
                         >
                             {
-                                order.customerName
+                                order.customerName ||
+                                "-"
                             }
                         </p>
 
+
                         <p
                             className="
-                mt-0.5
-
-                text-xs
-                text-slate-400
-              "
+                                mt-0.5
+                                text-xs
+                                text-slate-400
+                            "
                         >
                             {
-                                order.totalItems
+                                order.totalItems ??
+                                0
                             }{" "}
                             items
                         </p>
+
                     </div>
                 ),
         },
+
 
         {
             key:
@@ -804,18 +572,22 @@ const RestaurantOrders = () => {
 
             render:
                 (order) => (
+
                     <span
                         className="
-              font-black
-              text-slate-900
-            "
+                            font-black
+                            text-slate-900
+                        "
                     >
-                        {formatPrice(
-                            order.totalAmount
-                        )}
+                        {
+                            formatPrice(
+                                order.totalAmount
+                            )
+                        }
                     </span>
                 ),
         },
+
 
         {
             key:
@@ -826,11 +598,13 @@ const RestaurantOrders = () => {
 
             render:
                 (order) => (
+
                     <div
                         className="
-              space-y-1
-            "
+                            space-y-1
+                        "
                     >
+
                         <StatusBadge
                             variant={
                                 order.paymentStatus ===
@@ -844,24 +618,29 @@ const RestaurantOrders = () => {
                             dot
                         >
                             {
-                                order.paymentStatus
+                                order.paymentStatus ||
+                                "-"
                             }
                         </StatusBadge>
 
+
                         <p
                             className="
-                text-[11px]
-                font-semibold
-                text-slate-400
-              "
+                                text-[11px]
+                                font-semibold
+                                text-slate-400
+                            "
                         >
                             {
-                                order.paymentMethod
+                                order.paymentMethod ||
+                                "-"
                             }
                         </p>
+
                     </div>
                 ),
         },
+
 
         {
             key:
@@ -872,12 +651,14 @@ const RestaurantOrders = () => {
 
             render:
                 (order) => {
+
                     const config =
                         statusConfig[
-                        order.status
+                            order.status
                         ] || {
                             label:
-                                order.status,
+                                order.status ||
+                                "-",
 
                             variant:
                                 "neutral",
@@ -885,6 +666,7 @@ const RestaurantOrders = () => {
 
 
                     return (
+
                         <StatusBadge
                             variant={
                                 config.variant
@@ -902,6 +684,7 @@ const RestaurantOrders = () => {
                 },
         },
 
+
         {
             key:
                 "createdAt",
@@ -911,18 +694,22 @@ const RestaurantOrders = () => {
 
             render:
                 (order) => (
+
                     <span
                         className="
-              text-sm
-              text-slate-500
-            "
+                            text-sm
+                            text-slate-500
+                        "
                     >
-                        {formatDate(
-                            order.createdAt
-                        )}
+                        {
+                            formatDate(
+                                order.createdAt
+                            )
+                        }
                     </span>
                 ),
         },
+
 
         {
             key:
@@ -936,6 +723,7 @@ const RestaurantOrders = () => {
 
             render:
                 (order) => (
+
                     <Button
                         type="button"
 
@@ -955,15 +743,36 @@ const RestaurantOrders = () => {
 
 
     // =========================================
-    // CLEAR FILTERS
+    // STATUS CHANGE
+    // =========================================
+
+    const handleStatusChange =
+        (
+            event
+        ) => {
+
+            setStatusFilter(
+                event.target.value
+            );
+
+            setPage(1);
+        };
+
+
+    // =========================================
+    // CLEAR FILTER
     // =========================================
 
     const clearFilters =
         () => {
+
             setSearchTerm("");
+
             setStatusFilter(
                 "ALL"
             );
+
+            setPage(1);
         };
 
 
@@ -972,15 +781,44 @@ const RestaurantOrders = () => {
             searchTerm.trim()
         ) ||
         statusFilter !==
-        "ALL";
+            "ALL";
 
 
     // =========================================
-    // ERROR STATE
+    // RETRY
     // =========================================
 
-    if (error) {
+    const handleRetry =
+        () => {
+
+            dispatch(
+                getRestaurantOrders({
+
+                    page,
+
+                    limit,
+
+                    status:
+                        statusFilter ===
+                            "ALL"
+                            ? undefined
+                            : statusFilter,
+                })
+            );
+        };
+
+
+    // =========================================
+    // ERROR
+    // =========================================
+
+    if (
+        error &&
+        orders.length === 0
+    ) {
+
         return (
+
             <ErrorState
                 title="Unable to load orders"
 
@@ -990,135 +828,154 @@ const RestaurantOrders = () => {
                         ? error
                         : "Something went wrong while loading restaurant orders."
                 }
+
+                onRetry={
+                    handleRetry
+                }
             />
         );
     }
 
 
+    // =========================================
+    // RENDER
+    // =========================================
+
     return (
+
         <div
             className="
-        space-y-7
-      "
+                space-y-7
+            "
         >
+
             {/* =========================
-          PAGE HEADER
-      ========================== */}
+                PAGE HEADER
+            ========================== */}
 
             <PageHeader
                 title="Orders"
 
                 description="
-          View and manage all orders
-          received by your restaurant.
-        "
+                    View and manage all orders
+                    received by your restaurant.
+                "
             />
 
 
             {/* =========================
-          STATS
-      ========================== */}
+                STATS
+            ========================== */}
 
             <section
                 className="
-          grid
-          gap-4
+                    grid
+                    gap-4
 
-          sm:grid-cols-2
-          xl:grid-cols-4
-        "
+                    sm:grid-cols-2
+                    xl:grid-cols-4
+                "
             >
-                {stats.map(
-                    (stat) => (
-                        <StatCard
-                            key={
-                                stat.title
-                            }
 
-                            title={
-                                stat.title
-                            }
+                {
+                    stats.map(
+                        (stat) => (
 
-                            value={
-                                stat.value
-                            }
+                            <StatCard
+                                key={
+                                    stat.title
+                                }
 
-                            description={
-                                stat.description
-                            }
+                                title={
+                                    stat.title
+                                }
 
-                            icon={
-                                stat.icon
-                            }
+                                value={
+                                    stat.value
+                                }
 
-                            variant={
-                                stat.variant
-                            }
+                                description={
+                                    stat.description
+                                }
 
-                            loading={
-                                fetchLoading
-                            }
-                        />
+                                icon={
+                                    stat.icon
+                                }
+
+                                variant={
+                                    stat.variant
+                                }
+
+                                loading={
+                                    fetchLoading
+                                }
+                            />
+                        )
                     )
-                )}
+                }
+
             </section>
 
 
             {/* =========================
-          FILTERS
-      ========================== */}
+                FILTERS
+            ========================== */}
 
             <section
                 className="
-          rounded-[1.5rem]
+                    rounded-[1.5rem]
 
-          border
-          border-slate-200
+                    border
+                    border-slate-200
 
-          bg-white
+                    bg-white
 
-          p-4
+                    p-4
 
-          shadow-sm
-        "
+                    shadow-sm
+                "
             >
+
                 <div
                     className="
-            flex
-            flex-col
-            gap-3
+                        flex
+                        flex-col
+                        gap-3
 
-            xl:flex-row
-            xl:items-center
-            xl:justify-between
-          "
+                        xl:flex-row
+                        xl:items-center
+                        xl:justify-between
+                    "
                 >
+
                     {/* SEARCH */}
 
                     <div
                         className="
-              relative
-              w-full
+                            relative
+                            w-full
 
-              xl:max-w-md
-            "
+                            xl:max-w-md
+                        "
                     >
+
                         <Search
                             className="
-                pointer-events-none
+                                pointer-events-none
 
-                absolute
-                left-4
-                top-1/2
+                                absolute
+                                left-4
+                                top-1/2
 
-                h-4
-                w-4
+                                h-4
+                                w-4
 
-                -translate-y-1/2
+                                -translate-y-1/2
 
-                text-slate-400
-              "
+                                text-slate-400
+                            "
                         />
+
 
                         <input
                             type="search"
@@ -1136,163 +993,181 @@ const RestaurantOrders = () => {
                                 )
                             }
 
-                            placeholder="Search order, customer or checkout..."
+                            placeholder="
+                                Search order,
+                                customer or checkout...
+                            "
 
                             className="
-                h-11
-                w-full
+                                h-11
+                                w-full
 
-                rounded-xl
+                                rounded-xl
 
-                border
-                border-slate-200
+                                border
+                                border-slate-200
 
-                bg-slate-50
+                                bg-slate-50
 
-                pl-11
-                pr-4
+                                pl-11
+                                pr-4
 
-                text-sm
-                text-slate-900
+                                text-sm
+                                text-slate-900
 
-                outline-none
+                                outline-none
 
-                transition
+                                transition
 
-                placeholder:text-slate-400
+                                placeholder:text-slate-400
 
-                focus:border-orange-300
-                focus:bg-white
-                focus:ring-4
-                focus:ring-orange-50
-              "
+                                focus:border-orange-300
+                                focus:bg-white
+                                focus:ring-4
+                                focus:ring-orange-50
+                            "
                         />
+
                     </div>
 
 
-                    {/* STATUS FILTER */}
+                    {/* STATUS */}
 
                     <div
                         className="
-              flex
-              flex-wrap
-              items-center
-              gap-2
-            "
+                            flex
+                            flex-wrap
+                            items-center
+                            gap-2
+                        "
                     >
+
                         <select
                             value={
                                 statusFilter
                             }
 
-                            onChange={(
-                                event
-                            ) =>
-                                setStatusFilter(
-                                    event.target
-                                        .value
-                                )
+                            onChange={
+                                handleStatusChange
                             }
 
                             className="
-                h-11
+                                h-11
 
-                rounded-xl
+                                rounded-xl
 
-                border
-                border-slate-200
+                                border
+                                border-slate-200
 
-                bg-white
+                                bg-white
 
-                px-4
+                                px-4
 
-                text-sm
-                font-bold
-                text-slate-700
+                                text-sm
+                                font-bold
+                                text-slate-700
 
-                outline-none
+                                outline-none
 
-                transition
+                                transition
 
-                focus:border-orange-300
-                focus:ring-4
-                focus:ring-orange-50
-              "
+                                focus:border-orange-300
+                                focus:ring-4
+                                focus:ring-orange-50
+                            "
                         >
-                            {statusOptions.map(
-                                (option) => (
-                                    <option
-                                        key={
-                                            option.value
-                                        }
 
-                                        value={
-                                            option.value
-                                        }
-                                    >
-                                        {
-                                            option.label
-                                        }
-                                    </option>
+                            {
+                                statusOptions.map(
+                                    (
+                                        option
+                                    ) => (
+
+                                        <option
+                                            key={
+                                                option.value
+                                            }
+
+                                            value={
+                                                option.value
+                                            }
+                                        >
+                                            {
+                                                option.label
+                                            }
+                                        </option>
+                                    )
                                 )
-                            )}
+                            }
+
                         </select>
 
 
-                        {hasFilters && (
-                            <Button
-                                type="button"
+                        {
+                            hasFilters && (
 
-                                variant="ghost"
+                                <Button
+                                    type="button"
 
-                                onClick={
-                                    clearFilters
-                                }
-                            >
-                                Clear
-                            </Button>
-                        )}
+                                    variant="ghost"
+
+                                    onClick={
+                                        clearFilters
+                                    }
+                                >
+                                    Clear
+                                </Button>
+                            )
+                        }
+
                     </div>
+
                 </div>
+
             </section>
 
 
             {/* =========================
-          RESULT INFO
-      ========================== */}
+                RESULT INFO
+            ========================== */}
 
             <div
                 className="
-          flex
-          flex-wrap
-          items-center
-          justify-between
-          gap-3
-        "
+                    flex
+                    flex-wrap
+                    items-center
+                    justify-between
+                    gap-3
+                "
             >
+
                 <p
                     className="
-            text-sm
-            text-slate-500
-          "
+                        text-sm
+                        text-slate-500
+                    "
                 >
                     Showing{" "}
+
                     <span
                         className="
-              font-black
-              text-slate-900
-            "
+                            font-black
+                            text-slate-900
+                        "
                     >
                         {
                             filteredOrders.length
                         }
                     </span>{" "}
+
                     orders
                 </p>
 
 
-                {statusFilter !==
-                    "ALL" && (
+                {
+                    statusFilter !==
+                        "ALL" && (
+
                         <StatusBadge
                             variant={
                                 statusConfig[
@@ -1312,65 +1187,217 @@ const RestaurantOrders = () => {
                                 statusFilter
                             }
                         </StatusBadge>
-                    )}
+                    )
+                }
+
             </div>
 
 
             {/* =========================
-          TABLE
-      ========================== */}
+                TABLE
+            ========================== */}
 
-            {/*
-        CommonTable loading=true hone par
-        common table ka skeleton use karega.
-
-        Page me separate table/skeleton
-        component create nahi karenge.
-      */}
-
-            {!fetchLoading &&
+            {
+                !fetchLoading &&
                 filteredOrders.length ===
-                0 ? (
-                <EmptyState
-                    icon={
-                        ShoppingBag
-                    }
+                    0 ? (
 
-                    title="No orders found"
+                    <EmptyState
+                        icon={
+                            ShoppingBag
+                        }
 
-                    description={
-                        hasFilters
-                            ? "Try changing or clearing your filters."
-                            : "Customer orders will appear here."
-                    }
+                        title="No orders found"
 
-                    action={
-                        hasFilters
-                            ? {
-                                label:
-                                    "Clear Filters",
+                        description={
+                            hasFilters
+                                ? "Try changing or clearing your filters."
+                                : "Customer orders will appear here."
+                        }
 
-                                onClick:
-                                    clearFilters,
-                            }
-                            : undefined
-                    }
-                />
-            ) : (
-                <CommonTable
-                    columns={
-                        columns
-                    }
+                        action={
+                            hasFilters
+                                ? {
+                                    label:
+                                        "Clear Filters",
 
-                    data={
-                        filteredOrders
-                    }
+                                    onClick:
+                                        clearFilters,
+                                }
+                                : undefined
+                        }
+                    />
 
-                    loading={
-                        fetchLoading
-                    }
-                />
-            )}
+                ) : (
+
+                    <CommonTable
+                        columns={
+                            columns
+                        }
+
+                        data={
+                            filteredOrders
+                        }
+
+                        loading={
+                            fetchLoading
+                        }
+                    />
+                )
+            }
+
+
+            {/* =========================
+                PAGINATION
+            ========================== */}
+
+            {
+                !fetchLoading &&
+                orders.length > 0 &&
+                (
+                    pagination
+                        ?.totalPages ||
+                    1
+                ) > 1 && (
+
+                    <div
+                        className="
+                            flex
+                            flex-col
+                            gap-3
+
+                            rounded-2xl
+
+                            border
+                            border-slate-200
+
+                            bg-white
+
+                            px-4
+                            py-3
+
+                            shadow-sm
+
+                            sm:flex-row
+                            sm:items-center
+                            sm:justify-between
+                        "
+                    >
+
+                        <p
+                            className="
+                                text-sm
+                                font-semibold
+                                text-slate-500
+                            "
+                        >
+                            Page{" "}
+
+                            <span
+                                className="
+                                    font-black
+                                    text-slate-900
+                                "
+                            >
+                                {
+                                    pagination?.page ||
+                                    page
+                                }
+                            </span>
+
+                            {" "}of{" "}
+
+                            <span
+                                className="
+                                    font-black
+                                    text-slate-900
+                                "
+                            >
+                                {
+                                    pagination
+                                        ?.totalPages ||
+                                    1
+                                }
+                            </span>
+
+                            {" "}•{" "}
+
+                            {
+                                pagination?.total ||
+                                0
+                            }{" "}
+
+                            orders
+                        </p>
+
+
+                        <div
+                            className="
+                                flex
+                                items-center
+                                gap-2
+                            "
+                        >
+
+                            <Button
+                                type="button"
+
+                                variant="ghost"
+
+                                disabled={
+                                    page <= 1 ||
+                                    fetchLoading
+                                }
+
+                                onClick={() =>
+                                    setPage(
+                                        (
+                                            current
+                                        ) =>
+                                            Math.max(
+                                                current -
+                                                    1,
+                                                1
+                                            )
+                                    )
+                                }
+                            >
+                                Previous
+                            </Button>
+
+
+                            <Button
+                                type="button"
+
+                                disabled={
+                                    page >=
+                                        (
+                                            pagination
+                                                ?.totalPages ||
+                                            1
+                                        ) ||
+                                    fetchLoading
+                                }
+
+                                onClick={() =>
+                                    setPage(
+                                        (
+                                            current
+                                        ) =>
+                                            current +
+                                            1
+                                    )
+                                }
+                            >
+                                Next
+                            </Button>
+
+                        </div>
+
+                    </div>
+                )
+            }
+
         </div>
     );
 };

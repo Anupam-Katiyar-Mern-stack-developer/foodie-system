@@ -22,9 +22,11 @@ import { getRestaurantFoodBySlug } from "../controllers/food/getRestaurantFoodBy
 
 import { updateFood } from "../controllers/food/updateFood.controller.js";
 
-import {deleteFood} from "../controllers/food/deleteFood.controller.js";
+import { deleteFood } from "../controllers/food/deleteFood.controller.js";
 
-import {getRestaurants} from "../controllers/restaurant/getRestaurants.controller.js";
+import { getRestaurants } from "../controllers/restaurant/getRestaurants.controller.js";
+
+import { getRestaurantDashboardController } from "../controllers/restaurant/dashboard.controller.js";
 
 const router = express.Router();
 
@@ -58,10 +60,7 @@ router.get(
 );
 
 // get restaurant
-router.get(
-  "/",
-  getRestaurants
-);
+router.get("/", getRestaurants);
 
 // update food router
 router.patch(
@@ -70,11 +69,12 @@ router.patch(
   uploadImage("foods", "image"),
   updateFood,
 );
-
-// delete food 
-router.delete(
-  "/foods/:foodSlug",
+router.get(
+  "/dashboard",
   restaurantAuthMiddleware,
-  deleteFood
+  getRestaurantDashboardController
 );
+
+// delete food
+router.delete("/foods/:foodSlug", restaurantAuthMiddleware, deleteFood);
 export default router;

@@ -1000,7 +1000,7 @@ export const getRestaurantsService = async ({ page = 1, limit = 20 }) => {
   // =========================
   // TOTAL RESTAURANTS
   // =========================
- 
+
   const countResult = await pool.query(
     `
       SELECT
@@ -1029,5 +1029,106 @@ export const getRestaurantsService = async ({ page = 1, limit = 20 }) => {
 
       totalPages: Math.ceil(total / currentLimit),
     },
+  };
+};
+
+// get restaurants dashboard
+export const getRestaurantDashboardService = async ({ restaurantId }) => {
+  // =========================
+  // ORDER STATS
+  // =========================
+
+  const statsResult = await pool.query(
+    `
+          SELECT
+            COUNT(*)::int
+              AS "totalOrders",
+
+            (
+              COUNT(*)
+              FILTER (
+                WHERE status = 'PLACED'
+              )
+            )::int
+              AS "newOrders",
+
+            (
+              COUNT(*)
+              FILTER (
+                WHERE status = 'PREPARING'
+              )
+            )::int
+              AS "preparingOrders",
+
+            (
+              COUNT(*)
+              FILTER (
+                WHERE status = 'READY_FOR_PICKUP'
+              )
+            )::int
+              AS "readyOrders"
+
+          FROM orders
+
+          WHERE restaurant_id = $1
+        `,
+    [restaurantId],
+  );
+
+  // =========================
+  // RECENT ORDERS
+  // =========================
+
+  const recentOrdersResult = await pool.query(
+    `
+          SELECT
+            o.order_number
+              AS "orderNumber",
+
+            o.status,
+
+            o.total_amount
+              AS "totalAmount",
+
+            o.created_at
+              AS "createdAt",
+
+            og.checkout_number
+              AS "checkoutNumber",
+
+            og.delivery_name
+              AS "customerName",
+
+            (
+              SELECT
+                COUNT(*)::int
+
+              FROM order_items oi
+
+              WHERE
+                oi.order_id = o.id
+            ) AS "totalItems"
+
+          FROM orders o
+
+          INNER JOIN order_groups og
+            ON og.id =
+               o.order_group_id
+
+          WHERE
+            o.restaurant_id = $1
+
+          ORDER BY
+            o.created_at DESC
+
+          LIMIT 5
+        `,
+    [restaurantId],
+  );
+
+  return {
+    stats: statsResult.rows[0],
+
+    recentOrders: recentOrdersResult.rows,
   };
 };

@@ -49,6 +49,9 @@ import {
     getFoodSchema,
 } from "../../../validations/restaurant/food.validation";
 
+import {
+    getCategories,
+} from "../../../redux/thunks/public/category.thunk";
 
 import {
     createFood,
@@ -97,8 +100,8 @@ const buildFoodFormData = (
     formData.append(
         "discountPrice",
         values.discountPrice === "" ||
-        values.discountPrice === null ||
-        values.discountPrice === undefined
+            values.discountPrice === null ||
+            values.discountPrice === undefined
             ? ""
             : String(
                 values.discountPrice
@@ -235,10 +238,39 @@ const RestaurantFoodForm = () => {
 
     const {
         categories = [],
+
+        fetchLoading:
+        categoryLoading = false,
+
+        error:
+        categoryError = null,
+
     } = useSelector(
         (state) =>
             state.publicCategory
     ) || {};
+
+    // =========================================
+    // LOAD CATEGORIES
+    // =========================================
+
+    useEffect(() => {
+
+        if (
+            categories.length > 0
+        ) {
+            return;
+        }
+
+
+        dispatch(
+            getCategories()
+        );
+
+    }, [
+        dispatch,
+        categories.length,
+    ]);
 
 
     // =========================================
@@ -641,7 +673,7 @@ const RestaurantFoodForm = () => {
 
                 description={
                     typeof error ===
-                    "string"
+                        "string"
                         ? error
                         : "Something went wrong. Please try again."
                 }
@@ -917,7 +949,7 @@ const RestaurantFoodForm = () => {
                     key={
                         isEditMode
                             ? editingFood?.slug ||
-                              foodSlug
+                            foodSlug
                             : "new-food"
                     }
 
