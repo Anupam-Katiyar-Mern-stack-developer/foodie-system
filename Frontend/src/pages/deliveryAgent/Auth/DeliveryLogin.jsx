@@ -1,990 +1,223 @@
+import { useDispatch, useSelector } from "react-redux";
+import { Link, useNavigate } from "react-router-dom";
 import {
-    useState,
-} from "react";
+  FaArrowRight,
+  FaCheckCircle,
+  FaMotorcycle,
+  FaRoute,
+  FaShieldAlt,
+  FaWallet,
+} from "react-icons/fa";
 
-import {
-    useNavigate,
-} from "react-router-dom";
+import CommonForm from "../../../components/common/CommonForm/CommonForm";
 
-import {
-    useDispatch,
-    useSelector,
-} from "react-redux";
-
-import {
-    loginDeliveryAgent,
-} from "../../../redux/thunks/deliveryAgent/deliveryAuth.thunk";
+import { loginDeliveryAgent } from "../../../redux/thunks/deliveryAgent/deliveryAuth.thunk";
 
 import {
-    clearDeliveryAuthError,
-} from "../../../redux/slices/deliveryAgent/deliveryAuth.slice";
+  deliveryLoginFields,
+  deliveryLoginDefaultValues,
+} from "../../../forms/deliveryAgent/login.form";
 
-import {
-    Bike,
-    Eye,
-    EyeOff,
-    LockKeyhole,
-    Mail,
-} from "lucide-react";
-
-
-import Button
-    from "../../../components/common/Button/Button";
-
+import { deliveryLoginSchema } from "../../../validations/deliveryAgent/login.validation";
 
 const DeliveryLogin = () => {
-
-    const navigate =
-        useNavigate();
-
-    const dispatch =
-        useDispatch();
-
-
-    const {
-        loginLoading,
-        error:
-        authError,
-    } = useSelector(
-        (state) =>
-            state.deliveryAuth
-    );
-    // =========================================
-    // FORM
-    // =========================================
-
-    const [
-        formData,
-        setFormData,
-    ] = useState({
-        email: "",
-        password: "",
-    });
-
-
-    const [
-        showPassword,
-        setShowPassword,
-    ] = useState(false);
-
-
-
-    // =========================================
-    // CHANGE
-    // =========================================
-
-    const handleChange =
-        (event) => {
-
-            const {
-                name,
-                value,
-            } =
-                event.target;
-
-
-            if (
-                authError
-            ) {
-                dispatch(
-                    clearDeliveryAuthError()
-                );
-            }
-
-
-            setFormData(
-                (
-                    previous
-                ) => ({
-                    ...previous,
-
-                    [name]:
-                        value,
-                })
-            );
-
-
-            if (
-                errors[name]
-            ) {
-
-                setErrors(
-                    (
-                        previous
-                    ) => ({
-                        ...previous,
-
-                        [name]:
-                            "",
-                    })
-                );
-
-            }
-
-        };
-
-
-    // =========================================
-    // VALIDATION
-    // =========================================
-
-    const validateForm =
-        () => {
-
-            const newErrors = {};
-
-
-            if (
-                !formData.email.trim()
-            ) {
-
-                newErrors.email =
-                    "Email is required";
-
-            } else if (
-                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-                    formData.email
-                )
-            ) {
-
-                newErrors.email =
-                    "Enter a valid email address";
-
-            }
-
-
-            if (
-                !formData.password
-            ) {
-
-                newErrors.password =
-                    "Password is required";
-
-            }
-
-
-            setErrors(
-                newErrors
-            );
-
-
-            return (
-                Object.keys(
-                    newErrors
-                ).length === 0
-            );
-
-        };
-
-
-    // =========================================
-    // SUBMIT
-    // =========================================
-    const handleSubmit =
-        async (
-            event
-        ) => {
-
-            event.preventDefault();
-
-
-            if (
-                !validateForm()
-            ) {
-                return;
-            }
-
-
-            try {
-
-                await dispatch(
-                    loginDeliveryAgent({
-
-                        email:
-                            formData.email
-                                .trim(),
-
-                        password:
-                            formData.password,
-
-                    })
-                ).unwrap();
-
-
-                navigate(
-                    "/delivery/dashboard",
-                    {
-                        replace: true,
-                    }
-                );
-
-            } catch {
-                /*
-                 * Redux error state
-                 * already handle karega.
-                 */
-            }
-
-        };
-
-    return (
-
-        <main
-            className="
-        min-h-screen
-
-        bg-[#fffaf5]
-
-        px-4
-        py-10
-
-        sm:px-6
-        lg:px-8
-      "
-        >
-
-            <div
-                className="
-          mx-auto
-
-          grid
-          min-h-[calc(100vh-80px)]
-          max-w-6xl
-
-          overflow-hidden
-
-          rounded-[2rem]
-
-          border
-          border-slate-200
-
-          bg-white
-
-          shadow-xl
-          shadow-slate-200/50
-
-          lg:grid-cols-[1fr_0.9fr]
-        "
-            >
-
-                {/* =================================
-            LEFT
-        ================================= */}
-
-                <section
-                    className="
-            relative
-
-            hidden
-            overflow-hidden
-
-            bg-gradient-to-br
-            from-orange-500
-            via-rose-500
-            to-orange-600
-
-            p-10
-
-            text-white
-
-            lg:flex
-            lg:flex-col
-            lg:justify-between
-          "
-                >
-
-                    <div
-                        className="
-              absolute
-              -left-20
-              -top-20
-
-              h-72
-              w-72
-
-              rounded-full
-
-              bg-white/10
-
-              blur-3xl
-            "
-                    />
-
-
-                    <div
-                        className="
-              absolute
-              -bottom-24
-              -right-16
-
-              h-80
-              w-80
-
-              rounded-full
-
-              bg-amber-300/20
-
-              blur-3xl
-            "
-                    />
-
-
-                    {/* BRAND */}
-
-                    <div
-                        className="
-              relative
-              z-10
-            "
-                    >
-
-                        <div
-                            className="
-                inline-flex
-                items-center
-                gap-3
-              "
-                        >
-
-                            <div
-                                className="
-                  flex
-                  h-12
-                  w-12
-                  items-center
-                  justify-center
-
-                  rounded-2xl
-
-                  bg-white/15
-
-                  backdrop-blur
-                "
-                            >
-                                <Bike
-                                    className="
-                    h-6
-                    w-6
-                  "
-                                />
-                            </div>
-
-
-                            <div>
-
-                                <p
-                                    className="
-                    text-xl
-                    font-black
-                  "
-                                >
-                                    Foodie
-                                </p>
-
-
-                                <p
-                                    className="
-                    text-xs
-                    font-bold
-                    uppercase
-                    tracking-[0.18em]
-                    text-white/70
-                  "
-                                >
-                                    Delivery Partner
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    {/* CONTENT */}
-
-                    <div
-                        className="
-              relative
-              z-10
-            "
-                    >
-
-                        <p
-                            className="
-                text-xs
-                font-black
-                uppercase
-                tracking-[0.2em]
-                text-orange-100
-              "
-                        >
-                            Delivery Partner Portal
-                        </p>
-
-
-                        <h1
-                            className="
-                mt-4
-
-                max-w-lg
-
-                text-4xl
-                font-black
-                leading-tight
-
-                xl:text-5xl
-              "
-                        >
-                            Deliver orders.
-                            Track routes.
-                            Earn better.
-                        </h1>
-
-
-                        <p
-                            className="
-                mt-5
-
-                max-w-md
-
-                text-sm
-                leading-7
-                text-white/80
-              "
-                        >
-                            Manage your delivery
-                            assignments, track active
-                            orders and stay available
-                            for new opportunities.
-                        </p>
-
-                    </div>
-
-
-                    <p
-                        className="
-              relative
-              z-10
-
-              text-xs
-              text-white/60
-            "
-                    >
-                        Foodie Delivery Partner Panel
-                    </p>
-
-                </section>
-
-
-                {/* =================================
-            FORM SIDE
-        ================================= */}
-
-                <section
-                    className="
-            flex
-            items-center
-            justify-center
-
-            p-6
-
-            sm:p-10
-            lg:p-12
-          "
-                >
-
-                    <div
-                        className="
-              w-full
-              max-w-md
-            "
-                    >
-
-                        {/* MOBILE BRAND */}
-
-                        <div
-                            className="
-                mb-8
-
-                flex
-                items-center
-                gap-3
-
-                lg:hidden
-              "
-                        >
-
-                            <div
-                                className="
-                  flex
-                  h-11
-                  w-11
-                  items-center
-                  justify-center
-
-                  rounded-2xl
-
-                  bg-orange-500
-
-                  text-white
-                "
-                            >
-                                <Bike
-                                    className="
-                    h-5
-                    w-5
-                  "
-                                />
-                            </div>
-
-
-                            <div>
-
-                                <p
-                                    className="
-                    font-black
-                    text-slate-950
-                  "
-                                >
-                                    Foodie
-                                </p>
-
-                                <p
-                                    className="
-                    text-[10px]
-                    font-bold
-                    uppercase
-                    tracking-wider
-                    text-orange-500
-                  "
-                                >
-                                    Delivery Partner
-                                </p>
-
-                            </div>
-
-                        </div>
-
-
-                        {/* TITLE */}
-
-                        <div>
-
-                            <p
-                                className="
-                  text-sm
-                  font-black
-                  text-orange-500
-                "
-                            >
-                                Welcome Back
-                            </p>
-
-
-                            <h2
-                                className="
-                  mt-2
-
-                  text-3xl
-                  font-black
-                  tracking-tight
-                  text-slate-950
-                "
-                            >
-                                Delivery Partner Login
-                            </h2>
-
-
-                            <p
-                                className="
-                  mt-2
-
-                  text-sm
-                  leading-6
-                  text-slate-500
-                "
-                            >
-                                Sign in to manage your
-                                delivery assignments.
-                            </p>
-
-                        </div>
-
-
-                        {/* FORM */}
-
-                        <form
-                            onSubmit={
-                                handleSubmit
-                            }
-
-                            className="
-                mt-8
-                space-y-5
-              "
-                        >
-
-                            {/* EMAIL */}
-
-                            <div>
-
-                                <label
-                                    className="
-                    mb-2
-                    block
-
-                    text-sm
-                    font-bold
-                    text-slate-700
-                  "
-                                >
-                                    Email Address
-                                </label>
-
-
-                                <div
-                                    className={`
-                    flex
-                    h-12
-                    items-center
-                    gap-3
-
-                    rounded-xl
-
-                    border
-
-                    bg-white
-
-                    px-4
-
-                    transition
-
-                    focus-within:ring-4
-                    focus-within:ring-orange-100
-
-                    ${errors.email
-                                            ? "border-rose-300"
-                                            : "border-slate-200 focus-within:border-orange-300"
-                                        }
-                  `}
-                                >
-
-                                    <Mail
-                                        className="
-                      h-4
-                      w-4
-                      shrink-0
-                      text-slate-400
-                    "
-                                    />
-
-
-                                    <input
-                                        type="email"
-
-                                        name="email"
-
-                                        value={
-                                            formData.email
-                                        }
-
-                                        onChange={
-                                            handleChange
-                                        }
-
-                                        placeholder="partner@example.com"
-
-                                        autoComplete="email"
-
-                                        className="
-                      min-w-0
-                      flex-1
-
-                      bg-transparent
-
-                      text-sm
-                      text-slate-900
-
-                      outline-none
-
-                      placeholder:text-slate-400
-                    "
-                                    />
-
-                                </div>
-
-
-                                {errors.email && (
-
-                                    <p
-                                        className="
-                      mt-1.5
-
-                      text-xs
-                      font-semibold
-                      text-rose-500
-                    "
-                                    >
-                                        {
-                                            errors.email
-                                        }
-                                    </p>
-
-                                )}
-
-                            </div>
-
-
-                            {/* PASSWORD */}
-
-                            <div>
-
-                                <div
-                                    className="
-                    mb-2
-
-                    flex
-                    items-center
-                    justify-between
-                  "
-                                >
-
-                                    <label
-                                        className="
-                      text-sm
-                      font-bold
-                      text-slate-700
-                    "
-                                    >
-                                        Password
-                                    </label>
-
-
-                                    <button
-                                        type="button"
-
-                                        className="
-                      text-xs
-                      font-bold
-                      text-orange-600
-
-                      hover:text-orange-700
-                    "
-                                    >
-                                        Forgot Password?
-                                    </button>
-
-                                </div>
-
-
-                                <div
-                                    className={`
-                    flex
-                    h-12
-                    items-center
-                    gap-3
-
-                    rounded-xl
-
-                    border
-
-                    bg-white
-
-                    px-4
-
-                    transition
-
-                    focus-within:ring-4
-                    focus-within:ring-orange-100
-
-                    ${errors.password
-                                            ? "border-rose-300"
-                                            : "border-slate-200 focus-within:border-orange-300"
-                                        }
-                  `}
-                                >
-
-                                    <LockKeyhole
-                                        className="
-                      h-4
-                      w-4
-                      shrink-0
-                      text-slate-400
-                    "
-                                    />
-
-
-                                    <input
-                                        type={
-                                            showPassword
-                                                ? "text"
-                                                : "password"
-                                        }
-
-                                        name="password"
-
-                                        value={
-                                            formData.password
-                                        }
-
-                                        onChange={
-                                            handleChange
-                                        }
-
-                                        placeholder="Enter password"
-
-                                        autoComplete="current-password"
-
-                                        className="
-                      min-w-0
-                      flex-1
-
-                      bg-transparent
-
-                      text-sm
-                      text-slate-900
-
-                      outline-none
-
-                      placeholder:text-slate-400
-                    "
-                                    />
-
-
-                                    <button
-                                        type="button"
-
-                                        onClick={() =>
-                                            setShowPassword(
-                                                (previous) =>
-                                                    !previous
-                                            )
-                                        }
-
-                                        className="
-                      text-slate-400
-
-                      transition
-
-                      hover:text-slate-700
-                    "
-                                    >
-
-                                        {showPassword ? (
-
-                                            <EyeOff
-                                                className="
-                          h-4
-                          w-4
-                        "
-                                            />
-
-                                        ) : (
-
-                                            <Eye
-                                                className="
-                          h-4
-                          w-4
-                        "
-                                            />
-
-                                        )}
-
-                                    </button>
-
-                                </div>
-
-
-                                {errors.password && (
-
-                                    <p
-                                        className="
-                      mt-1.5
-
-                      text-xs
-                      font-semibold
-                      text-rose-500
-                    "
-                                    >
-                                        {
-                                            errors.password
-                                        }
-                                    </p>
-
-                                )}
-
-                            </div>
-
-
-                            {/* SUBMIT */}
-
-                            <Button
-                                type="submit"
-
-                                loading={
-                                    loginLoading
-                                }
-
-                                disabled={
-                                    loginLoading
-                                }
-
-                                className="w-full "
-                            >
-                                Login to Dashboard
-                            </Button>
-
-                        </form>
-
-
-                        {/* REGISTER */}
-
-                        <div
-                            className="   mt-6  border-t  border-slate-100  pt-6  text-center   "
-                        >
-
-                            <p
-                                className="text-sm text-slate-500
-                "
-                            >
-                                Want to become a
-                                delivery partner?{" "}
-
-                                <button
-                                    type="button"
-
-                                    onClick={() =>
-                                        navigate(
-                                            "/delivery/register"
-                                        )
-                                    }
-
-                                    className="
-                    font-black
-                    text-orange-600
-
-                    hover:text-orange-700
-                  "
-                                >
-                                    Register Now
-                                </button>
-
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const { loginLoading } = useSelector((state) => state.deliveryAuth);
+
+  // =========================
+  // LOGIN
+  // =========================
+
+  const handleLogin = async (values) => {
+    try {
+      await dispatch(
+        loginDeliveryAgent({
+          email: values.email.trim(),
+          password: values.password,
+        })
+      ).unwrap();
+
+      navigate("/delivery/dashboard", {
+        replace: true,
+      });
+    } catch {
+      // Error slice me store hoga
+      // Toast thunk me show hoga
+    }
+  };
+
+  const features = [
+    {
+      icon: FaMotorcycle,
+      text: "Receive new delivery assignments",
+    },
+    {
+      icon: FaRoute,
+      text: "Navigate to restaurant and customer",
+    },
+    {
+      icon: FaCheckCircle,
+      text: "Manage active and completed deliveries",
+    },
+    {
+      icon: FaWallet,
+      text: "Track your delivery earnings",
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#fffaf5]">
+      <div className="grid min-h-screen lg:grid-cols-2">
+        {/* =========================
+            LEFT SECTION
+        ========================== */}
+
+        <section className="relative hidden overflow-hidden bg-slate-950 lg:flex lg:items-center">
+          <div className="pointer-events-none absolute -left-32 top-12 h-96 w-96 rounded-full bg-orange-500/20 blur-[130px]" />
+
+          <div className="pointer-events-none absolute -right-28 bottom-0 h-96 w-96 rounded-full bg-rose-500/10 blur-[120px]" />
+
+          <div className="relative z-10 mx-auto w-full max-w-xl px-12 xl:px-16">
+            {/* BRAND */}
+
+            <Link to="/" className="inline-flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-500/20">
+                <FaMotorcycle className="text-xl" />
+              </div>
+
+              <span className="text-3xl font-black tracking-tight text-white">
+                Foodie<span className="text-orange-400">.</span>
+              </span>
+            </Link>
+
+            {/* CONTENT */}
+
+            <div className="mt-20">
+              <span className="inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-orange-300">
+                <FaMotorcycle />
+                Delivery Partner
+              </span>
+
+              <h1 className="mt-7 text-5xl font-black leading-[1.15] tracking-tight text-white xl:text-6xl">
+                Deliver food.
+                <span className="block text-orange-400">Earn more.</span>
+                Stay moving.
+              </h1>
+
+              <p className="mt-6 max-w-lg text-base leading-8 text-slate-400">
+                Manage delivery assignments, navigate to restaurants and
+                customers, track completed orders and monitor your earnings
+                from one place.
+              </p>
             </div>
 
-        </main>
+            {/* FEATURES */}
 
-    );
+            <div className="mt-12 space-y-5">
+              {features.map((feature) => {
+                const Icon = feature.icon;
 
+                return (
+                  <div
+                    key={feature.text}
+                    className="flex items-center gap-3 text-sm font-semibold text-slate-300"
+                  >
+                    <Icon className="shrink-0 text-orange-400" />
+                    {feature.text}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* FOOTER */}
+
+            <div className="mt-20 border-t border-white/10 pt-6">
+              <p className="flex items-center gap-3 text-xs font-medium text-slate-500">
+                <FaShieldAlt className="text-orange-400" />
+                Secure delivery partner access
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* =========================
+            RIGHT LOGIN SECTION
+        ========================== */}
+
+        <section className="flex min-h-screen items-center justify-center px-5 py-12 sm:px-8 lg:px-12">
+          <div className="w-full max-w-md">
+            {/* MOBILE BRAND */}
+
+            <Link
+              to="/"
+              className="mb-10 inline-flex items-center gap-3 lg:hidden"
+            >
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500 text-white">
+                <FaMotorcycle />
+              </span>
+
+              <span className="text-2xl font-black text-slate-950">
+                Foodie<span className="text-orange-500">.</span>
+              </span>
+            </Link>
+
+            {/* HEADER */}
+
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-orange-600">
+                <FaMotorcycle />
+                Partner Login
+              </div>
+
+              <h2 className="mt-5 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+                Welcome back!
+              </h2>
+
+              <p className="mt-3 text-sm leading-7 text-slate-500">
+                Sign in to manage your deliveries, routes and earnings.
+              </p>
+            </div>
+
+            {/* COMMON FORM */}
+
+            <div className="mt-9 rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-xl shadow-slate-950/5 sm:p-7">
+              <CommonForm
+                fields={deliveryLoginFields}
+                schema={deliveryLoginSchema}
+                defaultValues={deliveryLoginDefaultValues}
+                onSubmit={handleLogin}
+                loading={loginLoading}
+                submitText="Sign In"
+                columns={1}
+              />
+
+              {/* REGISTER */}
+
+              <div className="mt-7 border-t border-slate-100 pt-6 text-center">
+                <p className="text-sm text-slate-500">
+                  Don't have a delivery partner account?
+                </p>
+
+                <Link
+                  to="/delivery/register"
+                  className="mt-2 inline-flex items-center gap-2 text-sm font-black text-orange-600 transition hover:text-orange-700"
+                >
+                  Become a Delivery Partner
+                  <FaArrowRight className="text-xs" />
+                </Link>
+              </div>
+            </div>
+
+            <p className="mt-7 text-center text-xs leading-6 text-slate-400">
+              Sign in using your registered delivery partner account.
+            </p>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
 };
-
 
 export default DeliveryLogin;
