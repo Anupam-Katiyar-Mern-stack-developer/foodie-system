@@ -1,51 +1,60 @@
-import * as yup from "yup";
+import { z } from "zod";
 
-export const deliveryRegisterSchema = yup.object({
-  name: yup
-    .string()
-    .trim()
-    .min(2, "Name must be at least 2 characters")
-    .required("Full name is required"),
+export const deliveryRegisterSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(1, "Full name is required")
+      .min(2, "Name must be at least 2 characters"),
 
-  email: yup
-    .string()
-    .trim()
-    .email("Enter a valid email address")
-    .required("Email is required"),
+    email: z
+      .string()
+      .trim()
+      .min(1, "Email is required")
+      .email("Enter a valid email address"),
 
-  phone: yup
-    .string()
-    .trim()
-    .matches(/^[6-9]\d{9}$/, "Enter a valid 10 digit phone number")
-    .required("Phone number is required"),
+    phone: z
+      .string()
+      .trim()
+      .min(1, "Phone number is required")
+      .regex(/^[6-9]\d{9}$/, "Enter a valid 10 digit phone number"),
 
-  address: yup
-    .string()
-    .trim()
-    .min(5, "Enter a valid address")
-    .required("Address is required"),
+    address: z
+      .string()
+      .trim()
+      .min(1, "Address is required")
+      .min(5, "Enter a valid address"),
 
-  vehicleType: yup
-    .string()
-    .oneOf(["BIKE", "SCOOTER", "BICYCLE"], "Select a valid vehicle type")
-    .required("Vehicle type is required"),
-
-  vehicleNumber: yup
-    .string()
-    .trim()
-    .when("vehicleType", {
-      is: (value) => value !== "BICYCLE",
-      then: (schema) => schema.required("Vehicle number is required"),
-      otherwise: (schema) => schema.notRequired(),
+    vehicleType: z.enum(["BIKE", "SCOOTER", "BICYCLE"], {
+      message: "Select a valid vehicle type",
     }),
 
-  password: yup
-    .string()
-    .min(6, "Password must be at least 6 characters")
-    .required("Password is required"),
+    vehicleNumber: z.string().trim().optional(),
 
-  confirmPassword: yup
-    .string()
-    .oneOf([yup.ref("password")], "Passwords do not match")
-    .required("Confirm password is required"),
-});
+    password: z
+      .string()
+      .min(1, "Password is required")
+      .min(6, "Password must be at least 6 characters"),
+
+    confirmPassword: z
+      .string()
+      .min(1, "Confirm password is required"),
+  })
+  .superRefine((data, ctx) => {
+    if (data.vehicleType !== "BICYCLE" && !data.vehicleNumber) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["vehicleNumber"],
+        message: "Vehicle number is required",
+      });
+    }
+
+    if (data.password !== data.confirmPassword) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["confirmPassword"],
+        message: "Passwords do not match",
+      });
+    }
+  });
