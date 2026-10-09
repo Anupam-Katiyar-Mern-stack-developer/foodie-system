@@ -20,6 +20,7 @@ import DeliveryHistory from "../pages/deliveryAgent/History/DeliveryHistory";
 import DeliveryProfile from "../pages/deliveryAgent/Profile/DeliveryProfile";
 import DeliveryLogin from "../pages/deliveryAgent/Auth/DeliveryLogin";
 import DeliveryRegister from "../pages/deliveryAgent/Auth/DeliveryRegister";
+import DeliveryEarnings from "../pages/deliveryAgent/Earnings/DeliveryEarnings";
 // =========================================
 // TEMP SCREEN
 // Jab actual pages banenge
@@ -128,6 +129,12 @@ const DeliveryAgentRoutes = () => {
           path="profile"
           element={
             <DeliveryProfile />
+          }
+        />
+        <Route
+          path="earnings"
+          element={
+            <DeliveryEarnings />
           }
         />
 

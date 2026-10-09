@@ -50,6 +50,16 @@ const DeliverySidebar = ({
       icon:
         Banknote,
     },
+    {
+      label:
+        "Offers",
+
+      path:
+        "/delivery/offers",
+
+      icon:
+        Banknote,
+    },
 
     {
       label:
