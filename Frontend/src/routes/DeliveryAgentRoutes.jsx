@@ -16,6 +16,8 @@ import DeliveryOffers
 
 import DeliveryActive
   from "../pages/deliveryAgent/Active/DeliveryActive";
+import DeliveryHistory from "../pages/deliveryAgent/History/DeliveryHistory";
+import DeliveryProfile from "../pages/deliveryAgent/Profile/DeliveryProfile";
 // =========================================
 // TEMP SCREEN
 // Jab actual pages banenge
@@ -127,9 +129,7 @@ const DeliveryAgentRoutes = () => {
         <Route
           path="profile"
           element={
-            <Screen
-              title="Delivery Profile"
-            />
+           <DeliveryProfile />
           }
         />
 
@@ -160,9 +160,7 @@ const DeliveryAgentRoutes = () => {
         <Route
           path="history"
           element={
-            <Screen
-              title="Delivery History"
-            />
+            <DeliveryHistory />
           }
         />
 
