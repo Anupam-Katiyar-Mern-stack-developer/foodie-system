@@ -7,6 +7,19 @@ import {
 } from "react-router-dom";
 
 import {
+    useDispatch,
+    useSelector,
+} from "react-redux";
+
+import {
+    loginDeliveryAgent,
+} from "../../../redux/thunks/deliveryAgent/deliveryAuth.thunk";
+
+import {
+    clearDeliveryAuthError,
+} from "../../../redux/slices/deliveryAgent/deliveryAuth.slice";
+
+import {
     Bike,
     Eye,
     EyeOff,
@@ -24,7 +37,18 @@ const DeliveryLogin = () => {
     const navigate =
         useNavigate();
 
+    const dispatch =
+        useDispatch();
 
+
+    const {
+        loginLoading,
+        error:
+        authError,
+    } = useSelector(
+        (state) =>
+            state.deliveryAuth
+    );
     // =========================================
     // FORM
     // =========================================
@@ -39,21 +63,10 @@ const DeliveryLogin = () => {
 
 
     const [
-        errors,
-        setErrors,
-    ] = useState({});
-
-
-    const [
         showPassword,
         setShowPassword,
     ] = useState(false);
 
-
-    const [
-        loading,
-        setLoading,
-    ] = useState(false);
 
 
     // =========================================
@@ -68,6 +81,15 @@ const DeliveryLogin = () => {
                 value,
             } =
                 event.target;
+
+
+            if (
+                authError
+            ) {
+                dispatch(
+                    clearDeliveryAuthError()
+                );
+            }
 
 
             setFormData(
@@ -85,6 +107,7 @@ const DeliveryLogin = () => {
             if (
                 errors[name]
             ) {
+
                 setErrors(
                     (
                         previous
@@ -95,6 +118,7 @@ const DeliveryLogin = () => {
                             "",
                     })
                 );
+
             }
 
         };
@@ -156,7 +180,6 @@ const DeliveryLogin = () => {
     // =========================================
     // SUBMIT
     // =========================================
-
     const handleSubmit =
         async (
             event
@@ -174,51 +197,35 @@ const DeliveryLogin = () => {
 
             try {
 
-                setLoading(
-                    true
-                );
+                await dispatch(
+                    loginDeliveryAgent({
 
+                        email:
+                            formData.email
+                                .trim(),
 
-                /*
-                 * FRONTEND ONLY
-                 *
-                 * Later:
-                 *
-                 * await dispatch(
-                 *   loginDeliveryAgent({
-                 *     email:
-                 *       formData.email,
-                 *
-                 *     password:
-                 *       formData.password,
-                 *   })
-                 * ).unwrap();
-                 */
+                        password:
+                            formData.password,
 
-
-                await new Promise(
-                    (resolve) =>
-                        setTimeout(
-                            resolve,
-                            500
-                        )
-                );
+                    })
+                ).unwrap();
 
 
                 navigate(
-                    "/delivery/dashboard"
+                    "/delivery/dashboard",
+                    {
+                        replace: true,
+                    }
                 );
 
-            } finally {
-
-                setLoading(
-                    false
-                );
-
+            } catch {
+                /*
+                 * Redux error state
+                 * already handle karega.
+                 */
             }
 
         };
-
 
     return (
 
@@ -916,16 +923,14 @@ const DeliveryLogin = () => {
                                 type="submit"
 
                                 loading={
-                                    loading
+                                    loginLoading
                                 }
 
                                 disabled={
-                                    loading
+                                    loginLoading
                                 }
 
-                                className="
-                  w-full
-                "
+                                className="w-full "
                             >
                                 Login to Dashboard
                             </Button>
@@ -936,22 +941,11 @@ const DeliveryLogin = () => {
                         {/* REGISTER */}
 
                         <div
-                            className="
-                mt-6
-
-                border-t
-                border-slate-100
-
-                pt-6
-
-                text-center
-              "
+                            className="   mt-6  border-t  border-slate-100  pt-6  text-center   "
                         >
 
                             <p
-                                className="
-                  text-sm
-                  text-slate-500
+                                className="text-sm text-slate-500
                 "
                             >
                                 Want to become a

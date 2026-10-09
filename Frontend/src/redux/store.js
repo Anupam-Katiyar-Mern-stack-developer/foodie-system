@@ -14,6 +14,8 @@ import restaurantFoodReducer from "./slices/restaurant/restaurantFood.slice";
 import restaurantOrderReducer from "./slices/restaurant/restaurantOrder.slice";
 import restaurantDashboardReducer from "./slices/restaurant/restaurantDashboard.slice";
 
+import deliveryAuthReducer from "./slices/deliveryAgent/deliveryAuth.slice";
+
 const store = configureStore({
   reducer: {
     publicCategory: publicCategoryReducer,
@@ -38,6 +40,8 @@ const store = configureStore({
     restaurantFood: restaurantFoodReducer,
     restaurantOrder: restaurantOrderReducer,
     restaurantDashboard: restaurantDashboardReducer,
+
+    deliveryAuth: deliveryAuthReducer,
   },
 });
 
