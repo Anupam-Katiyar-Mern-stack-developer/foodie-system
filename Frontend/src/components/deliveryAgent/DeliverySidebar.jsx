@@ -34,7 +34,7 @@ const DeliverySidebar = ({
         "My Deliveries",
 
       path:
-        "/delivery/orders",
+        "/delivery/history",
 
       icon:
         PackageCheck,
