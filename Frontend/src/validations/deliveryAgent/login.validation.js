@@ -1,11 +1,13 @@
-import * as yup from "yup";
+import { z } from "zod";
 
-export const deliveryLoginSchema = yup.object({
-  email: yup
+export const deliveryLoginSchema = z.object({
+  email: z
     .string()
     .trim()
-    .email("Enter a valid email address")
-    .required("Email is required"),
+    .min(1, "Email is required")
+    .email("Enter a valid email address"),
 
-  password: yup.string().required("Password is required"),
+  password: z
+    .string()
+    .min(1, "Password is required"),
 });
