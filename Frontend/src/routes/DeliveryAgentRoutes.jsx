@@ -1,19 +1,50 @@
 import {
+  Navigate,
   Route,
   Routes,
 } from "react-router-dom";
 
 
+import DeliveryLayout
+  from "../layouts/DeliveryLayout";
+
+import DeliveryDashboard
+  from "../pages/deliveryAgent/Dashboard/DeliveryDashboard";
+
+import DeliveryOffers
+  from "../pages/deliveryAgent/Offers/DeliveryOffers";
+
+import DeliveryActive
+  from "../pages/deliveryAgent/Active/DeliveryActive";
+// =========================================
+// TEMP SCREEN
+// Jab actual pages banenge
+// tab remove kar denge
+// =========================================
+
 const Screen = ({
   title,
 }) => {
   return (
-    <div className="p-8">
+    <div
+      className="
+        rounded-[1.5rem]
+
+        border
+        border-slate-200
+
+        bg-white
+
+        p-6
+
+        shadow-sm
+      "
+    >
       <h1
         className="
           text-2xl
-          font-bold
-          text-gray-900
+          font-black
+          text-slate-950
         "
       >
         {title}
@@ -24,58 +55,138 @@ const Screen = ({
 
 
 const DeliveryAgentRoutes = () => {
+
   return (
+
     <Routes>
+
+      {/* =================================
+          AUTH ROUTES
+
+          Layout ke bahar
+      ================================= */}
+
       <Route
         path="login"
         element={
-          <Screen title="Delivery Agent Login" />
+          <Screen
+            title="Delivery Agent Login"
+          />
         }
       />
+
 
       <Route
         path="register"
         element={
-          <Screen title="Delivery Agent Register" />
+          <Screen
+            title="Delivery Agent Register"
+          />
         }
       />
 
+
+      {/* =================================
+          DELIVERY PANEL
+
+          Sab pages DeliveryLayout
+          ke andar render honge.
+      ================================= */}
+
       <Route
-        path="dashboard"
         element={
-          <Screen title="Delivery Dashboard" />
+          <DeliveryLayout />
+        }
+      >
+
+        {/* DEFAULT */}
+
+        <Route
+          index
+          element={
+            <Navigate
+              to="dashboard"
+              replace
+            />
+          }
+        />
+
+
+        {/* DASHBOARD */}
+
+        <Route
+          path="dashboard"
+          element={
+            <DeliveryDashboard />
+          }
+        />
+
+
+        {/* PROFILE */}
+
+        <Route
+          path="profile"
+          element={
+            <Screen
+              title="Delivery Profile"
+            />
+          }
+        />
+
+
+        {/* NEW DELIVERY OFFERS */}
+
+        <Route
+          path="offers"
+          element={
+            <DeliveryOffers />
+          }
+        />
+
+
+        {/* CURRENT / ACTIVE DELIVERY */}
+
+        <Route
+          path="active"
+          element={
+
+            <DeliveryActive />
+          }
+        />
+
+
+        {/* DELIVERY HISTORY */}
+
+        <Route
+          path="history"
+          element={
+            <Screen
+              title="Delivery History"
+            />
+          }
+        />
+
+      </Route>
+
+
+      {/* =================================
+          UNKNOWN ROUTE
+      ================================= */}
+
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to="dashboard"
+            replace
+          />
         }
       />
 
-      <Route
-        path="profile"
-        element={
-          <Screen title="Delivery Profile" />
-        }
-      />
-
-      <Route
-        path="offers"
-        element={
-          <Screen title="Delivery Offers" />
-        }
-      />
-
-      <Route
-        path="active"
-        element={
-          <Screen title="Active Delivery" />
-        }
-      />
-
-      <Route
-        path="history"
-        element={
-          <Screen title="Delivery History" />
-        }
-      />
     </Routes>
+
   );
+
 };
 
 

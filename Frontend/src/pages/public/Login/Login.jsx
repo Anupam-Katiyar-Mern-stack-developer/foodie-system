@@ -48,8 +48,7 @@ const Login = () => {
 
     const location =
         useLocation();
-
-
+        
     const {
         loginLoading,
         error,
@@ -70,12 +69,9 @@ const Login = () => {
         loginUser(values)
       ).unwrap();
 
-
       const redirectTo =
         location.state?.from ||
         "/";
-
-
       navigate(
         redirectTo,
         {
