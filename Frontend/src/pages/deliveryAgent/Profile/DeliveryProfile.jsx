@@ -1,6 +1,5 @@
-import {
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
 import {
   Bike,
@@ -13,612 +12,365 @@ import {
   UserRound,
 } from "lucide-react";
 
+import PageHeader from "../../../components/common/PageHeader/PageHeader";
+import Button from "../../../components/common/Button/Button";
+import StatusBadge from "../../../components/common/StatusBadge/StatusBadge";
 
-import PageHeader
-  from "../../../components/common/PageHeader/PageHeader";
+import {
+  getDeliveryProfile,
+  updateDeliveryProfile,
+  updateDeliveryOnlineStatus,
+} from "../../../redux/thunks/deliveryAgent/deliveryProfile.thunk";
 
-import Button
-  from "../../../components/common/Button/Button";
+// =========================================
+// DEFAULT FORM
+// =========================================
 
-import StatusBadge
-  from "../../../components/common/StatusBadge/StatusBadge";
+const emptyForm = {
+  name: "",
+  email: "",
+  phone: "",
+  address: "",
+  vehicleType: "BIKE",
+  vehicleNumber: "",
+  image: null,
+};
 
+// =========================================
+// COMMON CLASSES
+// =========================================
+
+const inputClass =
+  "h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-orange-300 focus:ring-4 focus:ring-orange-100";
+
+const sectionClass =
+  "rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6";
+
+// =========================================
+// COMPONENT
+// =========================================
 
 const DeliveryProfile = () => {
+  const dispatch = useDispatch();
 
   // =========================================
-  // DUMMY PROFILE
-  //
-  // Later Redux/API se aayega
+  // REDUX
   // =========================================
 
-  const [
+  const {
     profile,
-    setProfile,
-  ] = useState({
-
-    name:
-      "Aman Kumar",
-
-    email:
-      "aman@example.com",
-
-    phone:
-      "9876543210",
-
-    address:
-      "Kakadeo, Kanpur, Uttar Pradesh",
-
-    vehicleType:
-      "BIKE",
-
-    vehicleNumber:
-      "UP78 AB 1234",
-
-    image:
-      "",
-
-    isOnline:
-      true,
-
-    isAvailable:
-      true,
-
-  });
-
+    fetchLoading,
+    updateLoading,
+    statusLoading,
+    error,
+    updateError,
+    statusError,
+  } = useSelector((state) => state.deliveryProfile) || {};
 
   // =========================================
-  // EDIT MODE
+  // LOCAL UI STATE
   // =========================================
 
-  const [
-    editMode,
-    setEditMode,
-  ] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [formData, setFormData] = useState(emptyForm);
+  const [imagePreview, setImagePreview] = useState("");
 
+  // =========================================
+  // FETCH PROFILE
+  // =========================================
 
-  const [
-    formData,
-    setFormData,
-  ] = useState(profile);
+  useEffect(() => {
+    dispatch(getDeliveryProfile());
+  }, [dispatch]);
 
+  // =========================================
+  // SYNC PROFILE IMAGE
+  // =========================================
 
-  const [
-    imagePreview,
-    setImagePreview,
-  ] = useState(
-    profile.image
-  );
-
-
-  const [
-    saving,
-    setSaving,
-  ] = useState(false);
-
+  useEffect(() => {
+    if (!editMode && profile) {
+      setImagePreview(profile.image || "");
+    }
+  }, [profile, editMode]);
 
   // =========================================
   // INPUT CHANGE
   // =========================================
 
-  const handleChange =
-    (event) => {
+  const handleChange = (event) => {
+    const { name, value } = event.target;
 
-      const {
-        name,
-        value,
-      } =
-        event.target;
-
-
-      setFormData(
-        (
-          previous
-        ) => ({
-          ...previous,
-
-          [name]:
-            value,
-        })
-      );
-
-    };
-
+    setFormData((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+  };
 
   // =========================================
-  // IMAGE
+  // IMAGE CHANGE
   // =========================================
 
-  const handleImageChange =
-    (event) => {
+  const handleImageChange = (event) => {
+    const file = event.target.files?.[0];
 
-      const file =
-        event.target
-          .files?.[0];
+    if (!file) return;
 
+    setFormData((previous) => ({
+      ...previous,
+      image: file,
+    }));
 
-      if (!file) {
-        return;
-      }
-
-
-      setFormData(
-        (
-          previous
-        ) => ({
-          ...previous,
-
-          image:
-            file,
-        })
-      );
-
-
-      const previewUrl =
-        URL.createObjectURL(
-          file
-        );
-
-
-      setImagePreview(
-        previewUrl
-      );
-
-    };
-
+    setImagePreview(URL.createObjectURL(file));
+  };
 
   // =========================================
   // EDIT
   // =========================================
 
-  const handleEdit =
-    () => {
+  const handleEdit = () => {
+    if (!profile) return;
 
-      setFormData({
-        ...profile,
-      });
+    setFormData({
+      name: profile.name || "",
+      email: profile.email || "",
+      phone: profile.phone || "",
+      address: profile.address || "",
+      vehicleType: profile.vehicleType || "BIKE",
+      vehicleNumber: profile.vehicleNumber || "",
+      image: null,
+    });
 
-
-      setImagePreview(
-        profile.image
-      );
-
-
-      setEditMode(
-        true
-      );
-
-    };
-
+    setImagePreview(profile.image || "");
+    setEditMode(true);
+  };
 
   // =========================================
   // CANCEL
   // =========================================
 
-  const handleCancel =
-    () => {
-
-      setFormData({
-        ...profile,
-      });
-
-
-      setImagePreview(
-        profile.image
-      );
-
-
-      setEditMode(
-        false
-      );
-
-    };
-
-
-  // =========================================
-  // SAVE
-  // =========================================
-
-  const handleSubmit =
-    async (
-      event
-    ) => {
-
-      event.preventDefault();
-
-
-      try {
-
-        setSaving(
-          true
-        );
-
-
-        /*
-         * FRONTEND ONLY
-         *
-         * Later:
-         *
-         * const formDataPayload =
-         *   new FormData();
-         *
-         * dispatch(
-         *   updateDeliveryProfile(
-         *     formDataPayload
-         *   )
-         * )
-         */
-
-
-        await new Promise(
-          (resolve) =>
-            setTimeout(
-              resolve,
-              500
-            )
-        );
-
-
-        setProfile(
-          (
-            previous
-          ) => ({
-            ...previous,
-
-            ...formData,
-
-            image:
-              imagePreview ||
-              previous.image,
-          })
-        );
-
-
-        setEditMode(
-          false
-        );
-
-      } finally {
-
-        setSaving(
-          false
-        );
-
-      }
-
-    };
-
-
-  // =========================================
-  // STATUS
-  // =========================================
-
-  const handleOnlineToggle =
-    () => {
-
-      setProfile(
-        (
-          previous
-        ) => ({
-          ...previous,
-
-          isOnline:
-            !previous.isOnline,
-
-          isAvailable:
-            previous.isOnline
-              ? false
-              : previous.isAvailable,
-        })
-      );
-
+  const handleCancel = () => {
+    setFormData(emptyForm);
+    setImagePreview(profile?.image || "");
+    setEditMode(false);
   };
 
+  // =========================================
+  // SAVE PROFILE
+  // =========================================
 
-  const handleAvailabilityToggle =
-    () => {
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-      if (
-        !profile.isOnline
-      ) {
-        return;
-      }
+    const payload = new FormData();
 
+    payload.append("name", formData.name);
+    payload.append("email", formData.email);
+    payload.append("phone", formData.phone);
+    payload.append("address", formData.address);
+    payload.append("vehicleType", formData.vehicleType);
+    payload.append("vehicleNumber", formData.vehicleNumber);
 
-      setProfile(
-        (
-          previous
-        ) => ({
-          ...previous,
+    if (formData.image instanceof File) {
+      payload.append("image", formData.image);
+    }
 
-          isAvailable:
-            !previous.isAvailable,
-        })
+    try {
+      await dispatch(
+        updateDeliveryProfile(payload)
+      ).unwrap();
+
+      setEditMode(false);
+    } catch (error) {
+      console.error(
+        "UPDATE DELIVERY PROFILE ERROR:",
+        error
       );
-
+    }
   };
 
+  // =========================================
+  // ONLINE / OFFLINE
+  // =========================================
 
-  return (
+  const handleOnlineToggle = async () => {
+    if (!profile || statusLoading) return;
 
-    <div
-      className="
-        space-y-7
-      "
-    >
+    try {
+      await dispatch(
+        updateDeliveryOnlineStatus(
+          !profile.isOnline
+        )
+      ).unwrap();
+    } catch (error) {
+      console.error(
+        "DELIVERY STATUS ERROR:",
+        error
+      );
+    }
+  };
 
-      {/* =================================
-          HEADER
-      ================================= */}
+  // =========================================
+  // RETRY
+  // =========================================
 
-      <div
-        className="
-          flex
-          flex-col
-          gap-4
+  const handleRetry = () => {
+    dispatch(getDeliveryProfile());
+  };
 
-          sm:flex-row
-          sm:items-start
-          sm:justify-between
-        "
-      >
+  // =========================================
+  // LOADING
+  // =========================================
 
+  if (fetchLoading && !profile) {
+    return (
+      <div className="space-y-5">
         <PageHeader
           title="Delivery Profile"
-
           description="Manage your personal information, vehicle details and delivery availability."
         />
 
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-10 text-center shadow-sm">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-orange-100 border-t-orange-500" />
 
-        {!editMode && (
+          <p className="mt-3 text-sm font-bold text-slate-500">
+            Loading profile...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================
+  // FETCH ERROR
+  // =========================================
+
+  if (error && !profile) {
+    return (
+      <div className="space-y-5">
+        <PageHeader
+          title="Delivery Profile"
+          description="Manage your personal information, vehicle details and delivery availability."
+        />
+
+        <div className="rounded-[1.5rem] border border-red-200 bg-red-50 p-6">
+          <p className="font-bold text-red-700">
+            {error}
+          </p>
 
           <Button
             type="button"
+            className="mt-4"
+            onClick={handleRetry}
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
-            onClick={
-              handleEdit
-            }
+  // =========================================
+  // PROFILE NOT AVAILABLE
+  // =========================================
+
+  if (!profile) return null;
+
+  const displayImage =
+    imagePreview || profile.image;
+
+  // =========================================
+  // RENDER
+  // =========================================
+
+  return (
+    <div className="space-y-7">
+      {/* HEADER */}
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader
+          title="Delivery Profile"
+          description="Manage your personal information, vehicle details and delivery availability."
+        />
+
+        {!editMode && (
+          <Button
+            type="button"
+            onClick={handleEdit}
           >
             Edit Profile
           </Button>
-
         )}
-
       </div>
 
+      {/* ERRORS */}
 
-      {/* =================================
-          PROFILE HERO
-      ================================= */}
+      {(updateError || statusError) && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          {updateError || statusError}
+        </div>
+      )}
 
-      <section
-        className="
-          rounded-[1.5rem]
+      {/* PROFILE HERO */}
 
-          border
-          border-orange-100
-
-          bg-gradient-to-r
-          from-orange-50
-          via-white
-          to-rose-50
-
-          p-5
-
-          shadow-sm
-
-          sm:p-6
-        "
-      >
-
-        <div
-          className="
-            flex
-            flex-col
-            gap-5
-
-            sm:flex-row
-            sm:items-center
-            sm:justify-between
-          "
-        >
-
-          <div
-            className="
-              flex
-              items-center
-              gap-4
-            "
-          >
-
+      <section className="rounded-[1.5rem] border border-orange-100 bg-gradient-to-r from-orange-50 via-white to-rose-50 p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
             {/* AVATAR */}
 
-            <div
-              className="
-                relative
-              "
-            >
-
-              {imagePreview ||
-              profile.image ? (
-
+            <div className="relative">
+              {displayImage ? (
                 <img
-                  src={
-                    imagePreview ||
-                    profile.image
-                  }
-
-                  alt={
-                    profile.name
-                  }
-
-                  className="
-                    h-20
-                    w-20
-
-                    rounded-2xl
-
-                    object-cover
-
-                    ring-4
-                    ring-white
-
-                    shadow-sm
-                  "
+                  src={displayImage}
+                  alt={profile.name || "Delivery Partner"}
+                  className="h-20 w-20 rounded-2xl object-cover ring-4 ring-white shadow-sm"
                 />
-
               ) : (
-
-                <div
-                  className="
-                    flex
-                    h-20
-                    w-20
-                    items-center
-                    justify-center
-
-                    rounded-2xl
-
-                    bg-white
-
-                    text-2xl
-                    font-black
-                    text-orange-600
-
-                    ring-4
-                    ring-white
-
-                    shadow-sm
-                  "
-                >
-                  {
-                    profile.name
-                      ?.charAt(0)
-                      ?.toUpperCase() ||
-                    "D"
-                  }
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white text-2xl font-black text-orange-600 ring-4 ring-white shadow-sm">
+                  {profile.name
+                    ?.charAt(0)
+                    ?.toUpperCase() || "D"}
                 </div>
-
               )}
 
-
               {editMode && (
-
-                <label
-                  className="
-                    absolute
-                    -bottom-2
-                    -right-2
-
-                    flex
-                    h-9
-                    w-9
-                    cursor-pointer
-                    items-center
-                    justify-center
-
-                    rounded-xl
-
-                    bg-orange-500
-
-                    text-white
-
-                    shadow-md
-
-                    transition
-
-                    hover:bg-orange-600
-                  "
-                >
-
-                  <Camera
-                    className="
-                      h-4
-                      w-4
-                    "
-                  />
-
+                <label className="absolute -bottom-2 -right-2 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl bg-orange-500 text-white shadow-md transition hover:bg-orange-600">
+                  <Camera className="h-4 w-4" />
 
                   <input
                     type="file"
-
                     accept="image/*"
-
-                    onChange={
-                      handleImageChange
-                    }
-
+                    onChange={handleImageChange}
                     className="hidden"
                   />
-
                 </label>
-
               )}
-
             </div>
 
+            {/* BASIC INFO */}
 
-            <div
-              className="
-                min-w-0
-              "
-            >
-
-              <h2
-                className="
-                  truncate
-
-                  text-xl
-                  font-black
-                  text-slate-950
-                "
-              >
-                {
-                  profile.name
-                }
+            <div className="min-w-0">
+              <h2 className="truncate text-xl font-black text-slate-950">
+                {profile.name || "Delivery Partner"}
               </h2>
 
-
-              <p
-                className="
-                  mt-1
-
-                  text-sm
-                  text-slate-500
-                "
-              >
+              <p className="mt-1 text-sm text-slate-500">
                 Delivery Partner
               </p>
 
-
-              <div
-                className="
-                  mt-3
-
-                  flex
-                  flex-wrap
-                  gap-2
-                "
-              >
-
+              <div className="mt-3 flex flex-wrap gap-2">
                 <StatusBadge
                   variant={
                     profile.isOnline
                       ? "success"
                       : "danger"
                   }
-
                   size="sm"
-
                   dot
                 >
-                  {
-                    profile.isOnline
-                      ? "Online"
-                      : "Offline"
-                  }
+                  {profile.isOnline
+                    ? "Online"
+                    : "Offline"}
                 </StatusBadge>
-
 
                 <StatusBadge
                   variant={
@@ -626,641 +378,139 @@ const DeliveryProfile = () => {
                       ? "success"
                       : "neutral"
                   }
-
                   size="sm"
                 >
-                  {
-                    profile.isAvailable
-                      ? "Available"
-                      : "Unavailable"
-                  }
+                  {profile.isAvailable
+                    ? "Available"
+                    : "Unavailable"}
                 </StatusBadge>
-
               </div>
-
             </div>
-
           </div>
 
+          {/* STATUS */}
 
-          <div
-            className="
-              flex
-              flex-col
-              gap-3
-
-              sm:min-w-[220px]
-            "
-          >
-
-            {/* ONLINE */}
-
-            <div
-              className="
-                flex
-                items-center
-                justify-between
-
-                rounded-xl
-
-                border
-                border-slate-200
-
-                bg-white
-
-                px-4
-                py-3
-              "
-            >
-
+          <div className="sm:min-w-[230px]">
+            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
               <div>
-
-                <p
-                  className="
-                    text-sm
-                    font-black
-                    text-slate-900
-                  "
-                >
+                <p className="text-sm font-black text-slate-900">
                   Online Status
                 </p>
 
-
-                <p
-                  className="
-                    text-xs
-                    text-slate-400
-                  "
-                >
-                  Receive assignments
+                <p className="text-xs text-slate-400">
+                  Receive delivery offers
                 </p>
-
               </div>
 
-
-              <button
-                type="button"
-
+              <Toggle
+                enabled={Boolean(
+                  profile.isOnline
+                )}
+                loading={statusLoading}
                 onClick={
                   handleOnlineToggle
                 }
-
-                className={`
-                  relative
-
-                  h-7
-                  w-14
-
-                  rounded-full
-
-                  transition-colors
-
-                  ${
-                    profile.isOnline
-                      ? "bg-emerald-500"
-                      : "bg-slate-300"
-                  }
-                `}
-              >
-
-                <span
-                  className={`
-                    absolute
-                    top-1
-
-                    h-5
-                    w-5
-
-                    rounded-full
-
-                    bg-white
-
-                    shadow-sm
-
-                    transition-all
-
-                    ${
-                      profile.isOnline
-                        ? "left-8"
-                        : "left-1"
-                    }
-                  `}
-                />
-
-              </button>
-
+              />
             </div>
 
+            <div className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-black text-slate-900">
+                    Availability
+                  </p>
 
-            {/* AVAILABLE */}
+                  <p className="text-xs text-slate-400">
+                    Current assignment state
+                  </p>
+                </div>
 
-            <div
-              className="
-                flex
-                items-center
-                justify-between
-
-                rounded-xl
-
-                border
-                border-slate-200
-
-                bg-white
-
-                px-4
-                py-3
-              "
-            >
-
-              <div>
-
-                <p
-                  className="
-                    text-sm
-                    font-black
-                    text-slate-900
-                  "
+                <StatusBadge
+                  variant={
+                    profile.isAvailable
+                      ? "success"
+                      : "neutral"
+                  }
+                  size="sm"
                 >
-                  Availability
-                </p>
-
-
-                <p
-                  className="
-                    text-xs
-                    text-slate-400
-                  "
-                >
-                  Accept new delivery
-                </p>
-
+                  {profile.isAvailable
+                    ? "Available"
+                    : "Busy"}
+                </StatusBadge>
               </div>
-
-
-              <button
-                type="button"
-
-                disabled={
-                  !profile.isOnline
-                }
-
-                onClick={
-                  handleAvailabilityToggle
-                }
-
-                className={`
-                  relative
-
-                  h-7
-                  w-14
-
-                  rounded-full
-
-                  transition-colors
-
-                  disabled:cursor-not-allowed
-                  disabled:opacity-50
-
-                  ${
-                    profile.isAvailable &&
-                    profile.isOnline
-                      ? "bg-emerald-500"
-                      : "bg-slate-300"
-                  }
-                `}
-              >
-
-                <span
-                  className={`
-                    absolute
-                    top-1
-
-                    h-5
-                    w-5
-
-                    rounded-full
-
-                    bg-white
-
-                    shadow-sm
-
-                    transition-all
-
-                    ${
-                      profile.isAvailable &&
-                      profile.isOnline
-                        ? "left-8"
-                        : "left-1"
-                    }
-                  `}
-                />
-
-              </button>
-
             </div>
-
           </div>
-
         </div>
-
       </section>
 
-
-      {/* =================================
-          EDIT FORM
-      ================================= */}
+      {/* EDIT MODE */}
 
       {editMode ? (
-
         <form
-          onSubmit={
-            handleSubmit
-          }
-
-          className="
-            space-y-6
-          "
+          onSubmit={handleSubmit}
+          className="space-y-6"
         >
+          {/* PERSONAL INFO */}
 
-          {/* PERSONAL */}
+          <section className={sectionClass}>
+            <SectionHeader
+              title="Personal Information"
+              description="Update your basic delivery partner details."
+            />
 
-          <section
-            className="
-              rounded-[1.5rem]
+            <div className="grid gap-5 md:grid-cols-2">
+              <FormField
+                label="Full Name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+              />
 
-              border
-              border-slate-200
+              <FormField
+                label="Email Address"
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+              />
 
-              bg-white
+              <FormField
+                label="Phone Number"
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+              />
 
-              p-5
-
-              shadow-sm
-
-              sm:p-6
-            "
-          >
-
-            <div
-              className="
-                mb-5
-              "
-            >
-
-              <h2
-                className="
-                  text-lg
-                  font-black
-                  text-slate-950
-                "
-              >
-                Personal Information
-              </h2>
-
-
-              <p
-                className="
-                  mt-1
-
-                  text-sm
-                  text-slate-500
-                "
-              >
-                Update your basic
-                delivery partner details.
-              </p>
-
+              <FormField
+                label="Address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+              />
             </div>
-
-
-            <div
-              className="
-                grid
-                gap-5
-
-                md:grid-cols-2
-              "
-            >
-
-              {/* NAME */}
-
-              <div>
-
-                <label
-                  className="
-                    mb-2
-                    block
-
-                    text-sm
-                    font-bold
-                    text-slate-700
-                  "
-                >
-                  Full Name
-                </label>
-
-
-                <input
-                  type="text"
-
-                  name="name"
-
-                  value={
-                    formData.name
-                  }
-
-                  onChange={
-                    handleChange
-                  }
-
-                  className="
-                    h-12
-                    w-full
-
-                    rounded-xl
-
-                    border
-                    border-slate-200
-
-                    bg-white
-
-                    px-4
-
-                    text-sm
-
-                    outline-none
-
-                    transition
-
-                    focus:border-orange-300
-                    focus:ring-4
-                    focus:ring-orange-100
-                  "
-                />
-
-              </div>
-
-
-              {/* EMAIL */}
-
-              <div>
-
-                <label
-                  className="
-                    mb-2
-                    block
-
-                    text-sm
-                    font-bold
-                    text-slate-700
-                  "
-                >
-                  Email Address
-                </label>
-
-
-                <input
-                  type="email"
-
-                  name="email"
-
-                  value={
-                    formData.email
-                  }
-
-                  onChange={
-                    handleChange
-                  }
-
-                  className="
-                    h-12
-                    w-full
-
-                    rounded-xl
-
-                    border
-                    border-slate-200
-
-                    px-4
-
-                    text-sm
-
-                    outline-none
-
-                    focus:border-orange-300
-                    focus:ring-4
-                    focus:ring-orange-100
-                  "
-                />
-
-              </div>
-
-
-              {/* PHONE */}
-
-              <div>
-
-                <label
-                  className="
-                    mb-2
-                    block
-
-                    text-sm
-                    font-bold
-                    text-slate-700
-                  "
-                >
-                  Phone Number
-                </label>
-
-
-                <input
-                  type="tel"
-
-                  name="phone"
-
-                  value={
-                    formData.phone
-                  }
-
-                  onChange={
-                    handleChange
-                  }
-
-                  className="
-                    h-12
-                    w-full
-
-                    rounded-xl
-
-                    border
-                    border-slate-200
-
-                    px-4
-
-                    text-sm
-
-                    outline-none
-
-                    focus:border-orange-300
-                    focus:ring-4
-                    focus:ring-orange-100
-                  "
-                />
-
-              </div>
-
-
-              {/* ADDRESS */}
-
-              <div>
-
-                <label
-                  className="
-                    mb-2
-                    block
-
-                    text-sm
-                    font-bold
-                    text-slate-700
-                  "
-                >
-                  Address
-                </label>
-
-
-                <input
-                  type="text"
-
-                  name="address"
-
-                  value={
-                    formData.address
-                  }
-
-                  onChange={
-                    handleChange
-                  }
-
-                  className="
-                    h-12
-                    w-full
-
-                    rounded-xl
-
-                    border
-                    border-slate-200
-
-                    px-4
-
-                    text-sm
-
-                    outline-none
-
-                    focus:border-orange-300
-                    focus:ring-4
-                    focus:ring-orange-100
-                  "
-                />
-
-              </div>
-
-            </div>
-
           </section>
 
+          {/* VEHICLE INFO */}
 
-          {/* VEHICLE */}
+          <section className={sectionClass}>
+            <SectionHeader
+              title="Vehicle Information"
+              description="Update the vehicle used for deliveries."
+            />
 
-          <section
-            className="
-              rounded-[1.5rem]
-
-              border
-              border-slate-200
-
-              bg-white
-
-              p-5
-
-              shadow-sm
-
-              sm:p-6
-            "
-          >
-
-            <h2
-              className="
-                text-lg
-                font-black
-                text-slate-950
-              "
-            >
-              Vehicle Information
-            </h2>
-
-
-            <div
-              className="
-                mt-5
-
-                grid
-                gap-5
-
-                md:grid-cols-2
-              "
-            >
-
+            <div className="grid gap-5 md:grid-cols-2">
               <div>
-
-                <label
-                  className="
-                    mb-2
-                    block
-
-                    text-sm
-                    font-bold
-                    text-slate-700
-                  "
-                >
+                <label className="mb-2 block text-sm font-bold text-slate-700">
                   Vehicle Type
                 </label>
 
-
                 <select
                   name="vehicleType"
-
-                  value={
-                    formData.vehicleType
-                  }
-
-                  onChange={
-                    handleChange
-                  }
-
-                  className="
-                    h-12
-                    w-full
-
-                    rounded-xl
-
-                    border
-                    border-slate-200
-
-                    bg-white
-
-                    px-4
-
-                    text-sm
-
-                    outline-none
-
-                    focus:border-orange-300
-                    focus:ring-4
-                    focus:ring-orange-100
-                  "
+                  value={formData.vehicleType}
+                  onChange={handleChange}
+                  className={inputClass}
                 >
-
                   <option value="BIKE">
                     Bike
                   </option>
@@ -1272,556 +522,280 @@ const DeliveryProfile = () => {
                   <option value="BICYCLE">
                     Bicycle
                   </option>
-
                 </select>
-
               </div>
 
-
-              <div>
-
-                <label
-                  className="
-                    mb-2
-                    block
-
-                    text-sm
-                    font-bold
-                    text-slate-700
-                  "
-                >
-                  Vehicle Number
-                </label>
-
-
-                <input
-                  type="text"
-
-                  name="vehicleNumber"
-
-                  value={
-                    formData.vehicleNumber
-                  }
-
-                  onChange={
-                    handleChange
-                  }
-
-                  className="
-                    h-12
-                    w-full
-
-                    rounded-xl
-
-                    border
-                    border-slate-200
-
-                    px-4
-
-                    text-sm
-
-                    uppercase
-
-                    outline-none
-
-                    focus:border-orange-300
-                    focus:ring-4
-                    focus:ring-orange-100
-                  "
-                />
-
-              </div>
-
+              <FormField
+                label="Vehicle Number"
+                name="vehicleNumber"
+                value={
+                  formData.vehicleNumber
+                }
+                onChange={handleChange}
+                className="uppercase"
+              />
             </div>
-
           </section>
 
+          {/* FORM ACTIONS */}
 
-          {/* ACTIONS */}
-
-          <div
-            className="
-              flex
-              justify-end
-              gap-3
-            "
-          >
-
+          <div className="flex justify-end gap-3">
             <Button
               type="button"
-
               variant="outline"
-
-              disabled={
-                saving
-              }
-
-              onClick={
-                handleCancel
-              }
+              disabled={updateLoading}
+              onClick={handleCancel}
             >
               Cancel
             </Button>
 
-
             <Button
               type="submit"
-
-              loading={
-                saving
-              }
-
-              disabled={
-                saving
-              }
+              loading={updateLoading}
+              disabled={updateLoading}
             >
-
-              <span
-                className="
-                  inline-flex
-                  items-center
-                  gap-2
-                "
-              >
-
-                <Save
-                  className="
-                    h-4
-                    w-4
-                  "
-                />
-
+              <span className="inline-flex items-center gap-2">
+                <Save className="h-4 w-4" />
                 Save Changes
-
               </span>
-
             </Button>
-
           </div>
-
         </form>
-
       ) : (
+        /* PROFILE DETAILS */
 
-        /* =================================
-           PROFILE DETAILS
-        ================================= */
-
-        <div
-          className="
-            grid
-            gap-6
-
-            lg:grid-cols-2
-          "
-        >
-
+        <div className="grid gap-6 lg:grid-cols-2">
           {/* PERSONAL */}
 
-          <section
-            className="
-              rounded-[1.5rem]
+          <section className={sectionClass}>
+            <SectionTitle
+              icon={UserRound}
+              title="Personal Information"
+              variant="orange"
+            />
 
-              border
-              border-slate-200
+            <div className="mt-6 space-y-5">
+              <InfoRow
+                icon={UserRound}
+                label="Full Name"
+                value={profile.name}
+              />
 
-              bg-white
+              <InfoRow
+                icon={Mail}
+                label="Email"
+                value={profile.email}
+              />
 
-              p-5
+              <InfoRow
+                icon={Phone}
+                label="Phone"
+                value={profile.phone}
+              />
 
-              shadow-sm
-
-              sm:p-6
-            "
-          >
-
-            <div
-              className="
-                flex
-                items-center
-                gap-3
-              "
-            >
-
-              <div
-                className="
-                  flex
-                  h-10
-                  w-10
-                  items-center
-                  justify-center
-
-                  rounded-xl
-
-                  bg-orange-100
-
-                  text-orange-600
-                "
-              >
-                <UserRound
-                  className="
-                    h-5
-                    w-5
-                  "
-                />
-              </div>
-
-
-              <h2
-                className="
-                  text-lg
-                  font-black
-                  text-slate-950
-                "
-              >
-                Personal Information
-              </h2>
-
+              <InfoRow
+                icon={MapPin}
+                label="Address"
+                value={profile.address}
+              />
             </div>
-
-
-            <div
-              className="
-                mt-6
-
-                space-y-5
-              "
-            >
-
-              <div
-                className="
-                  flex
-                  gap-3
-                "
-              >
-
-                <Mail
-                  className="
-                    mt-0.5
-                    h-4
-                    w-4
-
-                    shrink-0
-
-                    text-slate-400
-                  "
-                />
-
-
-                <div>
-
-                  <p
-                    className="
-                      text-xs
-                      font-semibold
-                      text-slate-400
-                    "
-                  >
-                    Email
-                  </p>
-
-                  <p
-                    className="
-                      mt-1
-
-                      text-sm
-                      font-bold
-                      text-slate-900
-                    "
-                  >
-                    {
-                      profile.email
-                    }
-                  </p>
-
-                </div>
-
-              </div>
-
-
-              <div
-                className="
-                  flex
-                  gap-3
-                "
-              >
-
-                <Phone
-                  className="
-                    mt-0.5
-                    h-4
-                    w-4
-
-                    text-slate-400
-                  "
-                />
-
-
-                <div>
-
-                  <p
-                    className="
-                      text-xs
-                      text-slate-400
-                    "
-                  >
-                    Phone
-                  </p>
-
-                  <p
-                    className="
-                      mt-1
-
-                      text-sm
-                      font-bold
-                      text-slate-900
-                    "
-                  >
-                    {
-                      profile.phone
-                    }
-                  </p>
-
-                </div>
-
-              </div>
-
-
-              <div
-                className="
-                  flex
-                  gap-3
-                "
-              >
-
-                <MapPin
-                  className="
-                    mt-0.5
-                    h-4
-                    w-4
-                    shrink-0
-
-                    text-slate-400
-                  "
-                />
-
-
-                <div>
-
-                  <p
-                    className="
-                      text-xs
-                      text-slate-400
-                    "
-                  >
-                    Address
-                  </p>
-
-                  <p
-                    className="
-                      mt-1
-
-                      text-sm
-                      font-bold
-                      leading-6
-                      text-slate-900
-                    "
-                  >
-                    {
-                      profile.address
-                    }
-                  </p>
-
-                </div>
-
-              </div>
-
-            </div>
-
           </section>
-
 
           {/* VEHICLE */}
 
-          <section
-            className="
-              rounded-[1.5rem]
+          <section className={sectionClass}>
+            <SectionTitle
+              icon={Bike}
+              title="Vehicle Information"
+              variant="green"
+            />
 
-              border
-              border-slate-200
+            <div className="mt-6 space-y-5">
+              <DetailItem
+                label="Vehicle Type"
+                value={profile.vehicleType}
+              />
 
-              bg-white
+              <DetailItem
+                label="Vehicle Number"
+                value={profile.vehicleNumber}
+                large
+              />
 
-              p-5
+              <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-3">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
 
-              shadow-sm
-
-              sm:p-6
-            "
-          >
-
-            <div
-              className="
-                flex
-                items-center
-                gap-3
-              "
-            >
-
-              <div
-                className="
-                  flex
-                  h-10
-                  w-10
-                  items-center
-                  justify-center
-
-                  rounded-xl
-
-                  bg-emerald-100
-
-                  text-emerald-600
-                "
-              >
-                <Bike
-                  className="
-                    h-5
-                    w-5
-                  "
-                />
-              </div>
-
-
-              <h2
-                className="
-                  text-lg
-                  font-black
-                  text-slate-950
-                "
-              >
-                Vehicle Information
-              </h2>
-
-            </div>
-
-
-            <div
-              className="
-                mt-6
-
-                space-y-5
-              "
-            >
-
-              <div>
-
-                <p
-                  className="
-                    text-xs
-                    font-semibold
-                    text-slate-400
-                  "
-                >
-                  Vehicle Type
-                </p>
-
-
-                <p
-                  className="
-                    mt-1
-
-                    text-sm
-                    font-black
-                    text-slate-900
-                  "
-                >
-                  {
-                    profile.vehicleType
-                  }
-                </p>
-
-              </div>
-
-
-              <div>
-
-                <p
-                  className="
-                    text-xs
-                    font-semibold
-                    text-slate-400
-                  "
-                >
-                  Vehicle Number
-                </p>
-
-
-                <p
-                  className="
-                    mt-1
-
-                    text-lg
-                    font-black
-                    tracking-wide
-                    text-slate-950
-                  "
-                >
-                  {
-                    profile.vehicleNumber
-                  }
-                </p>
-
-              </div>
-
-
-              <div
-                className="
-                  flex
-                  items-center
-                  gap-2
-
-                  rounded-xl
-
-                  bg-emerald-50
-
-                  p-3
-                "
-              >
-
-                <CheckCircle2
-                  className="
-                    h-4
-                    w-4
-                    text-emerald-600
-                  "
-                />
-
-
-                <span
-                  className="
-                    text-xs
-                    font-bold
-                    text-emerald-700
-                  "
-                >
+                <span className="text-xs font-bold text-emerald-700">
                   Vehicle details added
                 </span>
-
               </div>
-
             </div>
-
           </section>
-
         </div>
-
       )}
-
     </div>
-
   );
-
 };
 
+// =========================================
+// FORM FIELD
+// =========================================
+
+const FormField = ({
+  label,
+  type = "text",
+  name,
+  value,
+  onChange,
+  className = "",
+}) => {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-bold text-slate-700">
+        {label}
+      </label>
+
+      <input
+        type={type}
+        name={name}
+        value={value || ""}
+        onChange={onChange}
+        className={`${inputClass} ${className}`}
+      />
+    </div>
+  );
+};
+
+// =========================================
+// SECTION HEADER
+// =========================================
+
+const SectionHeader = ({
+  title,
+  description,
+}) => {
+  return (
+    <div className="mb-5">
+      <h2 className="text-lg font-black text-slate-950">
+        {title}
+      </h2>
+
+      <p className="mt-1 text-sm text-slate-500">
+        {description}
+      </p>
+    </div>
+  );
+};
+
+// =========================================
+// SECTION TITLE
+// =========================================
+
+const SectionTitle = ({
+  icon: Icon,
+  title,
+  variant,
+}) => {
+  const iconStyle =
+    variant === "green"
+      ? "bg-emerald-100 text-emerald-600"
+      : "bg-orange-100 text-orange-600";
+
+  return (
+    <div className="flex items-center gap-3">
+      <div
+        className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconStyle}`}
+      >
+        <Icon className="h-5 w-5" />
+      </div>
+
+      <h2 className="text-lg font-black text-slate-950">
+        {title}
+      </h2>
+    </div>
+  );
+};
+
+// =========================================
+// INFO ROW
+// =========================================
+
+const InfoRow = ({
+  icon: Icon,
+  label,
+  value,
+}) => {
+  return (
+    <div className="flex gap-3">
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+
+      <div>
+        <p className="text-xs font-semibold text-slate-400">
+          {label}
+        </p>
+
+        <p className="mt-1 text-sm font-bold leading-6 text-slate-900">
+          {value || "-"}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// =========================================
+// DETAIL ITEM
+// =========================================
+
+const DetailItem = ({
+  label,
+  value,
+  large = false,
+}) => {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-slate-400">
+        {label}
+      </p>
+
+      <p
+        className={`mt-1 font-black text-slate-950 ${large
+            ? "text-lg tracking-wide"
+            : "text-sm"
+          }`}
+      >
+        {value || "-"}
+      </p>
+    </div>
+  );
+};
+
+// =========================================
+// TOGGLE
+// =========================================
+
+const Toggle = ({
+  enabled,
+  loading,
+  onClick,
+}) => {
+  return (
+    <button
+      type="button"
+      disabled={loading}
+      onClick={onClick}
+      className={`relative h-7 w-14 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${enabled
+          ? "bg-emerald-500"
+          : "bg-slate-300"
+        }`}
+    >
+      <span
+        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${enabled
+            ? "left-8"
+            : "left-1"
+          }`}
+      />
+    </button>
+  );
+};
 
 export default DeliveryProfile;

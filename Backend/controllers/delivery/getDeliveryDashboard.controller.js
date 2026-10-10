@@ -3,10 +3,9 @@ import { getDeliveryDashboardService } from "../../services/delivery.service.js"
 export const getDeliveryDashboard = async (req, res, next) => {
   try {
     const deliveryAgentId =
-      req.deliveryAgent?.id ||
-      req.deliveryAgentId ||
-      req.user?.id;
+      req.deliveryAgent?.deliveryAgentId || req.deliveryAgentId || req.user?.id;
 
+    console.log(deliveryAgentId);
     if (!deliveryAgentId) {
       const error = new Error("Delivery agent authentication required");
       error.statusCode = 401;
