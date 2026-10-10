@@ -36,7 +36,12 @@ router.post("/login", loginRestaurant);
 
 router.get("/profile", restaurantAuthMiddleware, getRestaurantProfile);
 
-router.patch("/profile", restaurantAuthMiddleware, updateRestaurantProfile);
+router.patch(
+  "/profile",
+  restaurantAuthMiddleware,
+  uploadImage("logo","logo"),
+  updateRestaurantProfile,
+);
 
 router.patch("/status", restaurantAuthMiddleware, updateRestaurantStatus);
 

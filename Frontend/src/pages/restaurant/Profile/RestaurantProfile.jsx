@@ -1,6 +1,15 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Mail, MapPin, ShieldCheck, Store, User } from "lucide-react";
+import {
+  Camera,
+  Mail,
+  MapPin,
+  Pencil,
+  ShieldCheck,
+  Store,
+  User,
+  X,
+} from "lucide-react";
 
 import {
   getRestaurantProfile,
@@ -9,32 +18,26 @@ import {
 
 import PageHeader from "../../../components/common/PageHeader/PageHeader";
 import CommonForm from "../../../components/common/CommonForm/CommonForm";
-import OptimizedImage from "../../../components/common/OptimizedImage/OptimizedImage";
 import StatusBadge from "../../../components/common/StatusBadge/StatusBadge";
 import Skeleton from "../../../components/common/Skeleton/Skeleton";
 import ErrorState from "../../../components/common/ErrorState/ErrorState";
+import Button from "../../../components/common/Button/Button";
 
 import { restaurantProfileFields } from "../../../forms/restaurant/profile.form";
 import { restaurantProfileSchema } from "../../../validations/restaurant/profile.validation";
-
 import getImageUrl from "../../../utils/getImageUrl";
 
 const RestaurantProfile = () => {
   const dispatch = useDispatch();
+  const logoInputRef = useRef(null);
 
-  const {
-    profile,
-    fetchLoading,
-    updateLoading,
-    error,
-  } = useSelector((state) => state.restaurantProfile) || {
-    profile: null,
-    fetchLoading: false,
-    updateLoading: false,
-    error: null,
-  };
+  const { profile, fetchLoading, updateLoading, error } = useSelector(
+    (state) => state.restaurantProfile,
+  ) || {};
 
-  const restaurant = profile;
+  const [editMode, setEditMode] = useState(false);
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState("");
 
   // =========================
   // GET PROFILE
@@ -50,25 +53,103 @@ const RestaurantProfile = () => {
 
   const formValues = useMemo(
     () => ({
-      ownerName: profile?.ownerName || "",
-      restaurantName: profile?.restaurantName || "",
-      phone: profile?.phone || "",
-      description: profile?.description || "",
-      addressLine: profile?.addressLine || "",
-      city: profile?.city || "",
-      state: profile?.state || "",
-      pincode: profile?.pincode || "",
+      ownerName: profile?.ownerName ?? "",
+      restaurantName: profile?.restaurantName ?? "",
+      phone: profile?.phone ?? "",
+      description: profile?.description ?? "",
+      addressLine: profile?.addressLine ?? "",
+      city: profile?.city ?? "",
+      state: profile?.state ?? "",
+      pincode:
+        profile?.pincode !== null && profile?.pincode !== undefined
+          ? String(profile.pincode)
+          : "",
     }),
     [profile],
   );
 
+  // Logo CommonForm me nahi dikhana
+  const editableProfileFields = useMemo(
+    () =>
+      restaurantProfileFields.filter(
+        (field) => !["logo", "image"].includes(field.name),
+      ),
+    [],
+  );
+
   // =========================
-  // UPDATE PROFILE
+  // EDIT
+  // =========================
+
+  const handleEdit = () => {
+    setLogoFile(null);
+    setLogoPreview("");
+    setEditMode(true);
+  };
+
+  const handleCancel = () => {
+    if (logoPreview) {
+      URL.revokeObjectURL(logoPreview);
+    }
+
+    setLogoFile(null);
+    setLogoPreview("");
+    setEditMode(false);
+  };
+
+  // =========================
+  // LOGO SELECT
+  // =========================
+
+  const handleLogoChange = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    if (logoPreview) {
+      URL.revokeObjectURL(logoPreview);
+    }
+
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+
+    event.target.value = "";
+  };
+
+  // =========================
+  // UPDATE
+  // SAME EXISTING API
   // =========================
 
   const handleUpdate = async (values) => {
     try {
-      await dispatch(updateRestaurantProfile(values)).unwrap();
+      const formData = new FormData();
+
+      Object.entries(values).forEach(([key, value]) => {
+        if (value === undefined || value === null) return;
+
+        const normalizedValue =
+          typeof value === "string" ? value.trim() : value;
+
+        if (normalizedValue === "") return;
+
+        formData.append(key, String(normalizedValue));
+      });
+
+      if (logoFile) {
+        formData.append("logo", logoFile);
+      }
+
+      await dispatch(updateRestaurantProfile(formData)).unwrap();
+      await dispatch(getRestaurantProfile()).unwrap();
+
+      if (logoPreview) {
+        URL.revokeObjectURL(logoPreview);
+      }
+
+      setLogoFile(null);
+      setLogoPreview("");
+      setEditMode(false);
     } catch (error) {
       console.error("PROFILE UPDATE ERROR:", error);
     }
@@ -78,20 +159,18 @@ const RestaurantProfile = () => {
   // LOADING
   // =========================
 
-  if (fetchLoading) {
+  if (fetchLoading && !profile) {
     return (
       <div className="space-y-6">
         <Skeleton width="w-72" height="h-10" rounded="rounded-xl" />
-
         <Skeleton
           width="w-full"
           height="h-[220px]"
           rounded="rounded-[1.75rem]"
         />
-
         <Skeleton
           width="w-full"
-          height="h-[650px]"
+          height="h-[350px]"
           rounded="rounded-[1.75rem]"
         />
       </div>
@@ -102,7 +181,7 @@ const RestaurantProfile = () => {
   // ERROR
   // =========================
 
-  if (error) {
+  if (error && !profile) {
     return (
       <ErrorState
         title="Unable to load profile"
@@ -115,7 +194,7 @@ const RestaurantProfile = () => {
     );
   }
 
-  if (!restaurant) {
+  if (!profile) {
     return (
       <ErrorState
         title="Restaurant profile not found"
@@ -124,22 +203,37 @@ const RestaurantProfile = () => {
     );
   }
 
-  // =========================
-  // IMAGE URL
-  // =========================
+  const restaurant = profile;
 
-  const restaurantLogo = restaurant.logo
-    ? getImageUrl(restaurant.logo)
-    : "";
+  const restaurantLogo =
+    logoPreview || (restaurant.logo ? getImageUrl(restaurant.logo) : "");
 
   return (
     <div className="space-y-7">
       {/* HEADER */}
 
-      <PageHeader
-        title="Restaurant Profile"
-        description="Manage your restaurant information, contact details and location."
-      />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageHeader
+          title="Restaurant Profile"
+          description="Manage your restaurant information, contact details and location."
+        />
+
+        {!editMode ? (
+          <Button type="button" onClick={handleEdit}>
+            <span className="inline-flex items-center gap-2">
+              <Pencil className="h-4 w-4" />
+              Edit Profile
+            </span>
+          </Button>
+        ) : (
+          <Button type="button" variant="outline" onClick={handleCancel}>
+            <span className="inline-flex items-center gap-2">
+              <X className="h-4 w-4" />
+              Cancel
+            </span>
+          </Button>
+        )}
+      </div>
 
       {/* PROFILE SUMMARY */}
 
@@ -151,17 +245,40 @@ const RestaurantProfile = () => {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
               {/* LOGO */}
 
-              <div className="h-24 w-24 overflow-hidden rounded-2xl border-4 border-white bg-slate-100 shadow-md">
-                {restaurantLogo ? (
-                  <OptimizedImage
-                    src={restaurantLogo}
-                    alt={restaurant.restaurantName || "Restaurant"}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <Store className="h-8 w-8 text-slate-400" />
-                  </div>
+              <div className="relative h-24 w-24 shrink-0">
+                <div className="h-full w-full overflow-hidden rounded-2xl border-4 border-white bg-slate-100 shadow-md">
+                  {restaurantLogo ? (
+                    <img
+                      src={restaurantLogo}
+                      alt={restaurant.restaurantName || "Restaurant"}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <Store className="h-8 w-8 text-slate-400" />
+                    </div>
+                  )}
+                </div>
+
+                {editMode && (
+                  <>
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleLogoChange}
+                      className="hidden"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => logoInputRef.current?.click()}
+                      className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-orange-500 text-white shadow-md transition hover:bg-orange-600"
+                      title="Change restaurant logo"
+                    >
+                      <Camera className="h-4 w-4" />
+                    </button>
+                  </>
                 )}
               </div>
 
@@ -175,6 +292,12 @@ const RestaurantProfile = () => {
                 <p className="mt-1 text-sm font-semibold text-slate-400">
                   /{restaurant.slug}
                 </p>
+
+                {editMode && logoFile && (
+                  <p className="mt-1 max-w-[220px] truncate text-xs font-bold text-orange-500">
+                    New logo: {logoFile.name}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -215,126 +338,153 @@ const RestaurantProfile = () => {
         </div>
       </section>
 
-      {/* ACCOUNT INFORMATION */}
+      {/* NORMAL VIEW */}
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {/* OWNER */}
+      {!editMode && (
+        <>
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <InfoCard
+              icon={User}
+              label="Owner"
+              value={restaurant.ownerName}
+              iconClass="bg-orange-50 text-orange-600"
+            />
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
-              <User className="h-5 w-5" />
+            <InfoCard
+              icon={Mail}
+              label="Login Email"
+              value={restaurant.email}
+              iconClass="bg-blue-50 text-blue-600"
+            />
+
+            <InfoCard
+              icon={MapPin}
+              label="Location"
+              value={
+                [restaurant.city, restaurant.state]
+                  .filter(Boolean)
+                  .join(", ") || "-"
+              }
+              iconClass="bg-purple-50 text-purple-600"
+            />
+
+            <InfoCard
+              icon={ShieldCheck}
+              label="Account"
+              value={restaurant.isBlocked ? "Blocked" : "Active"}
+              iconClass="bg-emerald-50 text-emerald-600"
+            />
+          </section>
+
+          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <SectionTitle
+              icon={Store}
+              title="Restaurant Information"
+              description="Your restaurant profile information."
+            />
+
+            <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+              <ProfileField
+                label="Restaurant Name"
+                value={restaurant.restaurantName}
+              />
+              <ProfileField label="Owner Name" value={restaurant.ownerName} />
+              <ProfileField label="Phone Number" value={restaurant.phone} />
+              <ProfileField label="Address" value={restaurant.addressLine} />
+              <ProfileField label="City" value={restaurant.city} />
+              <ProfileField label="State" value={restaurant.state} />
+              <ProfileField label="Pincode" value={restaurant.pincode} />
+              <ProfileField
+                label="Description"
+                value={restaurant.description}
+                className="sm:col-span-2"
+              />
             </div>
+          </section>
+        </>
+      )}
 
-            <div className="min-w-0">
-              <p className="text-xs font-bold uppercase text-slate-400">
-                Owner
-              </p>
+      {/* EDIT VIEW */}
 
-              <p className="truncate text-sm font-black text-slate-900">
-                {restaurant.ownerName}
-              </p>
-            </div>
-          </div>
-        </div>
+      {editMode && (
+        <section className="rounded-[1.75rem] border border-orange-200 bg-white p-5 shadow-sm sm:p-6">
+          <SectionTitle
+            icon={Pencil}
+            title="Edit Restaurant Profile"
+            description="Change your details or logo and save everything together."
+          />
 
-        {/* EMAIL */}
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-              <Mail className="h-5 w-5" />
-            </div>
-
-            <div className="min-w-0">
-              <p className="text-xs font-bold uppercase text-slate-400">
-                Login Email
-              </p>
-
-              <p className="truncate text-sm font-black text-slate-900">
-                {restaurant.email}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* LOCATION */}
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-              <MapPin className="h-5 w-5" />
-            </div>
-
-            <div className="min-w-0">
-              <p className="text-xs font-bold uppercase text-slate-400">
-                Location
-              </p>
-
-              <p className="truncate text-sm font-black text-slate-900">
-                {restaurant.city}, {restaurant.state}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* ACCOUNT STATUS */}
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-
-            <div>
-              <p className="text-xs font-bold uppercase text-slate-400">
-                Account
-              </p>
-
-              <p className="text-sm font-black text-slate-900">
-                {restaurant.isBlocked ? "Blocked" : "Active"}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* PROFILE FORM */}
-
-      <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
-            <Store className="h-5 w-5" />
-          </div>
-
-          <div>
-            <h2 className="text-lg font-black text-slate-950">
-              Restaurant Information
-            </h2>
-
-            <p className="mt-0.5 text-sm text-slate-500">
-              Update information shown across your restaurant profile.
-            </p>
-          </div>
-        </div>
-
-        <CommonForm
-          key={
-            profile?.updatedAt ||
-            profile?.slug ||
-            "restaurant-profile"
-          }
-          fields={restaurantProfileFields}
-          schema={restaurantProfileSchema}
-          defaultValues={formValues}
-          onSubmit={handleUpdate}
-          loading={updateLoading}
-          submitText="Update Profile"
-          columns={2}
-        />
-      </section>
+          <CommonForm
+            key={profile?.updatedAt || profile?.slug || "restaurant-profile"}
+            fields={editableProfileFields}
+            schema={restaurantProfileSchema}
+            defaultValues={formValues}
+            onSubmit={handleUpdate}
+            onCancel={handleCancel}
+            loading={updateLoading}
+            submitText="Save Changes"
+            columns={2}
+          />
+        </section>
+      )}
     </div>
   );
 };
+
+// =========================
+// INFO CARD
+// =========================
+
+const InfoCard = ({ icon: Icon, label, value, iconClass }) => (
+  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="flex items-center gap-3">
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconClass}`}
+      >
+        <Icon className="h-5 w-5" />
+      </div>
+
+      <div className="min-w-0">
+        <p className="text-xs font-bold uppercase text-slate-400">{label}</p>
+        <p className="truncate text-sm font-black text-slate-900">
+          {value || "-"}
+        </p>
+      </div>
+    </div>
+  </div>
+);
+
+// =========================
+// SECTION TITLE
+// =========================
+
+const SectionTitle = ({ icon: Icon, title, description }) => (
+  <div className="mb-6 flex items-center gap-3">
+    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+      <Icon className="h-5 w-5" />
+    </div>
+
+    <div>
+      <h2 className="text-lg font-black text-slate-950">{title}</h2>
+      <p className="mt-0.5 text-sm text-slate-500">{description}</p>
+    </div>
+  </div>
+);
+
+// =========================
+// PROFILE FIELD
+// =========================
+
+const ProfileField = ({ label, value, className = "" }) => (
+  <div className={className}>
+    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+      {label}
+    </p>
+
+    <p className="mt-1.5 text-sm font-semibold leading-6 text-slate-800">
+      {value || "-"}
+    </p>
+  </div>
+);
 
 export default RestaurantProfile;
