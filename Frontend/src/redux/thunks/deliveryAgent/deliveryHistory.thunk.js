@@ -11,9 +11,7 @@ export const getDeliveryHistory = createAsyncThunk(
     try {
       const response = await getDeliveryHistoryService(params);
 
-      showSuccessToast(
-        response?.message || "Delivery history loaded successfully",
-      );
+    
 
       return response?.data || response;
     } catch (error) {

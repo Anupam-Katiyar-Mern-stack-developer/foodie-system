@@ -91,8 +91,8 @@ const DeliveryProfile = () => {
   // =========================================
 
   useEffect(() => {
-    if (!editMode && profile) {
-      setImagePreview(profile.image || "");
+    if (!editMode) {
+      setImagePreview("");
     }
   }, [profile, editMode]);
 
@@ -136,7 +136,7 @@ const DeliveryProfile = () => {
       image: null,
     }));
 
-    setImagePreview(profile?.image || "");
+   setImagePreview("");
   };
 
   // =========================================
@@ -156,7 +156,7 @@ const DeliveryProfile = () => {
       image: null,
     });
 
-    setImagePreview(profile.image || "");
+    setImagePreview("");
     setEditMode(true);
   };
 
@@ -166,7 +166,7 @@ const DeliveryProfile = () => {
 
   const handleCancel = () => {
     setFormData(emptyForm);
-    setImagePreview(profile?.image || "");
+    setImagePreview("");
     setEditMode(false);
   };
 
@@ -857,8 +857,8 @@ const DetailItem = ({
 
       <p
         className={`mt-1 font-black text-slate-950 ${large
-            ? "text-lg tracking-wide"
-            : "text-sm"
+          ? "text-lg tracking-wide"
+          : "text-sm"
           }`}
       >
         {value || "-"}
@@ -882,14 +882,14 @@ const Toggle = ({
       disabled={loading}
       onClick={onClick}
       className={`relative h-7 w-14 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${enabled
-          ? "bg-emerald-500"
-          : "bg-slate-300"
+        ? "bg-emerald-500"
+        : "bg-slate-300"
         }`}
     >
       <span
         className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${enabled
-            ? "left-8"
-            : "left-1"
+          ? "left-8"
+          : "left-1"
           }`}
       />
     </button>
