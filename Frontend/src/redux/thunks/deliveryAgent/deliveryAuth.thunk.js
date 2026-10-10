@@ -7,13 +7,12 @@ import {
   registerDeliveryAgentService,
 } from "../../../services/deliveryAgent/deliveryAuth.service";
 
-// =========================================
-// ERROR
-// =========================================
+import { getErrorMessage } from "../../../utils/getErrorMessage";
 
-const getErrorMessage = (error, fallback) => {
-  return error?.response?.data?.message || error?.message || fallback;
-};
+import {
+  showErrorToast,
+  showSuccessToast,
+} from "../../../utils/toast";
 
 // =========================================
 // REGISTER
@@ -26,11 +25,20 @@ export const registerDeliveryAgent = createAsyncThunk(
     try {
       const response = await registerDeliveryAgentService(payload);
 
+      showSuccessToast(
+        response?.message || "Delivery partner registered successfully",
+      );
+
       return response;
     } catch (error) {
-      return rejectWithValue(
-        getErrorMessage(error, "Unable to register delivery partner"),
+      const message = getErrorMessage(
+        error,
+        "Unable to register delivery partner",
       );
+
+      showErrorToast(message);
+
+      return rejectWithValue(message);
     }
   },
 );
@@ -46,39 +54,39 @@ export const loginDeliveryAgent = createAsyncThunk(
     try {
       const response = await loginDeliveryAgentService(payload);
 
-      /*
-       * Backend response thoda
-       * nested ho tab bhi token
-       * handle ho jayega.
-       */
-
       const data = response?.data || response;
 
       const token =
-        response?.token ||
-        response?.deliveryToken ||
         data?.token ||
-        data?.deliveryToken;
+        data?.deliveryToken ||
+        response?.token ||
+        response?.deliveryToken;
 
       if (!token) {
-        return rejectWithValue("Delivery login token not received");
+        const message = "Delivery login token not received";
+
+        showErrorToast(message);
+
+        return rejectWithValue(message);
       }
 
-      localStorage.setItem(
-        STORAGE_KEYS.DELIVERY_TOKEN,
-
-        token,
-      );
+      localStorage.setItem(STORAGE_KEYS.DELIVERY_TOKEN, token);
 
       const deliveryAgent =
         data?.deliveryAgent || data?.agent || data?.user || null;
+
+      showSuccessToast(response?.message || "Login successful");
 
       return {
         token,
         deliveryAgent,
       };
     } catch (error) {
-      return rejectWithValue(getErrorMessage(error, "Unable to login"));
+      const message = getErrorMessage(error, "Unable to login");
+
+      showErrorToast(message);
+
+      return rejectWithValue(message);
     }
   },
 );

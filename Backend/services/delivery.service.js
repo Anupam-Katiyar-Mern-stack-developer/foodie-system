@@ -12,6 +12,7 @@ import {
 import { sendEmail } from "../utils/sendEmail.js";
 
 import { deliveryOtpTemplate } from "../templates/order/deliveryOtp.template.js";
+
 // register delivery agent
 export const registerDeliveryAgentService = async ({
   name,
@@ -189,6 +190,7 @@ export const registerDeliveryAgentService = async ({
 };
 // login delivery agent
 export const loginDeliveryAgentService = async ({ email, password }) => {
+
   const normalizedEmail = email.trim().toLowerCase();
   console.log("email in services =>", normalizedEmail, password);
 
@@ -240,7 +242,7 @@ export const loginDeliveryAgentService = async ({ email, password }) => {
   // Password verify
   const passwordMatched = await bcrypt.compare(password, agent.password);
 
-  if (passwordMatched) {
+  if (!passwordMatched) {
     const error = new Error("Invalid email or password");
 
     error.statusCode = 401;
@@ -859,7 +861,6 @@ export const updateDeliveryProfileService = async ({
 };
 
 // update delivery status service
-
 export const updateDeliveryStatusService = async ({
   deliveryAgentId,
   isOnline,
@@ -1016,7 +1017,6 @@ export const updateDeliveryStatusService = async ({
 };
 
 // update location service
-
 export const updateDeliveryLocationService = async ({
   deliveryAgentId,
   latitude,
