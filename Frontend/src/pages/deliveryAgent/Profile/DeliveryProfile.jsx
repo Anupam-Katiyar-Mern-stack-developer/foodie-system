@@ -24,6 +24,7 @@ import {
   updateDeliveryOnlineStatus,
 } from "../../../redux/thunks/deliveryAgent/deliveryProfile.thunk";
 
+import getImageUrl from "../../../utils/getImageUrl";
 // =========================================
 // DEFAULT FORM
 // =========================================
@@ -297,8 +298,9 @@ const DeliveryProfile = () => {
 
   if (!profile) return null;
 
-  const displayImage =
-    imagePreview || profile.image;
+  const displayImage = imagePreview
+    ? imagePreview
+    : getImageUrl(profile.image);
 
   // =========================================
   // RENDER
@@ -854,11 +856,10 @@ const DetailItem = ({
       </p>
 
       <p
-        className={`mt-1 font-black text-slate-950 ${
-          large
+        className={`mt-1 font-black text-slate-950 ${large
             ? "text-lg tracking-wide"
             : "text-sm"
-        }`}
+          }`}
       >
         {value || "-"}
       </p>
@@ -880,18 +881,16 @@ const Toggle = ({
       type="button"
       disabled={loading}
       onClick={onClick}
-      className={`relative h-7 w-14 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-        enabled
+      className={`relative h-7 w-14 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${enabled
           ? "bg-emerald-500"
           : "bg-slate-300"
-      }`}
+        }`}
     >
       <span
-        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${
-          enabled
+        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${enabled
             ? "left-8"
             : "left-1"
-        }`}
+          }`}
       />
     </button>
   );
