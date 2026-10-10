@@ -5,11 +5,13 @@ import {
   Bike,
   Camera,
   CheckCircle2,
+  ImagePlus,
   Mail,
   MapPin,
   Phone,
   Save,
   UserRound,
+  X,
 } from "lucide-react";
 
 import PageHeader from "../../../components/common/PageHeader/PageHeader";
@@ -68,7 +70,7 @@ const DeliveryProfile = () => {
   } = useSelector((state) => state.deliveryProfile) || {};
 
   // =========================================
-  // LOCAL UI STATE
+  // LOCAL STATE
   // =========================================
 
   const [editMode, setEditMode] = useState(false);
@@ -76,7 +78,7 @@ const DeliveryProfile = () => {
   const [imagePreview, setImagePreview] = useState("");
 
   // =========================================
-  // FETCH PROFILE
+  // GET PROFILE
   // =========================================
 
   useEffect(() => {
@@ -84,7 +86,7 @@ const DeliveryProfile = () => {
   }, [dispatch]);
 
   // =========================================
-  // SYNC PROFILE IMAGE
+  // SYNC IMAGE
   // =========================================
 
   useEffect(() => {
@@ -124,6 +126,19 @@ const DeliveryProfile = () => {
   };
 
   // =========================================
+  // REMOVE NEW SELECTED IMAGE
+  // =========================================
+
+  const handleRemoveSelectedImage = () => {
+    setFormData((previous) => ({
+      ...previous,
+      image: null,
+    }));
+
+    setImagePreview(profile?.image || "");
+  };
+
+  // =========================================
   // EDIT
   // =========================================
 
@@ -155,7 +170,7 @@ const DeliveryProfile = () => {
   };
 
   // =========================================
-  // SAVE PROFILE
+  // UPDATE PROFILE
   // =========================================
 
   const handleSubmit = async (event) => {
@@ -163,6 +178,7 @@ const DeliveryProfile = () => {
 
     const payload = new FormData();
 
+    // Full profile data
     payload.append("name", formData.name);
     payload.append("email", formData.email);
     payload.append("phone", formData.phone);
@@ -170,8 +186,14 @@ const DeliveryProfile = () => {
     payload.append("vehicleType", formData.vehicleType);
     payload.append("vehicleNumber", formData.vehicleNumber);
 
+    // Optional profile image
     if (formData.image instanceof File) {
       payload.append("image", formData.image);
+    }
+
+    // Debug
+    for (const [key, value] of payload.entries()) {
+      console.log(key, value);
     }
 
     try {
@@ -179,7 +201,11 @@ const DeliveryProfile = () => {
         updateDeliveryProfile(payload)
       ).unwrap();
 
+      setFormData(emptyForm);
       setEditMode(false);
+
+      // Fresh profile
+      dispatch(getDeliveryProfile());
     } catch (error) {
       console.error(
         "UPDATE DELIVERY PROFILE ERROR:",
@@ -189,7 +215,7 @@ const DeliveryProfile = () => {
   };
 
   // =========================================
-  // ONLINE / OFFLINE
+  // ONLINE STATUS
   // =========================================
 
   const handleOnlineToggle = async () => {
@@ -241,7 +267,7 @@ const DeliveryProfile = () => {
   }
 
   // =========================================
-  // FETCH ERROR
+  // ERROR
   // =========================================
 
   if (error && !profile) {
@@ -268,10 +294,6 @@ const DeliveryProfile = () => {
       </div>
     );
   }
-
-  // =========================================
-  // PROFILE NOT AVAILABLE
-  // =========================================
 
   if (!profile) return null;
 
@@ -302,7 +324,7 @@ const DeliveryProfile = () => {
         )}
       </div>
 
-      {/* ERRORS */}
+      {/* ERROR */}
 
       {(updateError || statusError) && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -315,7 +337,7 @@ const DeliveryProfile = () => {
       <section className="rounded-[1.5rem] border border-orange-100 bg-gradient-to-r from-orange-50 via-white to-rose-50 p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            {/* AVATAR */}
+            {/* IMAGE */}
 
             <div className="relative">
               {displayImage ? (
@@ -388,7 +410,7 @@ const DeliveryProfile = () => {
             </div>
           </div>
 
-          {/* STATUS */}
+          {/* ONLINE STATUS */}
 
           <div className="sm:min-w-[230px]">
             <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
@@ -407,50 +429,124 @@ const DeliveryProfile = () => {
                   profile.isOnline
                 )}
                 loading={statusLoading}
-                onClick={
-                  handleOnlineToggle
-                }
+                onClick={handleOnlineToggle}
               />
             </div>
 
-            <div className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-black text-slate-900">
-                    Availability
-                  </p>
+            <div className="mt-3 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <div>
+                <p className="text-sm font-black text-slate-900">
+                  Availability
+                </p>
 
-                  <p className="text-xs text-slate-400">
-                    Current assignment state
-                  </p>
-                </div>
-
-                <StatusBadge
-                  variant={
-                    profile.isAvailable
-                      ? "success"
-                      : "neutral"
-                  }
-                  size="sm"
-                >
-                  {profile.isAvailable
-                    ? "Available"
-                    : "Busy"}
-                </StatusBadge>
+                <p className="text-xs text-slate-400">
+                  Current assignment state
+                </p>
               </div>
+
+              <StatusBadge
+                variant={
+                  profile.isAvailable
+                    ? "success"
+                    : "neutral"
+                }
+                size="sm"
+              >
+                {profile.isAvailable
+                  ? "Available"
+                  : "Busy"}
+              </StatusBadge>
             </div>
           </div>
         </div>
       </section>
 
-      {/* EDIT MODE */}
+      {/* =========================================
+          EDIT MODE
+      ========================================= */}
 
       {editMode ? (
         <form
           onSubmit={handleSubmit}
           className="space-y-6"
         >
-          {/* PERSONAL INFO */}
+          {/* PROFILE IMAGE */}
+
+          <section className={sectionClass}>
+            <SectionHeader
+              title="Profile Image"
+              description="Profile image is optional. Select a new image only if you want to change the current one."
+            />
+
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+              {/* PREVIEW */}
+
+              <div className="h-28 w-28 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                {imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Profile preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <UserRound className="h-9 w-9 text-slate-300" />
+                  </div>
+                )}
+              </div>
+
+              {/* UPLOAD */}
+
+              <div>
+                <p className="text-sm font-black text-slate-800">
+                  Profile Photo
+                  <span className="ml-2 font-semibold text-slate-400">
+                    (Optional)
+                  </span>
+                </p>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  If you don't select a new image, your existing profile image will stay unchanged.
+                </p>
+
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-orange-600">
+                    <ImagePlus className="h-4 w-4" />
+
+                    {formData.image instanceof File
+                      ? "Change Image"
+                      : "Choose Image"}
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {formData.image instanceof File && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveSelectedImage}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+                    >
+                      <X className="h-4 w-4" />
+                      Remove Selected
+                    </button>
+                  )}
+                </div>
+
+                {formData.image instanceof File && (
+                  <p className="mt-3 text-xs font-semibold text-emerald-600">
+                    Selected: {formData.image.name}
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* PERSONAL INFORMATION */}
 
           <section className={sectionClass}>
             <SectionHeader
@@ -491,7 +587,7 @@ const DeliveryProfile = () => {
             </div>
           </section>
 
-          {/* VEHICLE INFO */}
+          {/* VEHICLE INFORMATION */}
 
           <section className={sectionClass}>
             <SectionHeader
@@ -528,16 +624,14 @@ const DeliveryProfile = () => {
               <FormField
                 label="Vehicle Number"
                 name="vehicleNumber"
-                value={
-                  formData.vehicleNumber
-                }
+                value={formData.vehicleNumber}
                 onChange={handleChange}
                 className="uppercase"
               />
             </div>
           </section>
 
-          {/* FORM ACTIONS */}
+          {/* ACTIONS */}
 
           <div className="flex justify-end gap-3">
             <Button
@@ -562,7 +656,9 @@ const DeliveryProfile = () => {
           </div>
         </form>
       ) : (
-        /* PROFILE DETAILS */
+        /* =========================================
+           VIEW MODE
+        ========================================= */
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* PERSONAL */}
@@ -758,10 +854,11 @@ const DetailItem = ({
       </p>
 
       <p
-        className={`mt-1 font-black text-slate-950 ${large
+        className={`mt-1 font-black text-slate-950 ${
+          large
             ? "text-lg tracking-wide"
             : "text-sm"
-          }`}
+        }`}
       >
         {value || "-"}
       </p>
@@ -783,16 +880,18 @@ const Toggle = ({
       type="button"
       disabled={loading}
       onClick={onClick}
-      className={`relative h-7 w-14 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${enabled
+      className={`relative h-7 w-14 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+        enabled
           ? "bg-emerald-500"
           : "bg-slate-300"
-        }`}
+      }`}
     >
       <span
-        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${enabled
+        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${
+          enabled
             ? "left-8"
             : "left-1"
-          }`}
+        }`}
       />
     </button>
   );

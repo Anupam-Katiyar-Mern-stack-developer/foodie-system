@@ -3102,3 +3102,172 @@ export const getDeliveryDashboardService = async ({ deliveryAgentId }) => {
     })),
   };
 };
+
+
+// get delivery history 
+export const getDeliveryHistoryService = async ({
+  deliveryAgentId,
+  status,
+  search,
+  page = 1,
+  limit = 20,
+}) => {
+  const offset = (page - 1) * limit;
+  const allowedStatuses = ["DELIVERED", "CANCELLED"];
+
+  if (status && !allowedStatuses.includes(status)) {
+    const error = new Error("Invalid delivery history status");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const values = [deliveryAgentId];
+  const conditions = [
+    "da.delivery_agent_id = $1",
+    "o.status IN ('DELIVERED', 'CANCELLED')",
+  ];
+
+  if (status) {
+    values.push(status);
+    conditions.push(`o.status = $${values.length}`);
+  }
+
+  if (search) {
+    values.push(`%${search.trim()}%`);
+    const position = values.length;
+
+    conditions.push(`
+      (
+        o.order_number ILIKE $${position}
+        OR r.restaurant_name ILIKE $${position}
+        OR og.delivery_name ILIKE $${position}
+      )
+    `);
+  }
+
+  const whereClause = conditions.join(" AND ");
+
+  const statsResult = await pool.query(
+    `
+      SELECT
+        COUNT(DISTINCT o.id)::int AS "totalDeliveries",
+
+        COUNT(DISTINCT o.id) FILTER (
+          WHERE o.status = 'DELIVERED'
+        )::int AS "completed",
+
+        COUNT(DISTINCT o.id) FILTER (
+          WHERE o.status = 'CANCELLED'
+        )::int AS "cancelled",
+
+        COALESCE(
+          SUM(o.delivery_fee) FILTER (
+            WHERE o.status = 'DELIVERED'
+          ),
+          0
+        ) AS "totalEarnings"
+
+      FROM delivery_assignments da
+
+      INNER JOIN orders o
+        ON o.id = da.order_id
+
+      WHERE
+        da.delivery_agent_id = $1
+        AND o.status IN ('DELIVERED', 'CANCELLED')
+    `,
+    [deliveryAgentId],
+  );
+
+  const countResult = await pool.query(
+    `
+      SELECT COUNT(DISTINCT o.id)::int AS total
+
+      FROM delivery_assignments da
+
+      INNER JOIN orders o
+        ON o.id = da.order_id
+
+      INNER JOIN restaurants r
+        ON r.id = o.restaurant_id
+
+      INNER JOIN order_groups og
+        ON og.id = o.order_group_id
+
+      WHERE ${whereClause}
+    `,
+    values,
+  );
+
+  const queryValues = [...values, limit, offset];
+  const limitPosition = queryValues.length - 1;
+  const offsetPosition = queryValues.length;
+
+  const historyResult = await pool.query(
+    `
+      SELECT
+        o.order_number AS "orderNumber",
+        r.restaurant_name AS "restaurantName",
+        og.delivery_name AS "customerName",
+        o.total_amount AS "amount",
+        o.delivery_fee AS "earning",
+        o.status,
+
+        CASE
+          WHEN o.status = 'DELIVERED' THEN o.delivered_at
+          WHEN o.status = 'CANCELLED' THEN o.cancelled_at
+          ELSE o.updated_at
+        END AS "completedAt"
+
+      FROM delivery_assignments da
+
+      INNER JOIN orders o
+        ON o.id = da.order_id
+
+      INNER JOIN restaurants r
+        ON r.id = o.restaurant_id
+
+      INNER JOIN order_groups og
+        ON og.id = o.order_group_id
+
+      WHERE ${whereClause}
+
+      ORDER BY
+        COALESCE(
+          o.delivered_at,
+          o.cancelled_at,
+          o.updated_at
+        ) DESC
+
+      LIMIT $${limitPosition}
+      OFFSET $${offsetPosition}
+    `,
+    queryValues,
+  );
+
+  const stats = statsResult.rows[0];
+  const total = countResult.rows[0]?.total || 0;
+
+  return {
+    stats: {
+      totalDeliveries: Number(stats?.totalDeliveries || 0),
+      completed: Number(stats?.completed || 0),
+      cancelled: Number(stats?.cancelled || 0),
+      totalEarnings: Number(stats?.totalEarnings || 0),
+    },
+
+    deliveries: historyResult.rows.map((item) => ({
+      ...item,
+      amount: Number(item.amount || 0),
+      earning: Number(item.earning || 0),
+      distance: null,
+    })),
+
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};

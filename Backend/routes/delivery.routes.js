@@ -14,7 +14,7 @@ import { updateDeliveryStatus } from "../controllers/delivery/updateDeliveryStat
 
 import { updateDeliveryLocation } from "../controllers/delivery/updateDeliveryLocation.controller.js";
 import { getDeliveryDashboard } from "../controllers/delivery/getDeliveryDashboard.controller.js";
-
+import { getDeliveryHistory } from "../controllers/delivery/getDeliveryHistory.controller.js";
 const router = express.Router();
 
 router.get("/dashboard", deliveryAuthMiddleware, getDeliveryDashboard);
@@ -30,7 +30,7 @@ router.post("/login", loginDeliveryAgent);
 
 router.get("/profile", deliveryAuthMiddleware, getDeliveryProfile);
 
-router.patch(
+router.put(
   "/profile",
 
   deliveryAuthMiddleware,
@@ -40,8 +40,10 @@ router.patch(
   updateDeliveryProfile,
 );
 
-router.patch("/status", deliveryAuthMiddleware, updateDeliveryStatus);
+router.patch("/online-status", deliveryAuthMiddleware, updateDeliveryStatus);
 
 router.patch("/location", deliveryAuthMiddleware, updateDeliveryLocation);
+
+router.get("/history", deliveryAuthMiddleware, getDeliveryHistory);
 
 export default router;
