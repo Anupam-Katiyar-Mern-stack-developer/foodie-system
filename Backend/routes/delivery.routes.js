@@ -13,12 +13,14 @@ import { updateDeliveryProfile } from "../controllers/delivery/updateDeliveryPro
 import { updateDeliveryStatus } from "../controllers/delivery/updateDeliveryStatus.controller.js";
 
 import { updateDeliveryLocation } from "../controllers/delivery/updateDeliveryLocation.controller.js";
+import { getDeliveryDashboard } from "../controllers/delivery/getDeliveryDashboard.controller.js";
 
 const router = express.Router();
 
+router.get("/dashboard", deliveryAuthMiddleware, getDeliveryDashboard);
+
 router.post(
   "/register",
-
   uploadImage("delivery-agents", "image"),
 
   registerDeliveryAgent,

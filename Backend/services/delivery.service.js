@@ -190,7 +190,6 @@ export const registerDeliveryAgentService = async ({
 };
 // login delivery agent
 export const loginDeliveryAgentService = async ({ email, password }) => {
-
   const normalizedEmail = email.trim().toLowerCase();
   console.log("email in services =>", normalizedEmail, password);
 
@@ -495,7 +494,6 @@ export const rejectDeliveryAgentService = async ({ publicId, reason }) => {
 };
 
 // get delivery profile service
-
 export const getDeliveryProfileService = async ({ deliveryAgentId }) => {
   const result = await pool.query(
     `
@@ -2898,4 +2896,209 @@ export const completeDeliveryOrderService = async ({
   } finally {
     client.release();
   }
+};
+
+// =========================================
+// DELIVERY DASHBOARD
+// =========================================
+
+export const getDeliveryDashboardService = async ({ deliveryAgentId }) => {
+  const [
+    agentResult,
+    statsResult,
+    currentDeliveryResult,
+    recentDeliveriesResult,
+  ] = await Promise.all([
+    // =========================
+    // AGENT STATUS
+    // =========================
+    pool.query(
+      `
+        SELECT
+          is_online AS "isOnline"
+
+        FROM delivery_agents
+
+        WHERE id = $1
+
+        LIMIT 1
+      `,
+      [deliveryAgentId],
+    ),
+
+    // =========================
+    // DASHBOARD STATS
+    // =========================
+    pool.query(
+      `
+        SELECT
+          COUNT(DISTINCT o.id) FILTER (
+            WHERE o.created_at::date = CURRENT_DATE
+          )::int AS "todayDeliveries",
+
+          COUNT(DISTINCT o.id) FILTER (
+            WHERE o.status IN (
+              'DELIVERY_ASSIGNED',
+              'PICKED_UP',
+              'OUT_FOR_DELIVERY'
+            )
+          )::int AS "activeDelivery",
+
+          COUNT(DISTINCT o.id) FILTER (
+            WHERE
+              o.status = 'DELIVERED'
+              AND o.delivered_at::date = CURRENT_DATE
+          )::int AS "completedToday",
+
+          COALESCE(
+            SUM(o.delivery_fee) FILTER (
+              WHERE
+                o.status = 'DELIVERED'
+                AND o.delivered_at::date = CURRENT_DATE
+            ),
+            0
+          ) AS "todayEarnings"
+
+        FROM delivery_assignments da
+
+        INNER JOIN orders o
+          ON o.id = da.order_id
+
+        WHERE da.delivery_agent_id = $1
+      `,
+      [deliveryAgentId],
+    ),
+
+    // =========================
+    // CURRENT DELIVERY
+    // =========================
+    pool.query(
+      `
+        SELECT
+          o.order_number AS "orderNumber",
+
+          o.status,
+
+          r.restaurant_name AS "restaurantName",
+
+          og.delivery_name AS "customerName",
+
+          CONCAT_WS(
+            ', ',
+            NULLIF(og.address_line, ''),
+            NULLIF(og.city, ''),
+            NULLIF(og.state, ''),
+            NULLIF(og.pincode, '')
+          ) AS "customerAddress",
+
+          (
+            SELECT COUNT(*)::int
+
+            FROM order_items oi
+
+            WHERE oi.order_id = o.id
+          ) AS "totalItems"
+
+        FROM delivery_assignments da
+
+        INNER JOIN orders o
+          ON o.id = da.order_id
+
+        INNER JOIN order_groups og
+          ON og.id = o.order_group_id
+
+        INNER JOIN restaurants r
+          ON r.id = o.restaurant_id
+
+        WHERE
+          da.delivery_agent_id = $1
+
+          AND o.status IN (
+            'DELIVERY_ASSIGNED',
+            'PICKED_UP',
+            'OUT_FOR_DELIVERY'
+          )
+
+        ORDER BY o.updated_at DESC
+
+        LIMIT 1
+      `,
+      [deliveryAgentId],
+    ),
+
+    // =========================
+    // RECENT DELIVERIES
+    // =========================
+    pool.query(
+      `
+        SELECT
+          o.order_number AS "orderNumber",
+
+          r.restaurant_name AS "restaurantName",
+
+          og.delivery_name AS "customerName",
+
+          o.total_amount AS "amount",
+
+          o.status
+
+        FROM delivery_assignments da
+
+        INNER JOIN orders o
+          ON o.id = da.order_id
+
+        INNER JOIN order_groups og
+          ON og.id = o.order_group_id
+
+        INNER JOIN restaurants r
+          ON r.id = o.restaurant_id
+
+        WHERE
+          da.delivery_agent_id = $1
+
+          AND o.status = 'DELIVERED'
+
+        ORDER BY o.delivered_at DESC NULLS LAST
+
+        LIMIT 5
+      `,
+      [deliveryAgentId],
+    ),
+  ]);
+
+  if (agentResult.rows.length === 0) {
+    const error = new Error("Delivery agent not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const stats = statsResult.rows[0] || {};
+
+  const currentDelivery = currentDeliveryResult.rows[0]
+    ? {
+        ...currentDeliveryResult.rows[0],
+
+        // Restaurant address columns ka exact schema
+        // available nahi tha, abhi empty.
+        restaurantAddress: "",
+      }
+    : null;
+
+  return {
+    isOnline: Boolean(agentResult.rows[0].isOnline),
+
+    stats: {
+      todayDeliveries: Number(stats.todayDeliveries || 0),
+      activeDelivery: Number(stats.activeDelivery || 0),
+      completedToday: Number(stats.completedToday || 0),
+      todayEarnings: Number(stats.todayEarnings || 0),
+    },
+
+    currentDelivery,
+
+    recentDeliveries: recentDeliveriesResult.rows.map((item) => ({
+      ...item,
+      amount: Number(item.amount || 0),
+    })),
+  };
 };

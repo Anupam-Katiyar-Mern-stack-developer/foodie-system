@@ -1,6 +1,7 @@
 import {
     useMemo,
     useState,
+    useEffect,
 } from "react";
 
 import {
@@ -38,6 +39,16 @@ import EmptyState
 import ConfirmModal
     from "../../../components/common/ConfirmModal/ConfirmModal";
 
+import {
+    useDispatch,
+    useSelector,
+} from "react-redux";
+
+import {
+    getDeliveryOffer,
+    acceptDeliveryOffer,
+    rejectDeliveryOffer,
+} from "../../../redux/thunks/deliveryAgent/deliveryOffer.thunk";
 
 const DeliveryOffers = () => {
 

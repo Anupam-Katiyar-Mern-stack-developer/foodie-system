@@ -15,6 +15,8 @@ import restaurantOrderReducer from "./slices/restaurant/restaurantOrder.slice";
 import restaurantDashboardReducer from "./slices/restaurant/restaurantDashboard.slice";
 
 import deliveryAuthReducer from "./slices/deliveryAgent/deliveryAuth.slice";
+import deliveryDashboardReducer from "./slices/deliveryAgent/deliveryDashboard.slice";
+import deliveryOfferReducer from "./slices/deliveryAgent/deliveryOffer.slice";
 
 const store = configureStore({
   reducer: {
@@ -42,6 +44,8 @@ const store = configureStore({
     restaurantDashboard: restaurantDashboardReducer,
 
     deliveryAuth: deliveryAuthReducer,
+    deliveryDashboard: deliveryDashboardReducer,
+    deliveryOffer: deliveryOfferReducer,
   },
 });
 
