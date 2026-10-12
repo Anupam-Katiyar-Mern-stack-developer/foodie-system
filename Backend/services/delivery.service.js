@@ -1056,7 +1056,10 @@ export const updateDeliveryLocationService = async ({
 
 // get delivery order offer service
 export const getDeliveryOrderOfferService = async ({ deliveryAgentId }) => {
-  // Expired offer ko expire kar do
+  // =========================================
+  // 1. OLD EXPIRED OFFERS EXPIRE KARO
+  // =========================================
+
   await pool.query(
     `
       UPDATE delivery_assignments
@@ -1074,13 +1077,18 @@ export const getDeliveryOrderOfferService = async ({ deliveryAgentId }) => {
     [deliveryAgentId],
   );
 
+  // =========================================
+  // 2. ACTIVE OFFER FETCH KARO
+  // =========================================
+
   const result = await pool.query(
     `
       SELECT
         o.order_number
           AS "orderNumber",
 
-        o.status AS "orderStatus",
+        o.status
+          AS "orderStatus",
 
         o.total_amount
           AS "totalAmount",
@@ -1120,9 +1128,7 @@ export const getDeliveryOrderOfferService = async ({ deliveryAgentId }) => {
 
         (
           SELECT COUNT(*)::int
-
           FROM order_items oi
-
           WHERE oi.order_id = o.id
         ) AS "totalItems"
 
@@ -1148,16 +1154,27 @@ export const getDeliveryOrderOfferService = async ({ deliveryAgentId }) => {
         AND o.status =
             'READY_FOR_PICKUP'
 
-      ORDER BY da.offered_at DESC
+      ORDER BY
+        da.offered_at DESC
 
       LIMIT 1
     `,
     [deliveryAgentId],
   );
 
+  console.log(result);
+
+  // =========================================
+  // 3. NO OFFER
+  // =========================================
+
   if (result.rows.length === 0) {
     return null;
   }
+
+  // =========================================
+  // 4. RETURN ACTIVE OFFER
+  // =========================================
 
   return result.rows[0];
 };

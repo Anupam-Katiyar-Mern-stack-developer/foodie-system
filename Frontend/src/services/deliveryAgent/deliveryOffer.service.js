@@ -3,7 +3,7 @@ import apiClient from "../../api/apiClient";
 // GET CURRENT OFFER
 export const getDeliveryOfferService = async () => {
   const response = await apiClient.get("/delivery/orders/offers");
-
+  console.log(response);
   return response.data;
 };
 

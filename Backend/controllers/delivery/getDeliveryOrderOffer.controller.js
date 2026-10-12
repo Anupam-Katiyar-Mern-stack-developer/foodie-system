@@ -7,6 +7,7 @@ export const getDeliveryOrderOffer = async (req, res) => {
     const data = await getDeliveryOrderOfferService({
       deliveryAgentId,
     });
+    console.log(data);
 
     return res.status(200).json({
       success: true,
