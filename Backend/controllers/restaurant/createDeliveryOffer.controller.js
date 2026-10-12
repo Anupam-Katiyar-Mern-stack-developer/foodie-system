@@ -3,20 +3,22 @@ import { createRestaurantDeliveryOfferService } from "../../services/delivery.se
 export const createDeliveryOffer = async (req, res) => {
   try {
     const restaurantId = req.restaurant.restaurantId;
+
     const { orderNumber } = req.params;
+
     const { deliveryAgentPublicId } = req.body;
 
-    if (!deliveryAgentPublicId?.trim()) {
+    if (!deliveryAgentPublicId) {
       return res.status(400).json({
         success: false,
-        message: "Delivery partner is required",
+        message: "Delivery agent is required",
       });
     }
 
     const data = await createRestaurantDeliveryOfferService({
       restaurantId,
       orderNumber,
-      deliveryAgentPublicId: deliveryAgentPublicId.trim(),
+      deliveryAgentPublicId,
     });
 
     return res.status(201).json({

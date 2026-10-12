@@ -28,8 +28,10 @@ import { getRestaurants } from "../controllers/restaurant/getRestaurants.control
 
 import { getRestaurantDashboardController } from "../controllers/restaurant/dashboard.controller.js";
 
-// import { getAvailableDeliveryAgents } from "../controllers/restaurant/getAvailableDeliveryAgents.controller.js";
-// import { createDeliveryOffer } from "../controllers/restaurant/createDeliveryOffer.controller.js";
+import { getAvailableDeliveryAgents } from "../controllers/restaurant/getAvailableDeliveryAgents.controller.js";
+
+import { createDeliveryOffer } from "../controllers/restaurant/createDeliveryOffer.controller.js";
+
 import { updateRestaurantLocation } from "../controllers/restaurant/updateRestaurantLocation.controller.js";
 
 const router = express.Router();
@@ -87,20 +89,19 @@ router.get(
 // delete food
 router.delete("/foods/:foodSlug", restaurantAuthMiddleware, deleteFood);
 
-// router.get(
-//   "/orders/:orderNumber/delivery-agents",
-//   restaurantAuthMiddleware,
-//   getAvailableDeliveryAgents,
-// );
+router.get(
+  "/orders/:orderNumber/delivery-agents",
+  restaurantAuthMiddleware,
+  getAvailableDeliveryAgents,
+);
 
-// router.post(
-//   "/orders/:orderNumber/delivery-offer",
-//   restaurantAuthMiddleware,
-//   createDeliveryOffer,
-// );
+router.post(
+  "/orders/:orderNumber/delivery-offer",
+  restaurantAuthMiddleware,
+  createDeliveryOffer,
+);
 
 // loaction update
 router.patch("/location", restaurantAuthMiddleware, updateRestaurantLocation);
-
 
 export default router;

@@ -2,7 +2,7 @@ import { getDeliveryOrderOfferService } from "../../services/delivery.service.js
 
 export const getDeliveryOrderOffer = async (req, res) => {
   try {
-    const { deliveryAgentId } = req.deliveryAgent;
+    const deliveryAgentId = req.deliveryAgent.deliveryAgentId;
 
     const data = await getDeliveryOrderOfferService({
       deliveryAgentId,
@@ -12,7 +12,7 @@ export const getDeliveryOrderOffer = async (req, res) => {
       success: true,
       message: data
         ? "Delivery offer fetched successfully"
-        : "No active delivery offer",
+        : "No active delivery offer found",
       data,
     });
   } catch (error) {

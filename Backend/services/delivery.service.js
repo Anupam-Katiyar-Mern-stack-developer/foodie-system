@@ -3240,3 +3240,488 @@ export const getAvailableDeliveryAgentsForOrderService = async ({
     agents: agentsResult.rows,
   };
 };
+
+// ==========================================
+// RESTAURANT SEND DELIVERY OFFER
+// ==========================================
+
+export const createRestaurantDeliveryOfferService = async ({
+  restaurantId,
+  orderNumber,
+  deliveryAgentPublicId,
+}) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // ==========================================
+    // 1. Expired offers update
+    // ==========================================
+
+    await client.query(`
+      UPDATE delivery_assignments
+
+      SET
+        status = 'EXPIRED',
+        responded_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+
+      WHERE
+        status = 'OFFERED'
+
+        AND expires_at IS NOT NULL
+
+        AND expires_at <= CURRENT_TIMESTAMP
+    `);
+
+    // ==========================================
+    // 2. Order lock + restaurant verify
+    // ==========================================
+
+    const orderResult = await client.query(
+      `
+        SELECT
+          o.id,
+
+          o.order_number
+            AS "orderNumber",
+
+          o.status,
+
+          o.assigned_delivery_agent_id
+            AS "assignedDeliveryAgentId",
+
+          r.latitude
+            AS "restaurantLatitude",
+
+          r.longitude
+            AS "restaurantLongitude"
+
+        FROM orders o
+
+        INNER JOIN restaurants r
+          ON r.id = o.restaurant_id
+
+        WHERE
+          o.order_number = $1
+          AND o.restaurant_id = $2
+
+        LIMIT 1
+
+        FOR UPDATE OF o
+      `,
+      [orderNumber, restaurantId],
+    );
+
+    if (orderResult.rows.length === 0) {
+      const error = new Error("Order not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const order = orderResult.rows[0];
+
+    // ==========================================
+    // 3. Order READY check
+    // ==========================================
+
+    if (order.status !== "READY_FOR_PICKUP") {
+      const error = new Error(
+        "Order must be ready for pickup before sending delivery offer",
+      );
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // ==========================================
+    // 4. Already assigned?
+    // ==========================================
+
+    if (order.assignedDeliveryAgentId) {
+      const error = new Error(
+        "Delivery partner is already assigned to this order",
+      );
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // ==========================================
+    // 5. Restaurant location
+    // ==========================================
+
+    if (
+      order.restaurantLatitude === null ||
+      order.restaurantLongitude === null
+    ) {
+      const error = new Error("Restaurant location is not available");
+
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // ==========================================
+    // 6. Order already has pending offer?
+    // ==========================================
+
+    const existingOrderOffer = await client.query(
+      `
+          SELECT id
+
+          FROM delivery_assignments
+
+          WHERE
+            order_id = $1
+
+            AND status = 'OFFERED'
+
+            AND expires_at >
+                CURRENT_TIMESTAMP
+
+          LIMIT 1
+        `,
+      [order.id],
+    );
+
+    if (existingOrderOffer.rows.length > 0) {
+      const error = new Error(
+        "This order already has a pending delivery offer",
+      );
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // ==========================================
+    // 7. Selected agent lock
+    // ==========================================
+
+    const agentResult = await client.query(
+      `
+          SELECT
+            d.id,
+
+            d.public_id
+              AS "publicId",
+
+            d.name,
+            d.image,
+
+            d.vehicle_type
+              AS "vehicleType",
+
+            d.vehicle_number
+              AS "vehicleNumber",
+
+            d.latitude,
+            d.longitude,
+
+            d.location_updated_at
+              AS "locationUpdatedAt",
+
+            d.approval_status
+              AS "approvalStatus",
+
+            d.is_online
+              AS "isOnline",
+
+            d.is_available
+              AS "isAvailable",
+
+            d.is_blocked
+              AS "isBlocked",
+
+            (
+              6371 * ACOS(
+                LEAST(
+                  1,
+                  GREATEST(
+                    -1,
+
+                    COS(
+                      RADIANS(
+                        $2::double precision
+                      )
+                    )
+                    *
+                    COS(
+                      RADIANS(
+                        d.latitude::double precision
+                      )
+                    )
+                    *
+                    COS(
+                      RADIANS(
+                        d.longitude::double precision
+                      )
+                      -
+                      RADIANS(
+                        $3::double precision
+                      )
+                    )
+                    +
+                    SIN(
+                      RADIANS(
+                        $2::double precision
+                      )
+                    )
+                    *
+                    SIN(
+                      RADIANS(
+                        d.latitude::double precision
+                      )
+                    )
+                  )
+                )
+              )
+            ) AS "distanceKm"
+
+          FROM delivery_agents d
+
+          WHERE d.public_id = $1
+
+          LIMIT 1
+
+          FOR UPDATE OF d
+        `,
+      [
+        deliveryAgentPublicId,
+        order.restaurantLatitude,
+        order.restaurantLongitude,
+      ],
+    );
+
+    if (agentResult.rows.length === 0) {
+      const error = new Error("Delivery partner not found");
+
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const agent = agentResult.rows[0];
+
+    // ==========================================
+    // 8. Agent eligibility
+    // ==========================================
+
+    if (agent.approvalStatus !== "APPROVED" || agent.isBlocked) {
+      const error = new Error("Delivery partner account is not available");
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    if (!agent.isOnline || !agent.isAvailable) {
+      const error = new Error("Delivery partner is no longer available");
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // ==========================================
+    // 9. Agent location check
+    // ==========================================
+
+    if (
+      agent.latitude === null ||
+      agent.longitude === null ||
+      !agent.locationUpdatedAt
+    ) {
+      const error = new Error("Delivery partner live location is unavailable");
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // location max 10 minutes old
+    const locationAge =
+      Date.now() - new Date(agent.locationUpdatedAt).getTime();
+
+    if (!Number.isFinite(locationAge) || locationAge > 10 * 60 * 1000) {
+      const error = new Error("Delivery partner live location is outdated");
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // ==========================================
+    // 10. Distance max 10 KM
+    // ==========================================
+
+    if (Number(agent.distanceKm) > 10) {
+      const error = new Error(
+        "Delivery partner is outside the delivery assignment range",
+      );
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // ==========================================
+    // 11. Active delivery check
+    // ==========================================
+
+    const activeDeliveryResult = await client.query(
+      `
+          SELECT id
+
+          FROM orders
+
+          WHERE
+            assigned_delivery_agent_id = $1
+
+            AND status IN (
+              'DELIVERY_ASSIGNED',
+              'PICKED_UP',
+              'OUT_FOR_DELIVERY'
+            )
+
+          LIMIT 1
+        `,
+      [agent.id],
+    );
+
+    if (activeDeliveryResult.rows.length > 0) {
+      const error = new Error(
+        "Delivery partner is currently handling another delivery",
+      );
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // ==========================================
+    // 12. Agent pending offer check
+    // ==========================================
+
+    const agentOfferResult = await client.query(
+      `
+          SELECT id
+
+          FROM delivery_assignments
+
+          WHERE
+            delivery_agent_id = $1
+
+            AND status = 'OFFERED'
+
+            AND expires_at >
+                CURRENT_TIMESTAMP
+
+          LIMIT 1
+        `,
+      [agent.id],
+    );
+
+    if (agentOfferResult.rows.length > 0) {
+      const error = new Error(
+        "Delivery partner already has another pending offer",
+      );
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // ==========================================
+    // 13. Same order already offered?
+    // ==========================================
+
+    const previousOfferResult = await client.query(
+      `
+          SELECT id, status
+
+          FROM delivery_assignments
+
+          WHERE
+            order_id = $1
+            AND delivery_agent_id = $2
+
+          LIMIT 1
+        `,
+      [order.id, agent.id],
+    );
+
+    if (previousOfferResult.rows.length > 0) {
+      const error = new Error(
+        "This delivery partner has already received this order offer",
+      );
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // ==========================================
+    // 14. Create offer
+    // ==========================================
+
+    const offerResult = await client.query(
+      `
+          INSERT INTO delivery_assignments (
+            order_id,
+            delivery_agent_id,
+            status,
+            expires_at
+          )
+
+          VALUES (
+            $1,
+            $2,
+            'OFFERED',
+            CURRENT_TIMESTAMP
+              + INTERVAL '120 seconds'
+          )
+
+          RETURNING
+            status,
+
+            offered_at
+              AS "offeredAt",
+
+            expires_at
+              AS "expiresAt"
+        `,
+      [order.id, agent.id],
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      orderNumber: order.orderNumber,
+
+      deliveryAgent: {
+        publicId: agent.publicId,
+
+        name: agent.name,
+
+        image: agent.image,
+
+        vehicleType: agent.vehicleType,
+
+        vehicleNumber: agent.vehicleNumber,
+
+        distanceKm: Number(Number(agent.distanceKm).toFixed(2)),
+      },
+
+      offer: offerResult.rows[0],
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+
+    // PostgreSQL unique constraint race condition
+    if (error.code === "23505") {
+      const conflictError = new Error(
+        "Order or delivery partner already has an active offer",
+      );
+
+      conflictError.statusCode = 409;
+
+      throw conflictError;
+    }
+
+    throw error;
+  } finally {
+    client.release();
+  }
+};
