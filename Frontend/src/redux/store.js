@@ -13,14 +13,14 @@ import restaurantProfileReducer from "./slices/restaurant/restaurantProfile.slic
 import restaurantFoodReducer from "./slices/restaurant/restaurantFood.slice";
 import restaurantOrderReducer from "./slices/restaurant/restaurantOrder.slice";
 import restaurantDashboardReducer from "./slices/restaurant/restaurantDashboard.slice";
+import restaurantLocationReducer from "./slices/restaurant/restaurantLocation.slice";
 
 import deliveryAuthReducer from "./slices/deliveryAgent/deliveryAuth.slice";
 import deliveryDashboardReducer from "./slices/deliveryAgent/deliveryDashboard.slice";
 import deliveryOfferReducer from "./slices/deliveryAgent/deliveryOffer.slice";
 import deliveryProfileReducer from "./slices/deliveryAgent/deliveryProfile.slice";
 import deliveryHistoryReducer from "./slices/deliveryAgent/deliveryHistory.slice";
-import restaurantLocationReducer from "./slices/restaurant/restaurantLocation.slice";
-
+import deliveryLocationReducer from "./slices/deliveryAgent/deliveryLocation.slice";
 const store = configureStore({
   reducer: {
     publicCategory: publicCategoryReducer,
@@ -45,13 +45,13 @@ const store = configureStore({
     restaurantFood: restaurantFoodReducer,
     restaurantOrder: restaurantOrderReducer,
     restaurantDashboard: restaurantDashboardReducer,
+    restaurantLocation: restaurantLocationReducer,
 
     deliveryAuth: deliveryAuthReducer,
     deliveryDashboard: deliveryDashboardReducer,
     deliveryOffer: deliveryOfferReducer,
     deliveryProfile: deliveryProfileReducer,
     deliveryHistory: deliveryHistoryReducer,
-    restaurantLocation: restaurantLocationReducer,
   },
 });
 

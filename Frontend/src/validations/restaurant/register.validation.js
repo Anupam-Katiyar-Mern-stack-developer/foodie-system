@@ -42,10 +42,6 @@ export const restaurantRegisterSchema = z
       .max(1000, "Description is too long")
       .optional(),
 
-    addressLine: z
-      .string()
-      .trim()
-      .min(5, "Enter a complete restaurant address"),
 
     city: z.string().trim().min(2, "City is required"),
 

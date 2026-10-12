@@ -5,10 +5,7 @@ export const restaurantRegisterDefaultValues = {
   phone: "",
   password: "",
   confirmPassword: "",
-
   description: "",
-
-  addressLine: "",
   city: "",
   state: "",
   pincode: "",
@@ -66,14 +63,7 @@ export const restaurantRegisterFields = [
     fullWidth: true,
     rows: 4,
   },
-  {
-    name: "addressLine",
-    label: "Complete Address",
-    type: "text",
-    placeholder: "Street, building, area, landmark",
-    required: true,
-    fullWidth: true,
-  },
+  
   {
     name: "city",
     label: "City",
