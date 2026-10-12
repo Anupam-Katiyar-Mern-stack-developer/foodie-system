@@ -6,66 +6,60 @@ import {
   rejectDeliveryOfferService,
 } from "../../../services/deliveryAgent/deliveryOffer.service";
 
-// =========================================
-// ERROR HELPER
-// =========================================
-
 const getErrorMessage = (error) => {
   return (
     error?.response?.data?.message || error?.message || "Something went wrong"
   );
 };
 
-// =========================================
-// GET OFFER
-// =========================================
+// =============================
+// GET DELIVERY OFFER
+// =============================
 
 export const getDeliveryOffer = createAsyncThunk(
-  "deliveryOffer/getOffer",
+  "deliveryOffer/get",
 
   async (_, { rejectWithValue }) => {
     try {
       const response = await getDeliveryOfferService();
 
-      console.log("DELIVERY OFFER THUNK:", response);
-
-      return response;
+      return response.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
   },
 );
 
-// =========================================
-// ACCEPT
-// =========================================
+// =============================
+// ACCEPT DELIVERY OFFER
+// =============================
 
 export const acceptDeliveryOffer = createAsyncThunk(
-  "deliveryOffer/acceptOffer",
+  "deliveryOffer/accept",
 
   async (orderNumber, { rejectWithValue }) => {
     try {
       const response = await acceptDeliveryOfferService(orderNumber);
 
-      return response;
+      return response.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
   },
 );
 
-// =========================================
-// REJECT
-// =========================================
+// =============================
+// REJECT DELIVERY OFFER
+// =============================
 
 export const rejectDeliveryOffer = createAsyncThunk(
-  "deliveryOffer/rejectOffer",
+  "deliveryOffer/reject",
 
   async (orderNumber, { rejectWithValue }) => {
     try {
       const response = await rejectDeliveryOfferService(orderNumber);
 
-      return response;
+      return response.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }

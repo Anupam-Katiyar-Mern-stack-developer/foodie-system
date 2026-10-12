@@ -1,5 +1,5 @@
 import {
-    useState,
+    useEffect
 } from "react";
 
 import {
@@ -41,51 +41,34 @@ import {
 
 
 const Login = () => {
-    const dispatch =
-        useDispatch();
-    const navigate =
-        useNavigate();
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const location = useLocation();
 
-    const location =
-        useLocation();
-        
-    const {
-        loginLoading,
-        error,
-    } = useSelector(
-        (state) =>
-            state.publicAuth
+    const { loginLoading, error, isAuthenticated } = useSelector(
+        (state) => state.publicAuth,
     );
 
+    useEffect(() => {
+        if (!isAuthenticated) return;
 
-    // =========================
-    // LOGIN
-    // =========================
+        const from = location.state?.from;
 
-  const handleLogin =
-  async (values) => {
-    try {
-      await dispatch(
-        loginUser(values)
-      ).unwrap();
+        const redirectTo =
+            from && from !== "/login"
+                ? from
+                : "/";
 
-      const redirectTo =
-        location.state?.from ||
-        "/";
-      navigate(
-        redirectTo,
-        {
-          replace: true,
+        navigate(redirectTo, { replace: true });
+    }, [isAuthenticated, location.state, navigate]);
+
+    const handleLogin = async (values) => {
+        try {
+            await dispatch(loginUser(values)).unwrap();
+        } catch {
+            // Redux/thunk error already handle karega
         }
-      );
-    } catch {
-      /*
-        Error Redux me already
-        store ho chuka hai.
-      */
-    }
-  };
-
+    };
 
     return (
         <div

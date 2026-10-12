@@ -1,19 +1,13 @@
 import apiClient from "../../api/apiClient";
 
-// =========================================
-// GET DELIVERY OFFER
-// =========================================
-
+// GET CURRENT OFFER
 export const getDeliveryOfferService = async () => {
   const response = await apiClient.get("/delivery/orders/offers");
 
   return response.data;
 };
 
-// =========================================
-// ACCEPT DELIVERY OFFER
-// =========================================
-
+// ACCEPT OFFER
 export const acceptDeliveryOfferService = async (orderNumber) => {
   const response = await apiClient.patch(
     `/delivery/orders/${orderNumber}/accept`,
@@ -22,10 +16,7 @@ export const acceptDeliveryOfferService = async (orderNumber) => {
   return response.data;
 };
 
-// =========================================
-// REJECT DELIVERY OFFER
-// =========================================
-
+// REJECT OFFER
 export const rejectDeliveryOfferService = async (orderNumber) => {
   const response = await apiClient.patch(
     `/delivery/orders/${orderNumber}/reject`,

@@ -7,6 +7,8 @@ import {
   rejectRestaurantOrderService,
   markOrderPreparingService,
   markOrderReadyService,
+  getAvailableDeliveryAgentsService,
+  sendRestaurantDeliveryOfferService,
 } from "../../../services/restaurant/restaurantOrder.service";
 
 // =========================================
@@ -47,7 +49,7 @@ export const getRestaurantOrder = createAsyncThunk(
   async (orderNumber, { rejectWithValue }) => {
     try {
       const response = await getRestaurantOrderService(orderNumber);
-     
+
       return response.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -123,6 +125,53 @@ export const markRestaurantOrderReady = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+// =========================================
+// GET AVAILABLE DELIVERY AGENTS
+// =========================================
+
+export const getAvailableDeliveryAgents = createAsyncThunk(
+  "restaurantOrder/getAvailableDeliveryAgents",
+
+  async (orderNumber, { rejectWithValue }) => {
+    try {
+      const response = await getAvailableDeliveryAgentsService(orderNumber);
+
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to fetch delivery partners",
+      );
+    }
+  },
+);
+
+// =========================================
+// SEND DELIVERY OFFER
+// =========================================
+
+export const sendRestaurantDeliveryOffer = createAsyncThunk(
+  "restaurantOrder/sendDeliveryOffer",
+
+  async ({ orderNumber, deliveryAgentPublicId }, { rejectWithValue }) => {
+    try {
+      const response = await sendRestaurantDeliveryOfferService({
+        orderNumber,
+        deliveryAgentPublicId,
+      });
+
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to send delivery offer",
+      );
     }
   },
 );

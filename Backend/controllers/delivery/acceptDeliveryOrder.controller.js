@@ -2,8 +2,16 @@ import { acceptDeliveryOrderService } from "../../services/delivery.service.js";
 
 export const acceptDeliveryOrder = async (req, res) => {
   try {
-    const { deliveryAgentId } = req.deliveryAgent;
+    const deliveryAgentId = req.deliveryAgent.deliveryAgentId;
+
     const { orderNumber } = req.params;
+
+    if (!orderNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Order number is required",
+      });
+    }
 
     const data = await acceptDeliveryOrderService({
       deliveryAgentId,

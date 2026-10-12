@@ -86,3 +86,33 @@ export const markOrderReadyService = async (orderNumber) => {
 
   return response.data;
 };
+
+// =========================================
+// GET AVAILABLE DELIVERY AGENTS
+// =========================================
+
+export const getAvailableDeliveryAgentsService = async (orderNumber) => {
+  const response = await apiClient.get(
+    `/restaurant/orders/${orderNumber}/delivery-agents`,
+  );
+
+  return response.data;
+};
+
+// =========================================
+// SEND DELIVERY OFFER
+// =========================================
+
+export const sendRestaurantDeliveryOfferService = async ({
+  orderNumber,
+  deliveryAgentPublicId,
+}) => {
+  const response = await apiClient.post(
+    `/restaurant/orders/${orderNumber}/delivery-offer`,
+    {
+      deliveryAgentPublicId,
+    },
+  );
+
+  return response.data;
+};
