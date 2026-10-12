@@ -1,6 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, useParams } from "react-router-dom";
+import {
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
+
+import {
+    useDispatch,
+    useSelector,
+} from "react-redux";
+
+import {
+    useNavigate,
+    useParams,
+} from "react-router-dom";
 
 import {
     ArrowLeft,
@@ -24,24 +36,38 @@ import {
     XCircle,
 } from "lucide-react";
 
-import Button from "../../../components/common/Button/Button";
-import StatusBadge from "../../../components/common/StatusBadge/StatusBadge";
-import Skeleton from "../../../components/common/Skeleton/Skeleton";
-import ErrorState from "../../../components/common/ErrorState/ErrorState";
-import EmptyState from "../../../components/common/EmptyState/EmptyState";
-import OptimizedImage from "../../../components/common/OptimizedImage/OptimizedImage";
+import Button
+    from "../../../components/common/Button/Button";
+
+import StatusBadge
+    from "../../../components/common/StatusBadge/StatusBadge";
+
+import Skeleton
+    from "../../../components/common/Skeleton/Skeleton";
+
+import ErrorState
+    from "../../../components/common/ErrorState/ErrorState";
+
+import EmptyState
+    from "../../../components/common/EmptyState/EmptyState";
+
+import OptimizedImage
+    from "../../../components/common/OptimizedImage/OptimizedImage";
 
 import {
-  getRestaurantOrder,
-  acceptRestaurantOrder,
-  rejectRestaurantOrder,
-  markRestaurantOrderPreparing,
-  markRestaurantOrderReady,
-  getAvailableDeliveryAgents,
-  sendRestaurantDeliveryOffer,
+    getRestaurantOrder,
+    acceptRestaurantOrder,
+    rejectRestaurantOrder,
+    markRestaurantOrderPreparing,
+    markRestaurantOrderReady,
+    getAvailableDeliveryAgents,
+    sendRestaurantDeliveryOffer,
 } from "../../../redux/thunks/restaurant/restaurantOrder.thunk";
 
-import { clearSelectedOrder } from "../../../redux/slices/restaurant/restaurantOrder.slice";
+import {
+    clearSelectedOrder,
+} from "../../../redux/slices/restaurant/restaurantOrder.slice";
+
 
 // ========================================================
 // STATUS CONFIG
@@ -52,120 +78,158 @@ const statusConfig = {
         label: "Placed",
         variant: "warning",
     },
+
     CONFIRMED: {
         label: "Confirmed",
         variant: "info",
     },
+
     PREPARING: {
         label: "Preparing",
         variant: "purple",
     },
+
     READY_FOR_PICKUP: {
         label: "Ready For Pickup",
         variant: "success",
     },
+
     DELIVERY_ASSIGNED: {
         label: "Delivery Assigned",
         variant: "info",
     },
+
     PICKED_UP: {
         label: "Picked Up",
         variant: "info",
     },
+
     OUT_FOR_DELIVERY: {
         label: "Out For Delivery",
         variant: "warning",
     },
+
     DELIVERED: {
         label: "Delivered",
         variant: "success",
     },
+
     REJECTED: {
         label: "Rejected",
         variant: "danger",
     },
+
     CANCELLED: {
         label: "Cancelled",
         variant: "danger",
     },
 };
 
-// ========================================================
-// TEMP AVAILABLE DELIVERY AGENTS
-//
-// Sirf UI preview ke liye.
-// Backend API connect hote hi remove kar denge.
-// ========================================================
-
-const demoAvailableAgents = [
-    {
-        id: 1,
-        name: "Aman Kumar",
-        phone: "9876543210",
-        image: "",
-        vehicleType: "BIKE",
-        vehicleNumber: "UP78 AB 1234",
-        distanceKm: 1.2,
-        isOnline: true,
-        isAvailable: true,
-    },
-    {
-        id: 2,
-        name: "Rahul Verma",
-        phone: "9876501234",
-        image: "",
-        vehicleType: "SCOOTER",
-        vehicleNumber: "UP78 CD 4567",
-        distanceKm: 2.4,
-        isOnline: true,
-        isAvailable: true,
-    },
-    {
-        id: 3,
-        name: "Arjun Singh",
-        phone: "8765432109",
-        image: "",
-        vehicleType: "BIKE",
-        vehicleNumber: "UP78 EF 9087",
-        distanceKm: 3.1,
-        isOnline: true,
-        isAvailable: true,
-    },
-];
 
 // ========================================================
 // HELPERS
 // ========================================================
 
 const formatPrice = (amount) => {
-    return new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency: "INR",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(Number(amount || 0));
+    return new Intl.NumberFormat(
+        "en-IN",
+        {
+            style: "currency",
+            currency: "INR",
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        },
+    ).format(
+        Number(amount || 0),
+    );
 };
+
 
 const formatDate = (date) => {
-    if (!date) return "-";
+    if (!date) {
+        return "-";
+    }
 
-    return new Intl.DateTimeFormat("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    }).format(new Date(date));
+    return new Intl.DateTimeFormat(
+        "en-IN",
+        {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        },
+    ).format(
+        new Date(date),
+    );
 };
 
+
+// Backend/thunk response shape agar:
+// data.agents
+// agents
+// direct array
+// kisi bhi form me aaye to page handle kar lega.
+
+const extractAgents = (payload) => {
+    if (Array.isArray(payload)) {
+        return payload;
+    }
+
+    if (Array.isArray(payload?.agents)) {
+        return payload.agents;
+    }
+
+    if (Array.isArray(payload?.data?.agents)) {
+        return payload.data.agents;
+    }
+
+    if (Array.isArray(payload?.data)) {
+        return payload.data;
+    }
+
+    return [];
+};
+
+
+const getErrorMessage = (
+    error,
+    fallback,
+) => {
+    if (
+        typeof error ===
+        "string"
+    ) {
+        return error;
+    }
+
+    return (
+        error?.message ||
+        error?.response?.data?.message ||
+        fallback
+    );
+};
+
+
 // ========================================================
-// COMPONENT
+// MAIN COMPONENT
 // ========================================================
 
 const RestaurantOrderDetails = () => {
-    const dispatch = useDispatch();
-    const navigate = useNavigate();
-    const { orderNumber } = useParams();
+    const dispatch =
+        useDispatch();
+
+    const navigate =
+        useNavigate();
+
+    const {
+        orderNumber,
+    } = useParams();
+
+
+    // ======================================================
+    // RESTAURANT ORDER REDUX
+    // ======================================================
 
     const {
         selectedOrder: order,
@@ -173,211 +237,532 @@ const RestaurantOrderDetails = () => {
         detailError,
         actionLoading,
         actionError,
-    } = useSelector((state) => state.restaurantOrder) || {};
+    } = useSelector(
+        (state) =>
+            state.restaurantOrder,
+    ) || {};
+
 
     // ======================================================
-    // REJECT
+    // REJECT STATE
     // ======================================================
 
-    const [showRejectForm, setShowRejectForm] = useState(false);
-    const [rejectionReason, setRejectionReason] = useState("");
+    const [
+        showRejectForm,
+        setShowRejectForm,
+    ] = useState(false);
+
+    const [
+        rejectionReason,
+        setRejectionReason,
+    ] = useState("");
+
 
     // ======================================================
-    // DELIVERY ASSIGN UI
+    // DELIVERY ASSIGNMENT STATE
     // ======================================================
 
-    const [showAssignModal, setShowAssignModal] = useState(false);
-    const [agentSearch, setAgentSearch] = useState("");
-    const [selectedAgent, setSelectedAgent] = useState(null);
+    const [
+        showAssignModal,
+        setShowAssignModal,
+    ] = useState(false);
 
-    const filteredAgents = useMemo(() => {
-        const search = agentSearch.trim().toLowerCase();
+    const [
+        availableAgents,
+        setAvailableAgents,
+    ] = useState([]);
 
-        if (!search) return demoAvailableAgents;
+    const [
+        selectedAgent,
+        setSelectedAgent,
+    ] = useState(null);
 
-        return demoAvailableAgents.filter((agent) => {
-            return (
-                agent.name.toLowerCase().includes(search) ||
-                agent.phone.includes(search) ||
-                agent.vehicleNumber.toLowerCase().includes(search)
+    const [
+        agentSearch,
+        setAgentSearch,
+    ] = useState("");
+
+    const [
+        agentsLoading,
+        setAgentsLoading,
+    ] = useState(false);
+
+    const [
+        offerSendingId,
+        setOfferSendingId,
+    ] = useState(null);
+
+    const [
+        deliveryError,
+        setDeliveryError,
+    ] = useState("");
+
+
+    // ======================================================
+    // SEARCH AGENTS
+    // ======================================================
+
+    const filteredAgents =
+        useMemo(() => {
+            const search =
+                agentSearch
+                    .trim()
+                    .toLowerCase();
+
+            if (!search) {
+                return availableAgents;
+            }
+
+            return availableAgents.filter(
+                (agent) => {
+                    const values = [
+                        agent?.name,
+                        agent?.publicId,
+                        agent?.phone,
+                        agent?.vehicleType,
+                        agent?.vehicleNumber,
+                    ]
+                        .filter(Boolean)
+                        .map(
+                            (value) =>
+                                String(value)
+                                    .toLowerCase(),
+                        );
+
+                    return values.some(
+                        (value) =>
+                            value.includes(
+                                search,
+                            ),
+                    );
+                },
             );
-        });
-    }, [agentSearch]);
+        }, [
+            availableAgents,
+            agentSearch,
+        ]);
+
 
     // ======================================================
-    // FETCH
+    // FETCH ORDER DETAILS
     // ======================================================
 
     useEffect(() => {
-        if (!orderNumber) return;
+        if (!orderNumber) {
+            return;
+        }
 
-        dispatch(getRestaurantOrder(orderNumber));
+        dispatch(
+            getRestaurantOrder(
+                orderNumber,
+            ),
+        );
 
         return () => {
-            dispatch(clearSelectedOrder());
+            dispatch(
+                clearSelectedOrder(),
+            );
         };
-    }, [dispatch, orderNumber]);
+    }, [
+        dispatch,
+        orderNumber,
+    ]);
+
 
     // ======================================================
-    // MODAL ESCAPE / SCROLL
+    // MODAL ESCAPE + BODY SCROLL
     // ======================================================
 
     useEffect(() => {
-        if (!showAssignModal) return;
+        if (!showAssignModal) {
+            return;
+        }
 
-        const handleEscape = (event) => {
-            if (event.key === "Escape") {
-                setShowAssignModal(false);
+        const handleEscape = (
+            event,
+        ) => {
+            if (
+                event.key ===
+                "Escape" &&
+                !offerSendingId
+            ) {
+                handleCloseAssignModal();
             }
         };
 
-        document.body.style.overflow = "hidden";
-        window.addEventListener("keydown", handleEscape);
+        document.body.style.overflow =
+            "hidden";
+
+        window.addEventListener(
+            "keydown",
+            handleEscape,
+        );
 
         return () => {
-            document.body.style.overflow = "";
-            window.removeEventListener("keydown", handleEscape);
+            document.body.style.overflow =
+                "";
+
+            window.removeEventListener(
+                "keydown",
+                handleEscape,
+            );
         };
-    }, [showAssignModal]);
+    }, [
+        showAssignModal,
+        offerSendingId,
+    ]);
+
 
     // ======================================================
-    // ACCEPT
+    // REFRESH ORDER
     // ======================================================
 
-    const handleAccept = async () => {
-        try {
-            await dispatch(acceptRestaurantOrder(orderNumber)).unwrap();
-            dispatch(getRestaurantOrder(orderNumber));
-        } catch (error) {
-            console.error("ACCEPT ORDER ERROR:", error);
+    const refreshOrder = () => {
+        if (!orderNumber) {
+            return;
         }
+
+        dispatch(
+            getRestaurantOrder(
+                orderNumber,
+            ),
+        );
     };
 
-    // ======================================================
-    // REJECT
-    // ======================================================
-
-    const handleReject = async () => {
-        const reason = rejectionReason.trim();
-
-        if (!reason) return;
-
-        try {
-            await dispatch(
-                rejectRestaurantOrder({
-                    orderNumber,
-                    reason,
-                })
-            ).unwrap();
-
-            setShowRejectForm(false);
-            setRejectionReason("");
-
-            dispatch(getRestaurantOrder(orderNumber));
-        } catch (error) {
-            console.error("REJECT ORDER ERROR:", error);
-        }
-    };
 
     // ======================================================
-    // PREPARING
+    // ACCEPT ORDER
     // ======================================================
 
-    const handlePreparing = async () => {
-        try {
-            await dispatch(markRestaurantOrderPreparing(orderNumber)).unwrap();
-            dispatch(getRestaurantOrder(orderNumber));
-        } catch (error) {
-            console.error("PREPARING ORDER ERROR:", error);
-        }
-    };
+    const handleAccept =
+        async () => {
+            try {
+                await dispatch(
+                    acceptRestaurantOrder(
+                        orderNumber,
+                    ),
+                ).unwrap();
+
+                refreshOrder();
+            } catch (error) {
+                console.error(
+                    "ACCEPT ORDER ERROR:",
+                    error,
+                );
+            }
+        };
+
 
     // ======================================================
-    // READY
+    // REJECT ORDER
     // ======================================================
 
-    const handleReady = async () => {
-        try {
-            await dispatch(markRestaurantOrderReady(orderNumber)).unwrap();
-            dispatch(getRestaurantOrder(orderNumber));
-        } catch (error) {
-            console.error("READY ORDER ERROR:", error);
-        }
-    };
+    const handleReject =
+        async () => {
+            const reason =
+                rejectionReason.trim();
+
+            if (!reason) {
+                return;
+            }
+
+            try {
+                await dispatch(
+                    rejectRestaurantOrder({
+                        orderNumber,
+                        reason,
+                    }),
+                ).unwrap();
+
+                setShowRejectForm(
+                    false,
+                );
+
+                setRejectionReason(
+                    "",
+                );
+
+                refreshOrder();
+            } catch (error) {
+                console.error(
+                    "REJECT ORDER ERROR:",
+                    error,
+                );
+            }
+        };
+
 
     // ======================================================
-    // TEMP SEND OFFER
-    //
-    // Backend integration next step me yahan dispatch lagega.
+    // START PREPARING
     // ======================================================
 
-    const handleSendOffer = (agent) => {
-        setSelectedAgent(agent);
-        setShowAssignModal(false);
-        setAgentSearch("");
-    };
+    const handlePreparing =
+        async () => {
+            try {
+                await dispatch(
+                    markRestaurantOrderPreparing(
+                        orderNumber,
+                    ),
+                ).unwrap();
+
+                refreshOrder();
+            } catch (error) {
+                console.error(
+                    "PREPARING ORDER ERROR:",
+                    error,
+                );
+            }
+        };
+
 
     // ======================================================
-    // RETRY
+    // MARK READY
+    // ======================================================
+
+    const handleReady =
+        async () => {
+            try {
+                await dispatch(
+                    markRestaurantOrderReady(
+                        orderNumber,
+                    ),
+                ).unwrap();
+
+                refreshOrder();
+            } catch (error) {
+                console.error(
+                    "READY ORDER ERROR:",
+                    error,
+                );
+            }
+        };
+
+
+    // ======================================================
+    // OPEN DELIVERY PARTNER MODAL
+    // ======================================================
+
+    const handleOpenAssignModal =
+        async () => {
+            if (
+                !orderNumber ||
+                agentsLoading
+            ) {
+                return;
+            }
+
+            setShowAssignModal(
+                true,
+            );
+
+            setAgentSearch("");
+
+            setAvailableAgents([]);
+
+            setDeliveryError("");
+
+            setAgentsLoading(
+                true,
+            );
+
+            try {
+                const payload =
+                    await dispatch(
+                        getAvailableDeliveryAgents(
+                            orderNumber,
+                        ),
+                    ).unwrap();
+
+                const agents =
+                    extractAgents(
+                        payload,
+                    )
+                        .slice()
+                        .sort(
+                            (
+                                first,
+                                second,
+                            ) =>
+                                Number(
+                                    first?.distanceKm ??
+                                    Infinity,
+                                ) -
+                                Number(
+                                    second?.distanceKm ??
+                                    Infinity,
+                                ),
+                        );
+
+                setAvailableAgents(
+                    agents,
+                );
+            } catch (error) {
+                console.error(
+                    "GET AVAILABLE DELIVERY AGENTS ERROR:",
+                    error,
+                );
+
+                setDeliveryError(
+                    getErrorMessage(
+                        error,
+                        "Failed to fetch available delivery partners",
+                    ),
+                );
+            } finally {
+                setAgentsLoading(
+                    false,
+                );
+            }
+        };
+
+
+    // ======================================================
+    // CLOSE DELIVERY MODAL
+    // ======================================================
+
+    const handleCloseAssignModal =
+        () => {
+            if (offerSendingId) {
+                return;
+            }
+
+            setShowAssignModal(
+                false,
+            );
+
+            setAgentSearch("");
+
+            setAvailableAgents([]);
+
+            setDeliveryError("");
+        };
+
+
+    // ======================================================
+    // SEND DELIVERY OFFER
+    // ======================================================
+
+    const handleSendOffer =
+        async (agent) => {
+            if (
+                offerSendingId
+            ) {
+                return;
+            }
+
+            if (
+                !agent?.publicId
+            ) {
+                setDeliveryError(
+                    "Delivery partner public id is missing.",
+                );
+
+                return;
+            }
+
+            try {
+                setOfferSendingId(
+                    agent.publicId,
+                );
+
+                setDeliveryError("");
+
+                await dispatch(
+                    sendRestaurantDeliveryOffer({
+                        orderNumber,
+
+                        deliveryAgentPublicId:
+                            agent.publicId,
+                    }),
+                ).unwrap();
+
+
+                setSelectedAgent({
+                    ...agent,
+
+                    offerStatus:
+                        "OFFERED",
+                });
+
+
+                setShowAssignModal(
+                    false,
+                );
+
+                setAvailableAgents(
+                    [],
+                );
+
+                setAgentSearch("");
+
+                refreshOrder();
+            } catch (error) {
+                console.error(
+                    "SEND DELIVERY OFFER ERROR:",
+                    error,
+                );
+
+                setDeliveryError(
+                    getErrorMessage(
+                        error,
+                        "Failed to send delivery offer",
+                    ),
+                );
+            } finally {
+                setOfferSendingId(
+                    null,
+                );
+            }
+        };
+
+
+    // ======================================================
+    // RETRY ORDER
     // ======================================================
 
     const handleRetry = () => {
-        dispatch(getRestaurantOrder(orderNumber));
+        refreshOrder();
     };
 
+
     // ======================================================
-    // LOADING
+    // INITIAL LOADING
     // ======================================================
 
-    if (detailLoading && !order) {
+    if (
+        detailLoading &&
+        !order
+    ) {
         return (
-            <div className="space-y-5">
-                <Skeleton
-                    width="w-56"
-                    height="h-10"
-                    rounded="rounded-xl"
-                />
-
-                <Skeleton
-                    width="w-full"
-                    height="h-44"
-                    rounded="rounded-[1.75rem]"
-                />
-
-                <div className="grid gap-5 lg:grid-cols-2">
-                    <Skeleton
-                        width="w-full"
-                        height="h-80"
-                        rounded="rounded-[1.75rem]"
-                    />
-
-                    <Skeleton
-                        width="w-full"
-                        height="h-80"
-                        rounded="rounded-[1.75rem]"
-                    />
-                </div>
-            </div>
+            <OrderDetailsSkeleton />
         );
     }
+
 
     // ======================================================
     // ERROR
     // ======================================================
 
-    if (detailError && !order) {
+    if (
+        detailError &&
+        !order
+    ) {
         return (
             <ErrorState
                 title="Unable to load order"
                 description={
-                    typeof detailError === "string"
+                    typeof detailError ===
+                        "string"
                         ? detailError
                         : "Unable to fetch order details."
                 }
-                onRetry={handleRetry}
+                onRetry={
+                    handleRetry
+                }
             />
         );
     }
+
 
     // ======================================================
     // EMPTY
@@ -392,7 +777,11 @@ const RestaurantOrderDetails = () => {
                 action={
                     <Button
                         type="button"
-                        onClick={() => navigate("/restaurant/orders")}
+                        onClick={() =>
+                            navigate(
+                                "/restaurant/orders",
+                            )
+                        }
                     >
                         Back to Orders
                     </Button>
@@ -401,14 +790,22 @@ const RestaurantOrderDetails = () => {
         );
     }
 
+
     // ======================================================
-    // DERIVED
+    // DERIVED VALUES
     // ======================================================
 
-    const currentStatus = statusConfig[order.status] || {
-        label: order.status,
-        variant: "neutral",
-    };
+    const currentStatus =
+        statusConfig[
+        order.status
+        ] || {
+            label:
+                order.status,
+
+            variant:
+                "neutral",
+        };
+
 
     const customerAddress = [
         order.addressLine,
@@ -420,6 +817,7 @@ const RestaurantOrderDetails = () => {
         .filter(Boolean)
         .join(", ");
 
+
     // ======================================================
     // RENDER
     // ======================================================
@@ -427,725 +825,1598 @@ const RestaurantOrderDetails = () => {
     return (
         <>
             <div className="space-y-6">
-                {/* BACK */}
+
+                {/* ============================
+                    BACK BUTTON
+                ============================ */}
 
                 <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => navigate("/restaurant/orders")}
+                    onClick={() =>
+                        navigate(
+                            "/restaurant/orders",
+                        )
+                    }
                 >
                     <ArrowLeft className="mr-2 h-4 w-4" />
+
                     Back to Orders
                 </Button>
 
-                {/* =================================================
-            ORDER HEADER
-        ================================================= */}
+
+                {/* ============================
+                    ORDER HEADER
+                ============================ */}
 
                 <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
                         <div>
+
                             <div className="flex flex-wrap items-center gap-3">
+
                                 <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-                                    Order {order.orderNumber}
+                                    Order{" "}
+                                    {
+                                        order.orderNumber
+                                    }
                                 </h1>
 
-                                <StatusBadge variant={currentStatus.variant} dot>
-                                    {currentStatus.label}
+                                <StatusBadge
+                                    variant={
+                                        currentStatus.variant
+                                    }
+                                    dot
+                                >
+                                    {
+                                        currentStatus.label
+                                    }
                                 </StatusBadge>
+
                             </div>
 
+
                             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-slate-500">
+
                                 <span className="flex items-center gap-2">
                                     <Hash className="h-4 w-4" />
-                                    Checkout: {order.checkoutNumber || "-"}
+
+                                    Checkout:{" "}
+                                    {
+                                        order.checkoutNumber ||
+                                        "-"
+                                    }
                                 </span>
 
                                 <span className="flex items-center gap-2">
                                     <CalendarDays className="h-4 w-4" />
-                                    {formatDate(order.createdAt)}
+
+                                    {
+                                        formatDate(
+                                            order.createdAt,
+                                        )
+                                    }
                                 </span>
+
                             </div>
+
                         </div>
 
-                        {/* =============================================
-                ORDER ACTIONS
-            ============================================= */}
 
-                        <div className="flex flex-wrap gap-2">
-                            {order.status === "PLACED" && (
-                                <>
-                                    <Button
-                                        type="button"
-                                        disabled={actionLoading}
-                                        onClick={handleAccept}
-                                    >
-                                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                                        Accept Order
-                                    </Button>
+                        {/* ORDER ACTIONS */}
 
-                                    <Button
-                                        type="button"
-                                        variant="danger"
-                                        disabled={actionLoading}
-                                        onClick={() => setShowRejectForm(true)}
-                                    >
-                                        <XCircle className="mr-2 h-4 w-4" />
-                                        Reject
-                                    </Button>
-                                </>
-                            )}
+                        <OrderActions
+                            order={order}
+                            actionLoading={
+                                actionLoading
+                            }
+                            deliveryLoading={
+                                agentsLoading
+                            }
+                            hasPendingLocalOffer={
+                                Boolean(
+                                    selectedAgent,
+                                )
+                            }
+                            onAccept={
+                                handleAccept
+                            }
+                            onReject={() =>
+                                setShowRejectForm(
+                                    true,
+                                )
+                            }
+                            onPreparing={
+                                handlePreparing
+                            }
+                            onReady={
+                                handleReady
+                            }
+                            onAssignDelivery={
+                                handleOpenAssignModal
+                            }
+                        />
 
-                            {order.status === "CONFIRMED" && (
-                                <Button
-                                    type="button"
-                                    disabled={actionLoading}
-                                    onClick={handlePreparing}
-                                >
-                                    <ChefHat className="mr-2 h-4 w-4" />
-                                    Start Preparing
-                                </Button>
-                            )}
-
-                            {order.status === "PREPARING" && (
-                                <Button
-                                    type="button"
-                                    disabled={actionLoading}
-                                    onClick={handleReady}
-                                >
-                                    <PackageCheck className="mr-2 h-4 w-4" />
-                                    Mark Ready
-                                </Button>
-                            )}
-
-                            {order.status === "READY_FOR_PICKUP" && (
-                                <Button
-                                    type="button"
-                                    onClick={() => setShowAssignModal(true)}
-                                >
-                                    <Bike className="mr-2 h-4 w-4" />
-                                    Assign Delivery Partner
-                                </Button>
-                            )}
-                        </div>
                     </div>
+
 
                     {/* ACTION ERROR */}
 
-                    {actionError && (
-                        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-                            {actionError}
-                        </div>
-                    )}
-
-                    {/* TEMP SELECTED DELIVERY AGENT PREVIEW */}
-
-                    {order.status === "READY_FOR_PICKUP" && selectedAgent && (
-                        <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
-                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div className="flex items-center gap-3">
-                                    <AgentAvatar agent={selectedAgent} />
-
-                                    <div>
-                                        <p className="text-xs font-black uppercase tracking-wider text-emerald-600">
-                                            Offer Preview
-                                        </p>
-
-                                        <h3 className="mt-1 font-black text-slate-900">
-                                            {selectedAgent.name}
-                                        </h3>
-
-                                        <p className="mt-1 text-xs font-semibold text-slate-500">
-                                            {selectedAgent.vehicleType} •{" "}
-                                            {selectedAgent.vehicleNumber}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-black text-emerald-700">
-                                        Offer selected
-                                    </span>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setSelectedAgent(null);
-                                            setShowAssignModal(true);
-                                        }}
-                                        className="rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-600 shadow-sm transition hover:text-orange-600"
-                                    >
-                                        Change
-                                    </button>
-                                </div>
+                    {
+                        actionError && (
+                            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                                {
+                                    actionError
+                                }
                             </div>
+                        )
+                    }
 
-                            <p className="mt-3 text-xs font-semibold text-emerald-700">
-                                UI preview only. Backend connect hone ke baad offer realtime
-                                delivery partner ko jayega.
-                            </p>
-                        </div>
-                    )}
+
+                    {/* OFFER SENT INFO */}
+
+                    {
+                        order.status ===
+                        "READY_FOR_PICKUP" &&
+                        selectedAgent && (
+                            <DeliveryOfferSentCard
+                                agent={
+                                    selectedAgent
+                                }
+                            />
+                        )
+                    }
+
 
                     {/* REJECT FORM */}
 
-                    {showRejectForm && order.status === "PLACED" && (
-                        <div className="mt-5 rounded-2xl border border-red-100 bg-red-50/60 p-4">
-                            <label className="text-sm font-black text-slate-800">
-                                Why are you rejecting this order?
-                            </label>
+                    {
+                        showRejectForm &&
+                        order.status ===
+                        "PLACED" && (
 
-                            <textarea
-                                rows={4}
-                                value={rejectionReason}
-                                onChange={(event) =>
-                                    setRejectionReason(event.target.value)
+                            <RejectOrderForm
+                                value={
+                                    rejectionReason
                                 }
-                                placeholder="Example: Ordered item is currently unavailable."
-                                className="mt-3 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-red-300 focus:ring-4 focus:ring-red-50"
+                                loading={
+                                    actionLoading
+                                }
+                                onChange={
+                                    setRejectionReason
+                                }
+                                onCancel={() => {
+                                    setShowRejectForm(
+                                        false,
+                                    );
+
+                                    setRejectionReason(
+                                        "",
+                                    );
+                                }}
+                                onSubmit={
+                                    handleReject
+                                }
                             />
+                        )
+                    }
 
-                            <div className="mt-3 flex justify-end gap-2">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={() => {
-                                        setShowRejectForm(false);
-                                        setRejectionReason("");
-                                    }}
-                                >
-                                    Cancel
-                                </Button>
-
-                                <Button
-                                    type="button"
-                                    variant="danger"
-                                    disabled={
-                                        actionLoading ||
-                                        !rejectionReason.trim()
-                                    }
-                                    onClick={handleReject}
-                                >
-                                    Confirm Reject
-                                </Button>
-                            </div>
-                        </div>
-                    )}
                 </section>
 
-                {/* =================================================
-            CUSTOMER + ADDRESS
-        ================================================= */}
+
+                {/* ============================
+                    CUSTOMER + ADDRESS
+                ============================ */}
 
                 <div className="grid gap-5 lg:grid-cols-2">
-                    {/* CUSTOMER */}
 
                     <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+
                         <SectionTitle
-                            icon={UserRound}
+                            icon={
+                                UserRound
+                            }
                             title="Customer Details"
                             description="Customer who placed this order"
                         />
 
                         <div className="mt-5 space-y-4">
+
                             <DetailRow
-                                icon={UserRound}
+                                icon={
+                                    UserRound
+                                }
                                 label="Customer Name"
-                                value={order.deliveryName || "-"}
+                                value={
+                                    order.deliveryName ||
+                                    "-"
+                                }
                             />
 
                             <DetailRow
-                                icon={Phone}
+                                icon={
+                                    Phone
+                                }
                                 label="Phone Number"
-                                value={order.deliveryPhone || "-"}
+                                value={
+                                    order.deliveryPhone ||
+                                    "-"
+                                }
                             />
+
                         </div>
+
                     </section>
 
-                    {/* ADDRESS */}
 
                     <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+
                         <SectionTitle
-                            icon={MapPin}
+                            icon={
+                                MapPin
+                            }
                             title="Delivery Address"
                             description="Where this order needs to be delivered"
                         />
 
                         <p className="mt-5 text-sm font-semibold leading-7 text-slate-700">
-                            {customerAddress || "Address unavailable"}
+                            {
+                                customerAddress ||
+                                "Address unavailable"
+                            }
                         </p>
 
+
                         <div className="mt-4 grid gap-3 sm:grid-cols-2">
+
                             <SmallDetail
                                 label="City"
-                                value={order.city}
+                                value={
+                                    order.city
+                                }
                             />
 
                             <SmallDetail
                                 label="State"
-                                value={order.state}
+                                value={
+                                    order.state
+                                }
                             />
 
                             <SmallDetail
                                 label="Pincode"
-                                value={order.pincode}
+                                value={
+                                    order.pincode
+                                }
                             />
 
                             <SmallDetail
                                 label="Landmark"
-                                value={order.landmark}
+                                value={
+                                    order.landmark
+                                }
                             />
+
                         </div>
+
                     </section>
+
                 </div>
 
-                {/* =================================================
-            ORDERED ITEMS
-        ================================================= */}
 
-                <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <SectionTitle
-                            icon={ShoppingBag}
-                            title="Ordered Items"
-                            description="Food items ordered by the customer"
-                        />
+                {/* ============================
+                    ORDER ITEMS
+                ============================ */}
 
-                        <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">
-                            {order.items?.length || 0} items
-                        </span>
-                    </div>
+                <OrderItemsSection
+                    items={
+                        order.items ||
+                        []
+                    }
+                />
 
-                    {order.items?.length > 0 ? (
-                        <div className="mt-5 divide-y divide-slate-100">
-                            {order.items.map((item, index) => (
-                                <div
-                                    key={item.slug || index}
-                                    className="flex flex-col gap-4 py-4 first:pt-0 sm:flex-row sm:items-center"
-                                >
-                                    <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-slate-100">
-                                        {item.image ? (
-                                            <OptimizedImage
-                                                src={item.image}
-                                                alt={item.name}
-                                                className="h-full w-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="flex h-full w-full items-center justify-center">
-                                                <ShoppingBag className="h-6 w-6 text-slate-300" />
-                                            </div>
-                                        )}
-                                    </div>
 
-                                    <div className="min-w-0 flex-1">
-                                        <h3 className="font-black text-slate-900">
-                                            {item.name}
-                                        </h3>
-
-                                        <p className="mt-1 text-xs font-semibold text-slate-400">
-                                            {item.slug}
-                                        </p>
-
-                                        <div className="mt-3 flex flex-wrap gap-3">
-                                            <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-600">
-                                                Qty: {item.quantity}
-                                            </span>
-
-                                            <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-600">
-                                                Unit: {formatPrice(item.unitPrice)}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="sm:text-right">
-                                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                                            Item Total
-                                        </p>
-
-                                        <p className="mt-1 text-lg font-black text-slate-900">
-                                            {formatPrice(item.itemTotal)}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="py-12 text-center">
-                            <ShoppingBag className="mx-auto h-8 w-8 text-slate-300" />
-
-                            <p className="mt-3 text-sm font-bold text-slate-500">
-                                No order items found.
-                            </p>
-                        </div>
-                    )}
-                </section>
-
-                {/* =================================================
-            PAYMENT + BILL
-        ================================================= */}
+                {/* ============================
+                    PAYMENT + BILL
+                ============================ */}
 
                 <div className="grid gap-5 lg:grid-cols-[1fr_0.8fr]">
-                    {/* PAYMENT */}
 
-                    <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <CreditCard className="h-5 w-5 text-orange-500" />
-
-                            <h2 className="font-black text-slate-900">
-                                Payment Details
-                            </h2>
-                        </div>
-
-                        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                            <SmallDetail
-                                label="Payment Method"
-                                value={order.paymentMethod}
-                            />
-
-                            <div>
-                                <p className="text-xs font-bold text-slate-400">
-                                    Payment Status
-                                </p>
-
-                                <div className="mt-2">
-                                    <StatusBadge
-                                        variant={
-                                            order.paymentStatus === "PAID"
-                                                ? "success"
-                                                : "warning"
-                                        }
-                                        dot
-                                    >
-                                        {order.paymentStatus || "-"}
-                                    </StatusBadge>
-                                </div>
-                            </div>
-
-                            <SmallDetail
-                                label="Checkout Number"
-                                value={order.checkoutNumber}
-                            />
-
-                            <SmallDetail
-                                label="Order Date"
-                                value={formatDate(order.createdAt)}
-                            />
-                        </div>
-                    </section>
-
-                    {/* BILL */}
-
-                    <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <ReceiptText className="h-5 w-5 text-orange-500" />
-
-                            <h2 className="font-black text-slate-900">
-                                Bill Summary
-                            </h2>
-                        </div>
-
-                        <div className="mt-5 space-y-3">
-                            <PriceRow
-                                label="Subtotal"
-                                value={order.subtotal}
-                            />
-
-                            <PriceRow
-                                label="Delivery Fee"
-                                value={order.deliveryFee}
-                            />
-
-                            <PriceRow
-                                label="Tax"
-                                value={order.taxAmount}
-                            />
-
-                            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-                                <span className="font-black text-slate-900">
-                                    Total Amount
-                                </span>
-
-                                <span className="text-xl font-black text-orange-600">
-                                    {formatPrice(order.totalAmount)}
-                                </span>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-
-                {/* =================================================
-            TIMELINE
-        ================================================= */}
-
-                <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <Clock3 className="h-5 w-5 text-orange-500" />
-
-                        <h2 className="font-black text-slate-900">
-                            Order Timeline
-                        </h2>
-                    </div>
-
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <TimelineCard
-                            label="Placed"
-                            value={order.createdAt}
-                        />
-
-                        <TimelineCard
-                            label="Confirmed"
-                            value={order.confirmedAt}
-                        />
-
-                        <TimelineCard
-                            label="Preparing"
-                            value={order.preparingAt}
-                        />
-
-                        <TimelineCard
-                            label="Ready"
-                            value={order.readyAt}
-                        />
-
-                        <TimelineCard
-                            label="Picked Up"
-                            value={order.pickedUpAt}
-                        />
-
-                        <TimelineCard
-                            label="Delivered"
-                            value={order.deliveredAt}
-                        />
-
-                        <TimelineCard
-                            label="Cancelled"
-                            value={order.cancelledAt}
-                        />
-                    </div>
-
-                    {order.rejectionReason && (
-                        <ReasonCard
-                            title="Rejection Reason"
-                            value={order.rejectionReason}
-                            danger
-                        />
-                    )}
-
-                    {order.cancelledReason && (
-                        <ReasonCard
-                            title="Cancellation Reason"
-                            value={order.cancelledReason}
-                        />
-                    )}
-                </section>
-            </div>
-
-            {/* ===================================================
-          ASSIGN DELIVERY AGENT MODAL
-      =================================================== */}
-
-            {showAssignModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-                    {/* BACKDROP */}
-
-                    <button
-                        type="button"
-                        aria-label="Close delivery partner modal"
-                        onClick={() => setShowAssignModal(false)}
-                        className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
+                    <PaymentSection
+                        order={
+                            order
+                        }
                     />
 
-                    {/* MODAL */}
+                    <BillSection
+                        order={
+                            order
+                        }
+                    />
 
-                    <div className="relative z-10 flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl">
-                        {/* HEADER */}
-
-                        <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="flex min-w-0 items-start gap-3">
-                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
-                                        <Bike className="h-6 w-6" />
-                                    </div>
-
-                                    <div className="min-w-0">
-                                        <h2 className="text-xl font-black text-slate-950">
-                                            Assign Delivery Partner
-                                        </h2>
-
-                                        <p className="mt-1 text-sm text-slate-500">
-                                            Order{" "}
-                                            <span className="font-bold text-slate-700">
-                                                {order.orderNumber}
-                                            </span>
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAssignModal(false)}
-                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                                >
-                                    <X className="h-5 w-5" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* BODY */}
-
-                        <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-                            {/* AVAILABILITY INFO */}
-
-                            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
-                                <div className="flex gap-3">
-                                    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-
-                                    <div>
-                                        <p className="text-sm font-black text-emerald-900">
-                                            Available partners only
-                                        </p>
-
-                                        <p className="mt-1 text-xs leading-5 text-emerald-700">
-                                            Yahan sirf online, free aur currently kisi active
-                                            delivery par na hone wale nearby partners show honge.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* SEARCH */}
-
-                            <div className="relative mt-5">
-                                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-
-                                <input
-                                    type="text"
-                                    value={agentSearch}
-                                    onChange={(event) =>
-                                        setAgentSearch(event.target.value)
-                                    }
-                                    placeholder="Search delivery partner..."
-                                    className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-semibold text-slate-800 outline-none transition focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-50"
-                                />
-                            </div>
-
-                            {/* SUMMARY */}
-
-                            <div className="mt-5 flex items-center justify-between gap-3">
-                                <div>
-                                    <h3 className="font-black text-slate-900">
-                                        Nearby Delivery Partners
-                                    </h3>
-
-                                    <p className="mt-1 text-xs text-slate-400">
-                                        Nearest available partners are shown first.
-                                    </p>
-                                </div>
-
-                                <span className="rounded-full bg-orange-50 px-3 py-1.5 text-xs font-black text-orange-600">
-                                    {filteredAgents.length} Available
-                                </span>
-                            </div>
-
-                            {/* AGENTS */}
-
-                            {filteredAgents.length > 0 ? (
-                                <div className="mt-4 space-y-3">
-                                    {filteredAgents.map((agent) => (
-                                        <div
-                                            key={agent.id}
-                                            className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-orange-200 hover:shadow-sm"
-                                        >
-                                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                                                <AgentAvatar agent={agent} />
-
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <h4 className="font-black text-slate-900">
-                                                            {agent.name}
-                                                        </h4>
-
-                                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700">
-                                                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                                            Available
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-slate-500">
-                                                        <span className="flex items-center gap-1.5">
-                                                            <Bike className="h-3.5 w-3.5" />
-                                                            {agent.vehicleType}
-                                                        </span>
-
-                                                        <span>
-                                                            {agent.vehicleNumber}
-                                                        </span>
-
-                                                        <span className="flex items-center gap-1.5 font-bold text-orange-600">
-                                                            <Navigation className="h-3.5 w-3.5" />
-                                                            {agent.distanceKm} km away
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
-                                                        <Phone className="h-3.5 w-3.5" />
-                                                        {agent.phone}
-                                                    </div>
-                                                </div>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleSendOffer(agent)}
-                                                    className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-orange-500 px-4 text-sm font-black text-white shadow-sm transition hover:bg-orange-600 active:scale-[0.98]"
-                                                >
-                                                    Send Offer
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="mt-5 rounded-2xl border border-dashed border-slate-200 py-12 text-center">
-                                    <Bike className="mx-auto h-8 w-8 text-slate-300" />
-
-                                    <h3 className="mt-3 font-black text-slate-700">
-                                        No delivery partners found
-                                    </h3>
-
-                                    <p className="mx-auto mt-1 max-w-sm text-sm text-slate-400">
-                                        No online and available delivery partner matches your
-                                        search right now.
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* FOOTER */}
-
-                        <div className="border-t border-slate-100 bg-slate-50 px-5 py-4 sm:px-6">
-                            <div className="flex items-center justify-between gap-4">
-                                <p className="text-xs font-semibold text-slate-400">
-                                    Partner ko accept/reject karne ke liye realtime offer milega.
-                                </p>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAssignModal(false)}
-                                    className="rounded-xl bg-white px-4 py-2.5 text-sm font-black text-slate-600 shadow-sm transition hover:text-slate-900"
-                                >
-                                    Close
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            )}
+
+
+                {/* ============================
+                    TIMELINE
+                ============================ */}
+
+                <OrderTimeline
+                    order={
+                        order
+                    }
+                />
+
+            </div>
+
+
+            {/* ============================
+                DELIVERY PARTNER MODAL
+            ============================ */}
+
+            {
+                showAssignModal && (
+
+                    <DeliveryPartnerModal
+                        orderNumber={
+                            order.orderNumber
+                        }
+                        agents={
+                            filteredAgents
+                        }
+                        totalAgents={
+                            availableAgents.length
+                        }
+                        search={
+                            agentSearch
+                        }
+                        loading={
+                            agentsLoading
+                        }
+                        error={
+                            deliveryError
+                        }
+                        offerSendingId={
+                            offerSendingId
+                        }
+                        onSearch={
+                            setAgentSearch
+                        }
+                        onSendOffer={
+                            handleSendOffer
+                        }
+                        onClose={
+                            handleCloseAssignModal
+                        }
+                        onRetry={
+                            handleOpenAssignModal
+                        }
+                    />
+                )
+            }
+
         </>
     );
 };
 
+
 // ========================================================
-// SECTION TITLE
+// ORDER ACTIONS
+// ========================================================
+
+const OrderActions = ({
+    order,
+    actionLoading,
+    deliveryLoading,
+    hasPendingLocalOffer,
+    onAccept,
+    onReject,
+    onPreparing,
+    onReady,
+    onAssignDelivery,
+}) => {
+    return (
+        <div className="flex flex-wrap gap-2">
+
+            {
+                order.status ===
+                "PLACED" && (
+                    <>
+                        <Button
+                            type="button"
+                            disabled={
+                                actionLoading
+                            }
+                            onClick={
+                                onAccept
+                            }
+                        >
+                            <CheckCircle2 className="mr-2 h-4 w-4" />
+
+                            Accept Order
+                        </Button>
+
+
+                        <Button
+                            type="button"
+                            variant="danger"
+                            disabled={
+                                actionLoading
+                            }
+                            onClick={
+                                onReject
+                            }
+                        >
+                            <XCircle className="mr-2 h-4 w-4" />
+
+                            Reject
+                        </Button>
+                    </>
+                )
+            }
+
+
+            {
+                order.status ===
+                "CONFIRMED" && (
+
+                    <Button
+                        type="button"
+                        disabled={
+                            actionLoading
+                        }
+                        onClick={
+                            onPreparing
+                        }
+                    >
+                        <ChefHat className="mr-2 h-4 w-4" />
+
+                        Start Preparing
+                    </Button>
+                )
+            }
+
+
+            {
+                order.status ===
+                "PREPARING" && (
+
+                    <Button
+                        type="button"
+                        disabled={
+                            actionLoading
+                        }
+                        onClick={
+                            onReady
+                        }
+                    >
+                        <PackageCheck className="mr-2 h-4 w-4" />
+
+                        Mark Ready
+                    </Button>
+                )
+            }
+
+
+            {
+                order.status ===
+                "READY_FOR_PICKUP" &&
+                !hasPendingLocalOffer && (
+
+                    <Button
+                        type="button"
+                        disabled={
+                            deliveryLoading
+                        }
+                        onClick={
+                            onAssignDelivery
+                        }
+                    >
+                        <Bike className="mr-2 h-4 w-4" />
+
+                        {
+                            deliveryLoading
+                                ? "Finding Partners..."
+                                : "Assign Delivery Partner"
+                        }
+                    </Button>
+                )
+            }
+
+        </div>
+    );
+};
+
+
+// ========================================================
+// REJECT ORDER FORM
+// ========================================================
+
+const RejectOrderForm = ({
+    value,
+    loading,
+    onChange,
+    onCancel,
+    onSubmit,
+}) => {
+    return (
+        <div className="mt-5 rounded-2xl border border-red-100 bg-red-50/60 p-4">
+
+            <label className="text-sm font-black text-slate-800">
+                Why are you rejecting this order?
+            </label>
+
+
+            <textarea
+                rows={4}
+                value={
+                    value
+                }
+                onChange={
+                    (event) =>
+                        onChange(
+                            event.target.value,
+                        )
+                }
+                placeholder="Example: Ordered item is currently unavailable."
+                className="mt-3 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-red-300 focus:ring-4 focus:ring-red-50"
+            />
+
+
+            <div className="mt-3 flex justify-end gap-2">
+
+                <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={
+                        onCancel
+                    }
+                >
+                    Cancel
+                </Button>
+
+
+                <Button
+                    type="button"
+                    variant="danger"
+                    disabled={
+                        loading ||
+                        !value.trim()
+                    }
+                    onClick={
+                        onSubmit
+                    }
+                >
+                    Confirm Reject
+                </Button>
+
+            </div>
+
+        </div>
+    );
+};
+
+
+// ========================================================
+// OFFER SENT CARD
+// ========================================================
+
+const DeliveryOfferSentCard = ({
+    agent,
+}) => {
+    return (
+        <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
+
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+                <div className="flex items-center gap-3">
+
+                    <AgentAvatar
+                        agent={
+                            agent
+                        }
+                    />
+
+
+                    <div>
+
+                        <p className="text-xs font-black uppercase tracking-wider text-emerald-600">
+                            Delivery Offer Sent
+                        </p>
+
+                        <h3 className="mt-1 font-black text-slate-900">
+                            {
+                                agent.name
+                            }
+                        </h3>
+
+                        <p className="mt-1 text-xs font-semibold text-slate-500">
+
+                            {
+                                agent.vehicleType ||
+                                "Vehicle"
+                            }
+
+                            {
+                                agent.vehicleNumber
+                                    ? ` • ${agent.vehicleNumber}`
+                                    : ""
+                            }
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-black text-emerald-700">
+                    Waiting for response
+                </span>
+
+            </div>
+
+
+            <p className="mt-3 text-xs font-semibold text-emerald-700">
+                Offer successfully sent. Delivery partner can now accept or reject it.
+            </p>
+
+        </div>
+    );
+};
+
+
+// ========================================================
+// DELIVERY PARTNER MODAL
+// ========================================================
+
+const DeliveryPartnerModal = ({
+    orderNumber,
+    agents,
+    totalAgents,
+    search,
+    loading,
+    error,
+    offerSendingId,
+    onSearch,
+    onSendOffer,
+    onClose,
+    onRetry,
+}) => {
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+
+            {/* BACKDROP */}
+
+            <button
+                type="button"
+                aria-label="Close delivery partner modal"
+                disabled={
+                    Boolean(
+                        offerSendingId,
+                    )
+                }
+                onClick={
+                    onClose
+                }
+                className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
+            />
+
+
+            {/* MODAL */}
+
+            <div className="relative z-10 flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+
+                {/* HEADER */}
+
+                <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+
+                    <div className="flex items-start justify-between gap-4">
+
+                        <div className="flex min-w-0 items-start gap-3">
+
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+                                <Bike className="h-6 w-6" />
+                            </div>
+
+
+                            <div className="min-w-0">
+
+                                <h2 className="text-xl font-black text-slate-950">
+                                    Assign Delivery Partner
+                                </h2>
+
+                                <p className="mt-1 text-sm text-slate-500">
+
+                                    Order{" "}
+
+                                    <span className="font-bold text-slate-700">
+                                        {
+                                            orderNumber
+                                        }
+                                    </span>
+
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        <button
+                            type="button"
+                            disabled={
+                                Boolean(
+                                    offerSendingId,
+                                )
+                            }
+                            onClick={
+                                onClose
+                            }
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                {/* BODY */}
+
+                <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+
+                        <div className="flex gap-3">
+
+                            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+
+
+                            <div>
+
+                                <p className="text-sm font-black text-emerald-900">
+                                    Available partners only
+                                </p>
+
+                                <p className="mt-1 text-xs leading-5 text-emerald-700">
+                                    Yahan sirf approved, online, available aur nearby delivery partners show honge.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    {/* ERROR */}
+
+                    {
+                        error && (
+                            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4">
+
+                                <p className="text-sm font-bold text-red-700">
+                                    {
+                                        error
+                                    }
+                                </p>
+
+                                {
+                                    !offerSendingId && (
+                                        <button
+                                            type="button"
+                                            onClick={
+                                                onRetry
+                                            }
+                                            className="mt-3 text-xs font-black text-red-700 underline underline-offset-4"
+                                        >
+                                            Try Again
+                                        </button>
+                                    )
+                                }
+
+                            </div>
+                        )
+                    }
+
+
+                    {/* LOADING */}
+
+                    {
+                        loading ? (
+
+                            <DeliveryAgentsLoading />
+
+                        ) : (
+
+                            <>
+                                {/* SEARCH */}
+
+                                <div className="relative mt-5">
+
+                                    <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                                    <input
+                                        type="text"
+                                        value={
+                                            search
+                                        }
+                                        onChange={
+                                            (event) =>
+                                                onSearch(
+                                                    event.target.value,
+                                                )
+                                        }
+                                        placeholder="Search delivery partner..."
+                                        className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-semibold text-slate-800 outline-none transition focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-50"
+                                    />
+
+                                </div>
+
+
+                                {/* SUMMARY */}
+
+                                <div className="mt-5 flex items-center justify-between gap-3">
+
+                                    <div>
+
+                                        <h3 className="font-black text-slate-900">
+                                            Nearby Delivery Partners
+                                        </h3>
+
+                                        <p className="mt-1 text-xs text-slate-400">
+                                            Nearest available partners are shown first.
+                                        </p>
+
+                                    </div>
+
+
+                                    <span className="rounded-full bg-orange-50 px-3 py-1.5 text-xs font-black text-orange-600">
+
+                                        {
+                                            search
+                                                ? agents.length
+                                                : totalAgents
+                                        }{" "}
+                                        Available
+
+                                    </span>
+
+                                </div>
+
+
+                                {/* AGENT LIST */}
+
+                                {
+                                    agents.length >
+                                        0 ? (
+
+                                        <div className="mt-4 space-y-3">
+
+                                            {
+                                                agents.map(
+                                                    (agent) => (
+
+                                                        <DeliveryAgentCard
+                                                            key={
+                                                                agent.publicId
+                                                            }
+                                                            agent={
+                                                                agent
+                                                            }
+                                                            sending={
+                                                                offerSendingId ===
+                                                                agent.publicId
+                                                            }
+                                                            disabled={
+                                                                Boolean(
+                                                                    offerSendingId,
+                                                                )
+                                                            }
+                                                            onSend={
+                                                                onSendOffer
+                                                            }
+                                                        />
+                                                    ),
+                                                )
+                                            }
+
+                                        </div>
+
+                                    ) : (
+                                        !error && (
+
+                                            <div className="mt-5 rounded-2xl border border-dashed border-slate-200 py-12 text-center">
+
+                                                <Bike className="mx-auto h-8 w-8 text-slate-300" />
+
+                                                <h3 className="mt-3 font-black text-slate-700">
+                                                    No delivery partners found
+                                                </h3>
+
+                                                <p className="mx-auto mt-1 max-w-sm text-sm text-slate-400">
+
+                                                    {
+                                                        search
+                                                            ? "No delivery partner matches your search."
+                                                            : "Abhi koi eligible online delivery partner nearby available nahi hai."
+                                                    }
+
+                                                </p>
+
+                                            </div>
+                                        )
+                                    )
+                                }
+
+                            </>
+                        )
+                    }
+
+                </div>
+
+
+                {/* FOOTER */}
+
+                <div className="border-t border-slate-100 bg-slate-50 px-5 py-4 sm:px-6">
+
+                    <div className="flex items-center justify-between gap-4">
+
+                        <p className="text-xs font-semibold text-slate-400">
+                            Send Offer ke baad delivery partner accept ya reject kar sakega.
+                        </p>
+
+
+                        <button
+                            type="button"
+                            disabled={
+                                Boolean(
+                                    offerSendingId,
+                                )
+                            }
+                            onClick={
+                                onClose
+                            }
+                            className="rounded-xl bg-white px-4 py-2.5 text-sm font-black text-slate-600 shadow-sm transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            Close
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    );
+};
+
+
+// ========================================================
+// DELIVERY AGENT CARD
+// ========================================================
+
+const DeliveryAgentCard = ({
+    agent,
+    sending,
+    disabled,
+    onSend,
+}) => {
+    return (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-orange-200 hover:shadow-sm">
+
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+
+                <AgentAvatar
+                    agent={
+                        agent
+                    }
+                />
+
+
+                <div className="min-w-0 flex-1">
+
+                    <div className="flex flex-wrap items-center gap-2">
+
+                        <h4 className="font-black text-slate-900">
+                            {
+                                agent.name ||
+                                "Delivery Partner"
+                            }
+                        </h4>
+
+
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700">
+
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+
+                            Available
+
+                        </span>
+
+                    </div>
+
+
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-slate-500">
+
+                        <span className="flex items-center gap-1.5">
+
+                            <Bike className="h-3.5 w-3.5" />
+
+                            {
+                                agent.vehicleType ||
+                                "Vehicle"
+                            }
+
+                        </span>
+
+
+                        {
+                            agent.vehicleNumber && (
+                                <span>
+                                    {
+                                        agent.vehicleNumber
+                                    }
+                                </span>
+                            )
+                        }
+
+
+                        <span className="flex items-center gap-1.5 font-bold text-orange-600">
+
+                            <Navigation className="h-3.5 w-3.5" />
+
+                            {
+                                Number(
+                                    agent.distanceKm ||
+                                    0,
+                                ).toFixed(
+                                    2,
+                                )
+                            }{" "}
+                            km away
+
+                        </span>
+
+                    </div>
+
+
+                    {
+                        agent.phone && (
+                            <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
+
+                                <Phone className="h-3.5 w-3.5" />
+
+                                {
+                                    agent.phone
+                                }
+
+                            </div>
+                        )
+                    }
+
+                </div>
+
+
+                <button
+                    type="button"
+                    disabled={
+                        disabled
+                    }
+                    onClick={() =>
+                        onSend(
+                            agent,
+                        )
+                    }
+                    className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-orange-500 px-4 text-sm font-black text-white shadow-sm transition hover:bg-orange-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    {
+                        sending
+                            ? "Sending..."
+                            : "Send Offer"
+                    }
+                </button>
+
+            </div>
+
+        </div>
+    );
+};
+
+
+// ========================================================
+// DELIVERY AGENTS LOADING
+// ========================================================
+
+const DeliveryAgentsLoading = () => {
+    return (
+        <div className="flex min-h-56 flex-col items-center justify-center text-center">
+
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50">
+
+                <Bike className="h-7 w-7 animate-pulse text-orange-500" />
+
+            </div>
+
+            <p className="mt-4 text-sm font-black text-slate-700">
+                Finding nearby delivery partners...
+            </p>
+
+            <p className="mt-1 text-xs text-slate-400">
+                Online and available partners are being checked.
+            </p>
+
+        </div>
+    );
+};
+
+
+// ========================================================
+// ORDER DETAILS SKELETON
+// ========================================================
+
+const OrderDetailsSkeleton = () => {
+    return (
+        <div className="space-y-5">
+
+            <Skeleton
+                width="w-56"
+                height="h-10"
+                rounded="rounded-xl"
+            />
+
+            <Skeleton
+                width="w-full"
+                height="h-44"
+                rounded="rounded-[1.75rem]"
+            />
+
+            <div className="grid gap-5 lg:grid-cols-2">
+
+                <Skeleton
+                    width="w-full"
+                    height="h-80"
+                    rounded="rounded-[1.75rem]"
+                />
+
+                <Skeleton
+                    width="w-full"
+                    height="h-80"
+                    rounded="rounded-[1.75rem]"
+                />
+
+            </div>
+
+        </div>
+    );
+};
+
+
+// ========================================================
+// ORDER ITEMS
+// ========================================================
+
+const OrderItemsSection = ({
+    items,
+}) => {
+    return (
+        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+
+                <SectionTitle
+                    icon={
+                        ShoppingBag
+                    }
+                    title="Ordered Items"
+                    description="Food items ordered by the customer"
+                />
+
+
+                <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">
+                    {
+                        items.length
+                    }{" "}
+                    items
+                </span>
+
+            </div>
+
+
+            {
+                items.length >
+                    0 ? (
+
+                    <div className="mt-5 divide-y divide-slate-100">
+
+                        {
+                            items.map(
+                                (
+                                    item,
+                                    index,
+                                ) => (
+
+                                    <div
+                                        key={
+                                            item.slug ||
+                                            index
+                                        }
+                                        className="flex flex-col gap-4 py-4 first:pt-0 sm:flex-row sm:items-center"
+                                    >
+
+                                        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-slate-100">
+
+                                            {
+                                                item.image ? (
+
+                                                    <OptimizedImage
+                                                        src={
+                                                            item.image
+                                                        }
+                                                        alt={
+                                                            item.name
+                                                        }
+                                                        className="h-full w-full object-cover"
+                                                    />
+
+                                                ) : (
+
+                                                    <div className="flex h-full w-full items-center justify-center">
+
+                                                        <ShoppingBag className="h-6 w-6 text-slate-300" />
+
+                                                    </div>
+                                                )
+                                            }
+
+                                        </div>
+
+
+                                        <div className="min-w-0 flex-1">
+
+                                            <h3 className="font-black text-slate-900">
+                                                {
+                                                    item.name
+                                                }
+                                            </h3>
+
+                                            <p className="mt-1 text-xs font-semibold text-slate-400">
+                                                {
+                                                    item.slug
+                                                }
+                                            </p>
+
+
+                                            <div className="mt-3 flex flex-wrap gap-3">
+
+                                                <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-600">
+                                                    Qty:{" "}
+                                                    {
+                                                        item.quantity
+                                                    }
+                                                </span>
+
+                                                <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-600">
+
+                                                    Unit:{" "}
+                                                    {
+                                                        formatPrice(
+                                                            item.unitPrice,
+                                                        )
+                                                    }
+
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div className="sm:text-right">
+
+                                            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                                                Item Total
+                                            </p>
+
+                                            <p className="mt-1 text-lg font-black text-slate-900">
+                                                {
+                                                    formatPrice(
+                                                        item.itemTotal,
+                                                    )
+                                                }
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+                                ),
+                            )
+                        }
+
+                    </div>
+
+                ) : (
+
+                    <div className="py-12 text-center">
+
+                        <ShoppingBag className="mx-auto h-8 w-8 text-slate-300" />
+
+                        <p className="mt-3 text-sm font-bold text-slate-500">
+                            No order items found.
+                        </p>
+
+                    </div>
+                )
+            }
+
+        </section>
+    );
+};
+
+
+// ========================================================
+// PAYMENT SECTION
+// ========================================================
+
+const PaymentSection = ({
+    order,
+}) => {
+    return (
+        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+
+            <div className="flex items-center gap-3">
+
+                <CreditCard className="h-5 w-5 text-orange-500" />
+
+                <h2 className="font-black text-slate-900">
+                    Payment Details
+                </h2>
+
+            </div>
+
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+
+                <SmallDetail
+                    label="Payment Method"
+                    value={
+                        order.paymentMethod
+                    }
+                />
+
+
+                <div>
+
+                    <p className="text-xs font-bold text-slate-400">
+                        Payment Status
+                    </p>
+
+                    <div className="mt-2">
+
+                        <StatusBadge
+                            variant={
+                                order.paymentStatus ===
+                                    "PAID"
+                                    ? "success"
+                                    : "warning"
+                            }
+                            dot
+                        >
+                            {
+                                order.paymentStatus ||
+                                "-"
+                            }
+                        </StatusBadge>
+
+                    </div>
+
+                </div>
+
+
+                <SmallDetail
+                    label="Checkout Number"
+                    value={
+                        order.checkoutNumber
+                    }
+                />
+
+                <SmallDetail
+                    label="Order Date"
+                    value={
+                        formatDate(
+                            order.createdAt,
+                        )
+                    }
+                />
+
+            </div>
+
+        </section>
+    );
+};
+
+
+// ========================================================
+// BILL SECTION
+// ========================================================
+
+const BillSection = ({
+    order,
+}) => {
+    return (
+        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+
+            <div className="flex items-center gap-3">
+
+                <ReceiptText className="h-5 w-5 text-orange-500" />
+
+                <h2 className="font-black text-slate-900">
+                    Bill Summary
+                </h2>
+
+            </div>
+
+
+            <div className="mt-5 space-y-3">
+
+                <PriceRow
+                    label="Subtotal"
+                    value={
+                        order.subtotal
+                    }
+                />
+
+                <PriceRow
+                    label="Delivery Fee"
+                    value={
+                        order.deliveryFee
+                    }
+                />
+
+                <PriceRow
+                    label="Tax"
+                    value={
+                        order.taxAmount
+                    }
+                />
+
+
+                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+
+                    <span className="font-black text-slate-900">
+                        Total Amount
+                    </span>
+
+                    <span className="text-xl font-black text-orange-600">
+                        {
+                            formatPrice(
+                                order.totalAmount,
+                            )
+                        }
+                    </span>
+
+                </div>
+
+            </div>
+
+        </section>
+    );
+};
+
+
+// ========================================================
+// TIMELINE
+// ========================================================
+
+const OrderTimeline = ({
+    order,
+}) => {
+    return (
+        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+
+            <div className="flex items-center gap-3">
+
+                <Clock3 className="h-5 w-5 text-orange-500" />
+
+                <h2 className="font-black text-slate-900">
+                    Order Timeline
+                </h2>
+
+            </div>
+
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+                <TimelineCard
+                    label="Placed"
+                    value={
+                        order.createdAt
+                    }
+                />
+
+                <TimelineCard
+                    label="Confirmed"
+                    value={
+                        order.confirmedAt
+                    }
+                />
+
+                <TimelineCard
+                    label="Preparing"
+                    value={
+                        order.preparingAt
+                    }
+                />
+
+                <TimelineCard
+                    label="Ready"
+                    value={
+                        order.readyAt
+                    }
+                />
+
+                <TimelineCard
+                    label="Picked Up"
+                    value={
+                        order.pickedUpAt
+                    }
+                />
+
+                <TimelineCard
+                    label="Delivered"
+                    value={
+                        order.deliveredAt
+                    }
+                />
+
+                <TimelineCard
+                    label="Cancelled"
+                    value={
+                        order.cancelledAt
+                    }
+                />
+
+            </div>
+
+
+            {
+                order.rejectionReason && (
+
+                    <ReasonCard
+                        title="Rejection Reason"
+                        value={
+                            order.rejectionReason
+                        }
+                        danger
+                    />
+                )
+            }
+
+
+            {
+                order.cancelledReason && (
+
+                    <ReasonCard
+                        title="Cancellation Reason"
+                        value={
+                            order.cancelledReason
+                        }
+                    />
+                )
+            }
+
+        </section>
+    );
+};
+
+
+// ========================================================
+// COMMON SMALL COMPONENTS
 // ========================================================
 
 const SectionTitle = ({
@@ -1155,48 +2426,69 @@ const SectionTitle = ({
 }) => {
     return (
         <div className="flex items-center gap-3">
+
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
                 <Icon className="h-5 w-5" />
             </div>
 
             <div>
+
                 <h2 className="font-black text-slate-900">
-                    {title}
+                    {
+                        title
+                    }
                 </h2>
 
                 <p className="text-xs text-slate-400">
-                    {description}
+                    {
+                        description
+                    }
                 </p>
+
             </div>
+
         </div>
     );
 };
 
-// ========================================================
-// AGENT AVATAR
-// ========================================================
 
-const AgentAvatar = ({ agent }) => {
+const AgentAvatar = ({
+    agent,
+}) => {
     return (
         <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-orange-100 to-rose-100">
-            {agent.image ? (
-                <OptimizedImage
-                    src={agent.image}
-                    alt={agent.name}
-                    className="h-full w-full object-cover"
-                />
-            ) : (
-                <span className="text-base font-black text-orange-600">
-                    {agent.name?.charAt(0)?.toUpperCase() || "D"}
-                </span>
-            )}
+
+            {
+                agent.image ? (
+
+                    <OptimizedImage
+                        src={
+                            agent.image
+                        }
+                        alt={
+                            agent.name ||
+                            "Delivery Partner"
+                        }
+                        className="h-full w-full object-cover"
+                    />
+
+                ) : (
+
+                    <span className="text-base font-black text-orange-600">
+                        {
+                            agent.name
+                                ?.charAt(0)
+                                ?.toUpperCase() ||
+                            "D"
+                        }
+                    </span>
+                )
+            }
+
         </div>
     );
 };
 
-// ========================================================
-// DETAIL ROW
-// ========================================================
 
 const DetailRow = ({
     icon: Icon,
@@ -1205,80 +2497,111 @@ const DetailRow = ({
 }) => {
     return (
         <div className="flex gap-3">
+
             <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
                 <Icon className="h-4 w-4" />
             </div>
 
             <div>
+
                 <p className="text-xs font-bold text-slate-400">
-                    {label}
+                    {
+                        label
+                    }
                 </p>
 
                 <p className="mt-1 font-black text-slate-800">
-                    {value || "-"}
+                    {
+                        value ||
+                        "-"
+                    }
                 </p>
+
             </div>
+
         </div>
     );
 };
 
-// ========================================================
-// SMALL DETAIL
-// ========================================================
 
-const SmallDetail = ({ label, value }) => {
+const SmallDetail = ({
+    label,
+    value,
+}) => {
     return (
         <div>
+
             <p className="text-xs font-bold text-slate-400">
-                {label}
+                {
+                    label
+                }
             </p>
 
             <p className="mt-1 text-sm font-black text-slate-800">
-                {value || "-"}
+                {
+                    value ||
+                    "-"
+                }
             </p>
+
         </div>
     );
 };
 
-// ========================================================
-// PRICE
-// ========================================================
 
-const PriceRow = ({ label, value }) => {
+const PriceRow = ({
+    label,
+    value,
+}) => {
     return (
         <div className="flex items-center justify-between gap-4">
+
             <span className="text-sm font-semibold text-slate-500">
-                {label}
+                {
+                    label
+                }
             </span>
 
             <span className="text-sm font-black text-slate-800">
-                {formatPrice(value)}
+                {
+                    formatPrice(
+                        value,
+                    )
+                }
             </span>
+
         </div>
     );
 };
 
-// ========================================================
-// TIMELINE
-// ========================================================
 
-const TimelineCard = ({ label, value }) => {
+const TimelineCard = ({
+    label,
+    value,
+}) => {
     return (
         <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+
             <p className="text-xs font-black uppercase tracking-wider text-slate-400">
-                {label}
+                {
+                    label
+                }
             </p>
 
             <p className="mt-2 text-sm font-bold text-slate-800">
-                {value ? formatDate(value) : "-"}
+                {
+                    value
+                        ? formatDate(
+                            value,
+                        )
+                        : "-"
+                }
             </p>
+
         </div>
     );
 };
 
-// ========================================================
-// REASON
-// ========================================================
 
 const ReasonCard = ({
     title,
@@ -1287,30 +2610,57 @@ const ReasonCard = ({
 }) => {
     return (
         <div
-            className={`mt-5 rounded-xl border p-4 ${danger
+            className={`
+                mt-5
+                rounded-xl
+                border
+                p-4
+
+                ${danger
                     ? "border-red-100 bg-red-50"
                     : "border-slate-200 bg-slate-50"
-                }`}
+                }
+            `}
         >
+
             <p
-                className={`text-xs font-black uppercase tracking-wider ${danger
+                className={`
+                    text-xs
+                    font-black
+                    uppercase
+                    tracking-wider
+
+                    ${danger
                         ? "text-red-500"
                         : "text-slate-500"
-                    }`}
+                    }
+                `}
             >
-                {title}
+                {
+                    title
+                }
             </p>
 
             <p
-                className={`mt-2 text-sm font-semibold ${danger
+                className={`
+                    mt-2
+                    text-sm
+                    font-semibold
+
+                    ${danger
                         ? "text-red-700"
                         : "text-slate-700"
-                    }`}
+                    }
+                `}
             >
-                {value}
+                {
+                    value
+                }
             </p>
+
         </div>
     );
 };
+
 
 export default RestaurantOrderDetails;
