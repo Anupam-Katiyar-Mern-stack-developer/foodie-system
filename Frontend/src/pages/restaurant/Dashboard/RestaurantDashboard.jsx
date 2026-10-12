@@ -57,6 +57,7 @@ import ErrorState
 import {
   getRestaurantDashboard,
 } from "../../../redux/thunks/restaurant/restaurantDashboard.thunk";
+import { syncRestaurantLocation } from "../../../redux/thunks/restaurant/restaurantLocation.thunk";
 
 const RestaurantDashboard = () => {
   const navigate =
@@ -108,6 +109,11 @@ const RestaurantDashboard = () => {
     Boolean(
       restaurant?.isOpen
     );
+
+  // location
+  useEffect(() => {
+    dispatch(syncRestaurantLocation());
+  }, [dispatch]);
   // =========================
   // STATS
   // =========================
