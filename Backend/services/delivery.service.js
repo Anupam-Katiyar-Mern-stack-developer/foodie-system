@@ -2921,3 +2921,322 @@ export const getDeliveryHistoryService = async ({
     },
   };
 };
+
+// ==========================================
+// GET AVAILABLE DELIVERY AGENTS FOR ORDER
+// ==========================================
+
+export const getAvailableDeliveryAgentsForOrderService = async ({
+  restaurantId,
+  orderNumber,
+}) => {
+  // ==========================================
+  // 1. Expired offers clean
+  // ==========================================
+
+  await pool.query(`
+    UPDATE delivery_assignments
+
+    SET
+      status = 'EXPIRED',
+      responded_at = CURRENT_TIMESTAMP,
+      updated_at = CURRENT_TIMESTAMP
+
+    WHERE
+      status = 'OFFERED'
+
+      AND expires_at IS NOT NULL
+
+      AND expires_at <= CURRENT_TIMESTAMP
+  `);
+
+  // ==========================================
+  // 2. Order + Restaurant location
+  // ==========================================
+
+  const orderResult = await pool.query(
+    `
+      SELECT
+        o.id,
+
+        o.order_number
+          AS "orderNumber",
+
+        o.status,
+
+        o.assigned_delivery_agent_id
+          AS "assignedDeliveryAgentId",
+
+        r.latitude
+          AS "restaurantLatitude",
+
+        r.longitude
+          AS "restaurantLongitude"
+
+      FROM orders o
+
+      INNER JOIN restaurants r
+        ON r.id = o.restaurant_id
+
+      WHERE
+        o.order_number = $1
+
+        AND o.restaurant_id = $2
+
+      LIMIT 1
+    `,
+    [orderNumber, restaurantId],
+  );
+
+  if (orderResult.rows.length === 0) {
+    const error = new Error("Order not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const order = orderResult.rows[0];
+
+  // ==========================================
+  // 3. Order READY hona chahiye
+  // ==========================================
+
+  if (order.status !== "READY_FOR_PICKUP") {
+    const error = new Error(
+      "Order must be ready for pickup before assigning a delivery partner",
+    );
+
+    error.statusCode = 409;
+    throw error;
+  }
+
+  // ==========================================
+  // 4. Already assigned check
+  // ==========================================
+
+  if (order.assignedDeliveryAgentId) {
+    const error = new Error(
+      "Delivery partner is already assigned to this order",
+    );
+
+    error.statusCode = 409;
+    throw error;
+  }
+
+  // ==========================================
+  // 5. Restaurant automatic location required
+  // ==========================================
+
+  if (order.restaurantLatitude === null || order.restaurantLongitude === null) {
+    const error = new Error("Restaurant live location is not available");
+
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // ==========================================
+  // 6. Current pending offer check
+  // ==========================================
+
+  const activeOfferResult = await pool.query(
+    `
+      SELECT id
+
+      FROM delivery_assignments
+
+      WHERE
+        order_id = $1
+
+        AND status = 'OFFERED'
+
+        AND expires_at >
+            CURRENT_TIMESTAMP
+
+      LIMIT 1
+    `,
+    [order.id],
+  );
+
+  if (activeOfferResult.rows.length > 0) {
+    const error = new Error(
+      "A delivery offer is already pending for this order",
+    );
+
+    error.statusCode = 409;
+    throw error;
+  }
+
+  // ==========================================
+  // 7. Nearby available delivery agents
+  // ==========================================
+
+  const agentsResult = await pool.query(
+    `
+      WITH available_agents AS (
+        SELECT
+          d.id,
+
+          d.public_id
+            AS "publicId",
+
+          d.name,
+
+          d.image,
+
+          d.vehicle_type
+            AS "vehicleType",
+
+          d.vehicle_number
+            AS "vehicleNumber",
+
+          d.location_updated_at
+            AS "locationUpdatedAt",
+
+          (
+            6371 * ACOS(
+              LEAST(
+                1,
+                GREATEST(
+                  -1,
+
+                  COS(
+                    RADIANS(
+                      $1::double precision
+                    )
+                  )
+                  *
+                  COS(
+                    RADIANS(
+                      d.latitude::double precision
+                    )
+                  )
+                  *
+                  COS(
+                    RADIANS(
+                      d.longitude::double precision
+                    )
+                    -
+                    RADIANS(
+                      $2::double precision
+                    )
+                  )
+                  +
+                  SIN(
+                    RADIANS(
+                      $1::double precision
+                    )
+                  )
+                  *
+                  SIN(
+                    RADIANS(
+                      d.latitude::double precision
+                    )
+                  )
+                )
+              )
+            )
+          ) AS "distanceKm"
+
+        FROM delivery_agents d
+
+        WHERE
+          d.approval_status = 'APPROVED'
+
+          AND d.is_online = TRUE
+
+          AND d.is_available = TRUE
+
+          AND d.is_blocked = FALSE
+
+          AND d.latitude IS NOT NULL
+
+          AND d.longitude IS NOT NULL
+
+          AND d.location_updated_at IS NOT NULL
+
+          AND d.location_updated_at >=
+              CURRENT_TIMESTAMP - INTERVAL '10 minutes'
+
+          -- Active delivery nahi honi chahiye
+          AND NOT EXISTS (
+            SELECT 1
+
+            FROM orders active_order
+
+            WHERE
+              active_order.assigned_delivery_agent_id =
+                d.id
+
+              AND active_order.status IN (
+                'DELIVERY_ASSIGNED',
+                'PICKED_UP',
+                'OUT_FOR_DELIVERY'
+              )
+          )
+
+          -- Agent ke paas koi aur pending offer nahi
+          AND NOT EXISTS (
+            SELECT 1
+
+            FROM delivery_assignments active_offer
+
+            WHERE
+              active_offer.delivery_agent_id =
+                d.id
+
+              AND active_offer.status =
+                'OFFERED'
+
+              AND active_offer.expires_at >
+                  CURRENT_TIMESTAMP
+          )
+
+          -- Same order pe pehle offer mil chuka ho
+          -- to dobara mat dikhao
+          AND NOT EXISTS (
+            SELECT 1
+
+            FROM delivery_assignments previous_offer
+
+            WHERE
+              previous_offer.order_id = $3
+
+              AND previous_offer.delivery_agent_id =
+                d.id
+          )
+      )
+
+      SELECT
+        "publicId",
+        name,
+        image,
+
+        "vehicleType",
+        "vehicleNumber",
+
+        ROUND(
+          "distanceKm"::numeric,
+          2
+        )::double precision
+          AS "distanceKm",
+
+        "locationUpdatedAt"
+
+      FROM available_agents
+
+      WHERE "distanceKm" <= 10
+
+      ORDER BY "distanceKm" ASC
+
+      LIMIT 30
+    `,
+    [order.restaurantLatitude, order.restaurantLongitude, order.id],
+  );
+
+  return {
+    orderNumber: order.orderNumber,
+
+    total: agentsResult.rows.length,
+
+    agents: agentsResult.rows,
+  };
+};
