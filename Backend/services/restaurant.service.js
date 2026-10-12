@@ -1513,6 +1513,7 @@ export const getRestaurantDashboardService = async ({ restaurantId }) => {
 };
 
 // update restaurant current location
+// update restaurant current location
 export const updateRestaurantLocationService = async ({
   restaurantId,
   latitude,
@@ -1520,6 +1521,10 @@ export const updateRestaurantLocationService = async ({
 }) => {
   const lat = Number(latitude);
   const lng = Number(longitude);
+
+  // ==========================================
+  // 1. Location validation
+  // ==========================================
 
   if (
     !Number.isFinite(lat) ||
@@ -1534,22 +1539,39 @@ export const updateRestaurantLocationService = async ({
     throw error;
   }
 
+  // ==========================================
+  // 2. Update restaurant location
+  // ==========================================
+
   const result = await pool.query(
     `
       UPDATE restaurants
+
       SET
         latitude = $1,
         longitude = $2,
         location_updated_at = CURRENT_TIMESTAMP,
         updated_at = CURRENT_TIMESTAMP
+
       WHERE id = $3
+
       RETURNING
+        id,
         latitude,
         longitude,
-        location_updated_at AS "locationUpdatedAt"
+
+        location_updated_at
+          AS "locationUpdatedAt",
+
+        updated_at
+          AS "updatedAt"
     `,
     [lat, lng, restaurantId],
   );
+
+  // ==========================================
+  // 3. Restaurant not found
+  // ==========================================
 
   if (result.rows.length === 0) {
     const error = new Error("Restaurant not found");

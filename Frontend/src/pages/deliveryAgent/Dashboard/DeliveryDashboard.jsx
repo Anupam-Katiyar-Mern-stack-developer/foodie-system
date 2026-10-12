@@ -29,6 +29,21 @@ const DeliveryDashboard = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
+    const { profile } =
+        useSelector((state) => state.deliveryProfile) || {};
+
+    useEffect(() => {
+        if (profile?.isOnline) {
+            dispatch(startDeliveryLocationTracking());
+        } else {
+            dispatch(stopDeliveryLocationTracking());
+        }
+
+        return () => {
+            dispatch(stopDeliveryLocationTracking());
+        };
+    }, [dispatch, profile?.isOnline]);
+
     const {
         isOnline,
         stats: dashboardStats,

@@ -17,12 +17,7 @@ export const deliveryRegisterFields = [
     type: "text",
     placeholder: "Enter 10 digit phone number",
   },
-  {
-    name: "address",
-    label: "Address",
-    type: "text",
-    placeholder: "Enter your address",
-  },
+ 
   {
     name: "vehicleType",
     label: "Vehicle Type",
@@ -58,7 +53,7 @@ export const deliveryRegisterDefaultValues = {
   name: "",
   email: "",
   phone: "",
-  address: "",
+ 
   vehicleType: "BIKE",
   vehicleNumber: "",
   password: "",

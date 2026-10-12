@@ -972,39 +972,70 @@ export const updateDeliveryStatusService = async ({
 };
 
 // update location service
+// update delivery agent live location
 export const updateDeliveryLocationService = async ({
   deliveryAgentId,
   latitude,
   longitude,
 }) => {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+  // ==========================================
+  // 1. Location validation
+  // ==========================================
+
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    lat < -90 ||
+    lat > 90 ||
+    lng < -180 ||
+    lng > 180
+  ) {
+    const error = new Error("Invalid delivery location");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // ==========================================
+  // 2. Delivery agent find
+  // ==========================================
+
   const agentResult = await pool.query(
     `
-        SELECT
-          id,
+      SELECT
+        id,
 
-          approval_status
-            AS "approvalStatus",
+        approval_status
+          AS "approvalStatus",
 
-          is_blocked
-            AS "isBlocked"
+        is_blocked
+          AS "isBlocked",
 
-        FROM delivery_agents
+        is_online
+          AS "isOnline"
 
-        WHERE id = $1
+      FROM delivery_agents
 
-        LIMIT 1
-      `,
+      WHERE id = $1
+
+      LIMIT 1
+    `,
     [deliveryAgentId],
   );
 
   if (agentResult.rows.length === 0) {
     const error = new Error("Delivery agent not found");
-
     error.statusCode = 404;
     throw error;
   }
 
   const agent = agentResult.rows[0];
+
+  // ==========================================
+  // 3. Blocked check
+  // ==========================================
 
   if (agent.isBlocked) {
     const error = new Error("Your delivery account has been blocked");
@@ -1013,44 +1044,78 @@ export const updateDeliveryLocationService = async ({
     throw error;
   }
 
+  // ==========================================
+  // 4. Approved agent only
+  // ==========================================
+
   if (agent.approvalStatus !== "APPROVED") {
     const error = new Error(
-      "Only approved delivery agents can update location",
+      "Only approved delivery agents can update live location",
     );
 
     error.statusCode = 403;
     throw error;
   }
 
+  // ==========================================
+  // 5. Agent online hona chahiye
+  // ==========================================
+
+  if (!agent.isOnline) {
+    const error = new Error("You must be online to update live location");
+
+    error.statusCode = 409;
+    throw error;
+  }
+
+  // ==========================================
+  // 6. Save latest browser location
+  // ==========================================
+
   const result = await pool.query(
     `
-        UPDATE delivery_agents
+      UPDATE delivery_agents
 
-        SET
-          latitude = $1,
-          longitude = $2,
-          updated_at =
-            CURRENT_TIMESTAMP
+      SET
+        latitude = $1,
+        longitude = $2,
 
-        WHERE id = $3
+        location_updated_at =
+          CURRENT_TIMESTAMP,
 
-        RETURNING
-          public_id AS "publicId",
+        updated_at =
+          CURRENT_TIMESTAMP
 
-          latitude,
-          longitude,
+      WHERE id = $3
 
-          is_online
-            AS "isOnline",
+      RETURNING
+        public_id
+          AS "publicId",
 
-          is_available
-            AS "isAvailable",
+        latitude,
+        longitude,
 
-          updated_at
-            AS "updatedAt"
-      `,
-    [latitude, longitude, deliveryAgentId],
+        location_updated_at
+          AS "locationUpdatedAt",
+
+        is_online
+          AS "isOnline",
+
+        is_available
+          AS "isAvailable",
+
+        updated_at
+          AS "updatedAt"
+    `,
+    [lat, lng, deliveryAgentId],
   );
+
+  if (result.rows.length === 0) {
+    const error = new Error("Delivery location could not be updated");
+
+    error.statusCode = 409;
+    throw error;
+  }
 
   return result.rows[0];
 };

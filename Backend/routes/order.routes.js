@@ -32,7 +32,7 @@ import { rejectRestaurantOrder } from "../controllers/order/rejectRestaurantOrde
 
 import { markOrderPreparing } from "../controllers/order/markOrderPreparing.controller.js";
 
-import { markOrderReady } from "../controllers/order/markOrderReady.controller.js";
+// import { markOrderReady } from "../controllers/order/markOrderReady.controller.js";
 
 // delivery agent
 
@@ -92,11 +92,11 @@ router.patch(
   markOrderPreparing,
 );
 
-router.patch(
-  "/restaurant/orders/:orderNumber/ready",
-  restaurantAuthMiddleware,
-  markOrderReady,
-);
+// router.patch(
+//   "/restaurant/orders/:orderNumber/ready",
+//   restaurantAuthMiddleware,
+//   markOrderReady,
+// );
 
 // =====================================
 // DELIVERY AGENT ORDER ROUTES

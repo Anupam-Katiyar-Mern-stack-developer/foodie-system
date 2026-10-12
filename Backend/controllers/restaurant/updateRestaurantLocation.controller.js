@@ -24,9 +24,11 @@ export const updateRestaurantLocation = async (req, res) => {
       data,
     });
   } catch (error) {
+    console.log(error);
     return res.status(error.statusCode || 500).json({
       success: false,
       message: error.message || "Failed to update restaurant location",
     });
+    
   }
 };

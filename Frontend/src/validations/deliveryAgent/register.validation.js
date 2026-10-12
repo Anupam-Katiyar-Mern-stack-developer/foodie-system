@@ -20,11 +20,7 @@ export const deliveryRegisterSchema = z
       .min(1, "Phone number is required")
       .regex(/^[6-9]\d{9}$/, "Enter a valid 10 digit phone number"),
 
-    address: z
-      .string()
-      .trim()
-      .min(1, "Address is required")
-      .min(5, "Enter a valid address"),
+    
 
     vehicleType: z.enum(["BIKE", "SCOOTER", "BICYCLE"], {
       message: "Select a valid vehicle type",
