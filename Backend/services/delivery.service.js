@@ -19,15 +19,9 @@ export const registerDeliveryAgentService = async ({
   email,
   phone,
   password,
-
   vehicleType,
   vehicleNumber,
-
   address,
-
-  latitude,
-  longitude,
-
   imageFile,
   imageFolder,
 }) => {
@@ -90,87 +84,50 @@ export const registerDeliveryAgentService = async ({
   try {
     const result = await pool.query(
       `
-          INSERT INTO delivery_agents (
-            public_id,
+    INSERT INTO delivery_agents (
+      public_id,
+      name,
+      email,
+      phone,
+      password,
+      image,
+      vehicle_type,
+      vehicle_number,
+      address
+    )
 
-            name,
-            email,
-            phone,
-            password,
+    VALUES (
+      $1, $2, $3, $4, $5,
+      $6, $7, $8, $9
+    )
 
-            image,
-
-            vehicle_type,
-            vehicle_number,
-
-            address,
-
-            latitude,
-            longitude
-          )
-
-          VALUES (
-            $1, $2, $3, $4, $5,
-            $6, $7, $8,
-            $9, $10, $11
-          )
-
-          RETURNING
-            public_id AS "publicId",
-
-            name,
-            email,
-            phone,
-
-            image,
-
-            vehicle_type
-              AS "vehicleType",
-
-            vehicle_number
-              AS "vehicleNumber",
-
-            address,
-
-            latitude,
-            longitude,
-
-            approval_status
-              AS "approvalStatus",
-
-            email_verified
-              AS "emailVerified",
-
-            is_online
-              AS "isOnline",
-
-            is_available
-              AS "isAvailable",
-
-            created_at
-              AS "createdAt"
-        `,
+    RETURNING
+      public_id AS "publicId",
+      name,
+      email,
+      phone,
+      image,
+      vehicle_type AS "vehicleType",
+      vehicle_number AS "vehicleNumber",
+      address,
+      approval_status AS "approvalStatus",
+      email_verified AS "emailVerified",
+      is_online AS "isOnline",
+      is_available AS "isAvailable",
+      created_at AS "createdAt"
+  `,
       [
         publicId,
-
         name.trim(),
         normalizedEmail,
         normalizedPhone,
         hashedPassword,
-
         image,
-
         vehicleType.trim(),
         normalizedVehicleNumber,
-
         address?.trim() || null,
-
-        latitude !== undefined && latitude !== "" ? Number(latitude) : null,
-
-        longitude !== undefined && longitude !== "" ? Number(longitude) : null,
       ],
     );
-
     return result.rows[0];
   } catch (error) {
     // DB insert fail hua to saved image clean
@@ -1099,377 +1056,6 @@ export const updateDeliveryLocationService = async ({
 };
 
 // find and assign offer delivery agents service
-export const findAndOfferDeliveryAgentService = async ({ orderNumber }) => {
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
-    // ==========================================
-    // 1. Order + restaurant location
-    // ==========================================
-
-    const orderResult = await client.query(
-      `
-        SELECT
-          o.id,
-
-          o.order_number
-            AS "orderNumber",
-
-          o.status,
-
-          o.assigned_delivery_agent_id
-            AS "assignedDeliveryAgentId",
-
-          r.restaurant_name
-            AS "restaurantName",
-
-          r.latitude
-            AS "restaurantLatitude",
-
-          r.longitude
-            AS "restaurantLongitude"
-
-        FROM orders o
-
-        INNER JOIN restaurants r
-          ON r.id = o.restaurant_id
-
-        WHERE o.order_number = $1
-
-        LIMIT 1
-
-        FOR UPDATE OF o
-      `,
-      [orderNumber],
-    );
-
-    if (orderResult.rows.length === 0) {
-      const error = new Error("Order not found");
-
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const order = orderResult.rows[0];
-
-    // ==========================================
-    // 2. Order ready hona chahiye
-    // ==========================================
-
-    if (order.status !== "READY_FOR_PICKUP") {
-      const error = new Error("Order is not ready for delivery assignment");
-
-      error.statusCode = 409;
-      throw error;
-    }
-
-    if (order.assignedDeliveryAgentId) {
-      const error = new Error("Delivery agent is already assigned");
-
-      error.statusCode = 409;
-      throw error;
-    }
-
-    // ==========================================
-    // 3. Restaurant location required
-    // ==========================================
-
-    if (
-      order.restaurantLatitude === null ||
-      order.restaurantLongitude === null
-    ) {
-      const error = new Error(
-        "Restaurant location is required for delivery assignment",
-      );
-
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // ==========================================
-    // 4. Expired offers update
-    // ==========================================
-
-    await client.query(
-      `
-        UPDATE delivery_assignments
-
-        SET
-          status = 'EXPIRED',
-
-          responded_at =
-            CURRENT_TIMESTAMP,
-
-          updated_at =
-            CURRENT_TIMESTAMP
-
-        WHERE
-          status = 'OFFERED'
-
-          AND expires_at IS NOT NULL
-
-          AND expires_at <=
-              CURRENT_TIMESTAMP
-      `,
-    );
-
-    // ==========================================
-    // 5. Is order par already active offer?
-    // ==========================================
-
-    const existingOfferResult = await client.query(
-      `
-          SELECT
-            da.status,
-
-            da.offered_at
-              AS "offeredAt",
-
-            da.expires_at
-              AS "expiresAt",
-
-            d.public_id
-              AS "deliveryAgentPublicId",
-
-            d.name
-              AS "deliveryAgentName"
-
-          FROM delivery_assignments da
-
-          INNER JOIN delivery_agents d
-            ON d.id =
-               da.delivery_agent_id
-
-          WHERE
-            da.order_id = $1
-
-            AND da.status =
-                'OFFERED'
-
-            AND da.expires_at >
-                CURRENT_TIMESTAMP
-
-          LIMIT 1
-        `,
-      [order.id],
-    );
-
-    if (existingOfferResult.rows.length > 0) {
-      await client.query("COMMIT");
-
-      return {
-        offered: true,
-
-        alreadyOffered: true,
-
-        offer: existingOfferResult.rows[0],
-      };
-    }
-
-    // ==========================================
-    // 6. Nearest eligible agent find
-    // ==========================================
-
-    const agentResult = await client.query(
-      `
-          SELECT
-            d.id,
-
-            d.public_id
-              AS "publicId",
-
-            d.name,
-
-            d.latitude,
-            d.longitude,
-
-            (
-              6371 * ACOS(
-                LEAST(
-                  1,
-                  GREATEST(
-                    -1,
-
-                    COS(
-                      RADIANS(
-                        $1::double precision
-                      )
-                    )
-                    *
-                    COS(
-                      RADIANS(
-                        d.latitude::double precision
-                      )
-                    )
-                    *
-                    COS(
-                      RADIANS(
-                        d.longitude::double precision
-                      )
-                      -
-                      RADIANS(
-                        $2::double precision
-                      )
-                    )
-                    +
-                    SIN(
-                      RADIANS(
-                        $1::double precision
-                      )
-                    )
-                    *
-                    SIN(
-                      RADIANS(
-                        d.latitude::double precision
-                      )
-                    )
-                  )
-                )
-              )
-            ) AS "distanceKm"
-
-          FROM delivery_agents d
-
-          WHERE
-            d.approval_status =
-              'APPROVED'
-
-            AND d.is_online = TRUE
-
-            AND d.is_available = TRUE
-
-            AND d.is_blocked = FALSE
-
-            AND d.latitude IS NOT NULL
-
-            AND d.longitude IS NOT NULL
-
-
-            -- Is order ko jis agent ne
-            -- pehle reject/expire kiya hai,
-            -- usko same order dobara nahi denge
-
-            AND NOT EXISTS (
-              SELECT 1
-
-              FROM delivery_assignments da
-
-              WHERE
-                da.order_id = $3
-
-                AND da.delivery_agent_id =
-                    d.id
-            )
-
-
-            -- Agent ke paas doosra
-            -- active offer nahi hona chahiye
-
-            AND NOT EXISTS (
-              SELECT 1
-
-              FROM delivery_assignments active_da
-
-              WHERE
-                active_da.delivery_agent_id =
-                    d.id
-
-                AND active_da.status =
-                    'OFFERED'
-
-                AND active_da.expires_at >
-                    CURRENT_TIMESTAMP
-            )
-
-
-          ORDER BY
-            "distanceKm" ASC
-
-          LIMIT 1
-
-          FOR UPDATE OF d
-          SKIP LOCKED
-        `,
-      [order.restaurantLatitude, order.restaurantLongitude, order.id],
-    );
-
-    // ==========================================
-    // 7. Koi agent available nahi
-    // ==========================================
-
-    if (agentResult.rows.length === 0) {
-      await client.query("COMMIT");
-
-      return {
-        offered: false,
-
-        message: "No delivery agent is currently available",
-      };
-    }
-
-    const agent = agentResult.rows[0];
-
-    // ==========================================
-    // 8. Delivery offer create
-    // 120 seconds
-    // ==========================================
-
-    const offerResult = await client.query(
-      `
-          INSERT INTO delivery_assignments (
-            order_id,
-            delivery_agent_id,
-            status,
-            expires_at
-          )
-
-          VALUES (
-            $1,
-            $2,
-            'OFFERED',
-            CURRENT_TIMESTAMP
-            + INTERVAL '120 seconds'
-          )
-
-          RETURNING
-            status,
-
-            offered_at
-              AS "offeredAt",
-
-            expires_at
-              AS "expiresAt"
-        `,
-      [order.id, agent.id],
-    );
-
-    await client.query("COMMIT");
-
-    return {
-      offered: true,
-
-      alreadyOffered: false,
-
-      deliveryAgent: {
-        publicId: agent.publicId,
-
-        name: agent.name,
-
-        distanceKm: Number(Number(agent.distanceKm).toFixed(2)),
-      },
-
-      offer: offerResult.rows[0],
-    };
-  } catch (error) {
-    await client.query("ROLLBACK");
-
-    throw error;
-  } finally {
-    client.release();
-  }
-};
 
 // get delivery order offer service
 export const getDeliveryOrderOfferService = async ({ deliveryAgentId }) => {
@@ -3103,8 +2689,7 @@ export const getDeliveryDashboardService = async ({ deliveryAgentId }) => {
   };
 };
 
-
-// get delivery history 
+// get delivery history
 export const getDeliveryHistoryService = async ({
   deliveryAgentId,
   status,

@@ -56,3 +56,6 @@ ON delivery_agents (
     latitude,
     longitude
 );
+
+ALTER TABLE delivery_agents
+ADD COLUMN IF NOT EXISTS location_updated_at TIMESTAMPTZ;

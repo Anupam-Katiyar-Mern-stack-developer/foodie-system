@@ -30,6 +30,7 @@ import { getRestaurantDashboardController } from "../controllers/restaurant/dash
 
 import { getAvailableDeliveryAgents } from "../controllers/restaurant/getAvailableDeliveryAgents.controller.js";
 import { createDeliveryOffer } from "../controllers/restaurant/createDeliveryOffer.controller.js";
+import { updateRestaurantLocation } from "../controllers/restaurant/updateRestaurantLocation.controller.js";
 
 const router = express.Router();
 
@@ -97,4 +98,6 @@ router.post(
   restaurantAuthMiddleware,
   createDeliveryOffer,
 );
+
+router.patch("/location", restaurantAuthMiddleware, updateRestaurantLocation);
 export default router;

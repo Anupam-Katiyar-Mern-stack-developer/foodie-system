@@ -1511,3 +1511,51 @@ export const getRestaurantDashboardService = async ({ restaurantId }) => {
     recentOrders: recentOrdersResult.rows,
   };
 };
+
+// update restaurant current location
+export const updateRestaurantLocationService = async ({
+  restaurantId,
+  latitude,
+  longitude,
+}) => {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    lat < -90 ||
+    lat > 90 ||
+    lng < -180 ||
+    lng > 180
+  ) {
+    const error = new Error("Invalid restaurant location");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const result = await pool.query(
+    `
+      UPDATE restaurants
+      SET
+        latitude = $1,
+        longitude = $2,
+        location_updated_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $3
+      RETURNING
+        latitude,
+        longitude,
+        location_updated_at AS "locationUpdatedAt"
+    `,
+    [lat, lng, restaurantId],
+  );
+
+  if (result.rows.length === 0) {
+    const error = new Error("Restaurant not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return result.rows[0];
+};
