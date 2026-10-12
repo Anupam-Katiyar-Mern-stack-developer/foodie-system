@@ -28,6 +28,9 @@ import { getRestaurants } from "../controllers/restaurant/getRestaurants.control
 
 import { getRestaurantDashboardController } from "../controllers/restaurant/dashboard.controller.js";
 
+import { getAvailableDeliveryAgents } from "../controllers/restaurant/getAvailableDeliveryAgents.controller.js";
+import { createDeliveryOffer } from "../controllers/restaurant/createDeliveryOffer.controller.js";
+
 const router = express.Router();
 
 router.post("/register", registerRestaurant);
@@ -39,7 +42,7 @@ router.get("/profile", restaurantAuthMiddleware, getRestaurantProfile);
 router.patch(
   "/profile",
   restaurantAuthMiddleware,
-  uploadImage("logo","logo"),
+  uploadImage("logo", "logo"),
   updateRestaurantProfile,
 );
 
@@ -77,9 +80,21 @@ router.patch(
 router.get(
   "/dashboard",
   restaurantAuthMiddleware,
-  getRestaurantDashboardController
+  getRestaurantDashboardController,
 );
 
 // delete food
 router.delete("/foods/:foodSlug", restaurantAuthMiddleware, deleteFood);
+
+router.get(
+  "/orders/:orderNumber/delivery-agents",
+  restaurantAuthMiddleware,
+  getAvailableDeliveryAgents,
+);
+
+router.post(
+  "/orders/:orderNumber/delivery-offer",
+  restaurantAuthMiddleware,
+  createDeliveryOffer,
+);
 export default router;
