@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
@@ -30,41 +30,21 @@ const DeliveryOffers = () => {
   const navigate = useNavigate();
 
   const {
-    offer: storedOffer,
-    offers: storedOffers,
+    offers: offerData,
     fetchLoading,
     actionLoading,
     error,
     actionError,
   } = useSelector((state) => state.deliveryOffer) || {};
 
+  // Backend single offer return kar raha hai.
+  // Initial state array ho to bhi safely handle hoga.
+  const offer = Array.isArray(offerData)
+    ? offerData[0] || null
+    : offerData || null;
+
   const [selectedOffer, setSelectedOffer] = useState(null);
   const [modalType, setModalType] = useState(null);
-
-  // Current slice shape + Axios response shape dono handle karega
-  const offer = useMemo(() => {
-    const value = storedOffer ?? storedOffers;
-
-    if (!value) return null;
-
-    if (Array.isArray(value)) {
-      return value[0] || null;
-    }
-
-    if (value?.orderNumber) {
-      return value;
-    }
-
-    if (value?.data?.orderNumber) {
-      return value.data;
-    }
-
-    if (value?.data?.data?.orderNumber) {
-      return value.data.data;
-    }
-
-    return null;
-  }, [storedOffer, storedOffers]);
 
   useEffect(() => {
     dispatch(getDeliveryOffer());
@@ -133,7 +113,6 @@ const DeliveryOffers = () => {
       setSelectedOffer(null);
       setModalType(null);
 
-      // Rejected offer remove / next offer fetch
       dispatch(getDeliveryOffer());
     } catch (error) {
       console.error("REJECT DELIVERY ERROR:", error);
@@ -158,17 +137,13 @@ const DeliveryOffers = () => {
     }).format(new Date(date));
   };
 
-  const pickupAddress = offer
-    ? [offer.restaurantAddress, offer.restaurantCity]
-        .filter(Boolean)
-        .join(", ")
-    : "";
+  const pickupAddress = [offer?.restaurantAddress, offer?.restaurantCity]
+    .filter(Boolean)
+    .join(", ");
 
-  const deliveryAddress = offer
-    ? [offer.deliveryCity, offer.deliveryPincode]
-        .filter(Boolean)
-        .join(", ")
-    : "";
+  const deliveryAddress = [offer?.deliveryCity, offer?.deliveryPincode]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <div className="space-y-7">
@@ -232,16 +207,14 @@ const DeliveryOffers = () => {
       </section>
 
       <section>
-        <div className="mb-4 flex items-end justify-between">
-          <div>
-            <h2 className="text-xl font-black text-slate-950">
-              Available Delivery
-            </h2>
+        <div className="mb-4">
+          <h2 className="text-xl font-black text-slate-950">
+            Available Delivery
+          </h2>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Review pickup and delivery details before accepting.
-            </p>
-          </div>
+          <p className="mt-1 text-sm text-slate-500">
+            Review pickup and delivery details before accepting.
+          </p>
         </div>
 
         {fetchLoading && !offer && (
@@ -262,7 +235,7 @@ const DeliveryOffers = () => {
           />
         )}
 
-        {!fetchLoading && offer && (
+        {offer && (
           <article className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/70 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -436,9 +409,7 @@ const InfoCard = ({ icon: Icon, value, label }) => (
     <p className="mt-2 break-words text-sm font-black text-slate-900">
       {value}
     </p>
-    <p className="mt-1 text-[10px] font-semibold text-slate-400">
-      {label}
-    </p>
+    <p className="mt-1 text-[10px] font-semibold text-slate-400">{label}</p>
   </div>
 );
 
