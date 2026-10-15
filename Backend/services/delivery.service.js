@@ -2501,7 +2501,6 @@ export const completeDeliveryOrderService = async ({
 // =========================================
 // DELIVERY DASHBOARD
 // =========================================
-
 export const getDeliveryDashboardService = async ({ deliveryAgentId }) => {
   const [
     agentResult,
