@@ -49,6 +49,7 @@ import { markOrderOutForDelivery } from "../controllers/order/markOrderOutForDel
 
 import { pickupDeliveryOrder } from "../controllers/order/pickupDeliveryOrder.controller.js";
 import { completeDeliveryOrder } from "../controllers/order/completeDeliveryOrder.controller.js";
+import { markOrderReady } from "../controllers/order/markOrderReady.controller.js";
 
 const router = express.Router();
 
@@ -92,11 +93,11 @@ router.patch(
   markOrderPreparing,
 );
 
-// router.patch(
-//   "/restaurant/orders/:orderNumber/ready",
-//   restaurantAuthMiddleware,
-//   markOrderReady,
-// );
+router.patch(
+  "/restaurant/orders/:orderNumber/ready",
+  restaurantAuthMiddleware,
+  markOrderReady,
+);
 
 // =====================================
 // DELIVERY AGENT ORDER ROUTES

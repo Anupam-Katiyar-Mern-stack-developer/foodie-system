@@ -1019,7 +1019,7 @@ export const getRestaurantOrdersService = async ({
   );
 
   const total = countResult.rows[0].total;
-  
+
   return {
     orders: result.rows,
 
@@ -1363,60 +1363,60 @@ export const markOrderPreparingService = async ({
 
 // marked order ready service
 
-// export const markOrderReadyService = async ({ restaurantId, orderNumber }) => {
-//   const result = await pool.query(
-//     `
-//         UPDATE orders
+export const markOrderReadyService = async ({ restaurantId, orderNumber }) => {
+  const result = await pool.query(
+    `
+        UPDATE orders
 
-//         SET
-//           status =
-//             'READY_FOR_PICKUP',
+        SET
+          status =
+            'READY_FOR_PICKUP',
 
-//           ready_at =
-//             CURRENT_TIMESTAMP,
+          ready_at =
+            CURRENT_TIMESTAMP,
 
-//           updated_at =
-//             CURRENT_TIMESTAMP
+          updated_at =
+            CURRENT_TIMESTAMP
 
-//         WHERE
-//           order_number = $1
-//           AND restaurant_id = $2
-//           AND status = 'PREPARING'
+        WHERE
+          order_number = $1
+          AND restaurant_id = $2
+          AND status = 'PREPARING'
 
-//         RETURNING
-//           order_number
-//             AS "orderNumber",
+        RETURNING
+          order_number
+            AS "orderNumber",
 
-//           status,
+          status,
 
-//           ready_at
-//             AS "readyAt"
-//       `,
-//     [orderNumber, restaurantId],
-//   );
+          ready_at
+            AS "readyAt"
+      `,
+    [orderNumber, restaurantId],
+  );
 
-//   if (result.rows.length === 0) {
-//     const error = new Error("Only preparing orders can be marked ready");
+  if (result.rows.length === 0) {
+    const error = new Error("Only preparing orders can be marked ready");
 
-//     error.statusCode = 409;
+    error.statusCode = 409;
 
-//     throw error;
-//   }
+    throw error;
+  }
 
-//   const order = result.rows[0];
+  const order = result.rows[0];
 
-//   let deliveryAssignment = null;
+  let deliveryAssignment = null;
 
-//   try {
-//     deliveryAssignment = await findAndOfferDeliveryAgentService({
-//       orderNumber: order.orderNumber,
-//     });
-//   } catch (error) {
-//     console.error("Delivery assignment error:", error.message);
-//   }
+  try {
+    deliveryAssignment = await findAndOfferDeliveryAgentService({
+      orderNumber: order.orderNumber,
+    });
+  } catch (error) {
+    console.error("Delivery assignment error:", error.message);
+  }
 
-//   return {
-//     ...order,
-//     deliveryAssignment,
-//   };
-// };
+  return {
+    ...order,
+    deliveryAssignment,
+  };
+};
