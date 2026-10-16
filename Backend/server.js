@@ -5,13 +5,13 @@ import http from "http";
 import app from "./app.js";
 
 import { connectDatabase } from "./config/database.js";
-import { intializeSocket } from "./socket/socket.js";
+import { initializeSocket } from "./socket/socket.js";
 
 const PORT = process.env.PORT || 5000;
 
 const httpServer = http.createServer(app);
 
-intializeSocket(httpServer);
+initializeSocket(httpServer);
 
 const startServer = async () => {
   try {

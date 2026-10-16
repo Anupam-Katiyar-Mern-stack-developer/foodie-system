@@ -2,6 +2,8 @@ import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import pool from "../config/database.js";
 
+import { registerDeliveryTrackingSocket } from "./deliveryTracking.socket.js";
+
 let ioInstance = null;
 
 const getSocketToken = (socket) => {
@@ -137,6 +139,9 @@ export const initializeSocket = (httpServer) => {
     if (user.role === "deliveryAgent" && user.deliveryAgentPublicId) {
       socket.join(`delivery-public:${user.deliveryAgentPublicId}`);
     }
+
+    // YAHAN ADD KARO
+    registerDeliveryTrackingSocket(socket);
 
     socket.on("order:join", async ({ orderNumber }, callback) => {
       try {
