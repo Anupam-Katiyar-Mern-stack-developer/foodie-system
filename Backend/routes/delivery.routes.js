@@ -65,6 +65,6 @@ router.patch(
   rejectDeliveryOrder,
 );
 
-router.get("/orders/:orderNumber/active", deliveryAuthMiddleware, getActiveDeliveryOrder);
+router.get("/order/:orderNumber/active", deliveryAuthMiddleware, getActiveDeliveryOrder);
 
 export default router;

@@ -1,6 +1,7 @@
 import apiClient from "../../api/apiClient";
 
-export const getActiveOrdersService =async()=>{
-    const response = await apiClient("/delivery/active/orders");
-    return response.data;
-}
+export const getActiveOrderService = async (orderNumber) => {
+  const response = await apiClient.get(`/delivery/order/${orderNumber}`);
+
+  return response.data;
+};

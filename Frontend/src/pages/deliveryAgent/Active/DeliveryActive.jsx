@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
     Bike,
     CheckCircle2,
@@ -131,6 +131,7 @@ const getPosition = (latitude, longitude) => {
 const DeliveryActive = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const orderNumber = useParams()
 
     const { activeOrder, fetchLoading, error } = useSelector(
         (state) => state.deliveryActiveOrder,
@@ -140,7 +141,7 @@ const DeliveryActive = () => {
     const [locationError, setLocationError] = useState("");
 
     useEffect(() => {
-        dispatch(getActiveOrder());
+        dispatch(getActiveOrder(orderNumber));
     }, [dispatch]);
 
     useEffect(() => {
