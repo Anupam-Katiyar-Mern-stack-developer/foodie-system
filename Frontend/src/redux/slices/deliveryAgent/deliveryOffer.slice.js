@@ -42,8 +42,7 @@ const deliveryOfferSlice = createSlice({
       .addCase(getDeliveryOffer.fulfilled, (state, action) => {
         state.fetchLoading = false;
         state.error = null;
-
-        console.log("DELIVERY OFFER SLICE:", action.payload);
+        
 
         // Thunk already direct offer object return kar raha hai
         const offer = action.payload || null;
