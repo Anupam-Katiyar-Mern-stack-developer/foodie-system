@@ -1056,75 +1056,34 @@ export const updateDeliveryLocationService = async ({
 
 // get delivery order offer service
 export const getDeliveryOrderOfferService = async ({ deliveryAgentId }) => {
-  // =========================================
-  // 1. OLD EXPIRED OFFERS EXPIRE KARO
-  // =========================================
-
-  await pool.query(
-    `
-      UPDATE delivery_assignments
-
-      SET
-        status = 'EXPIRED',
-        responded_at = CURRENT_TIMESTAMP,
-        updated_at = CURRENT_TIMESTAMP
-
-      WHERE
-        delivery_agent_id = $1
-        AND status = 'OFFERED'
-        AND expires_at <= CURRENT_TIMESTAMP
-    `,
-    [deliveryAgentId],
-  );
-
-  // =========================================
-  // 2. ACTIVE OFFER FETCH KARO
-  // =========================================
-
   const result = await pool.query(
     `
       SELECT
-        o.order_number
-          AS "orderNumber",
+        o.id AS "orderId",
+        o.order_number AS "orderNumber",
+        o.status AS "orderStatus",
+        o.total_amount AS "totalAmount",
 
-        o.status
-          AS "orderStatus",
+        da.status AS "offerStatus",
+        da.offered_at AS "offeredAt",
+        da.expires_at AS "expiresAt",
 
-        o.total_amount
-          AS "totalAmount",
+        r.restaurant_name AS "restaurantName",
+        r.slug AS "restaurantSlug",
+        r.address_line AS "restaurantAddress",
+        r.city AS "restaurantCity",
+        r.state AS "restaurantState",
+        r.pincode AS "restaurantPincode",
+        r.latitude AS "restaurantLatitude",
+        r.longitude AS "restaurantLongitude",
 
-        da.status
-          AS "offerStatus",
-
-        da.offered_at
-          AS "offeredAt",
-
-        da.expires_at
-          AS "expiresAt",
-
-        r.restaurant_name
-          AS "restaurantName",
-
-        r.slug
-          AS "restaurantSlug",
-
-        r.address_line
-          AS "restaurantAddress",
-
-        r.city
-          AS "restaurantCity",
-
-        r.latitude
-          AS "restaurantLatitude",
-
-        r.longitude
-          AS "restaurantLongitude",
-
-        og.city
-          AS "deliveryCity",
-
-        og.pincode
-          AS "deliveryPincode",
+        og.delivery_name AS "customerName",
+        og.delivery_phone AS "customerPhone",
+        og.address_line AS "deliveryAddress",
+        og.landmark,
+        og.city AS "deliveryCity",
+        og.state AS "deliveryState",
+        og.pincode AS "deliveryPincode",
 
         (
           SELECT COUNT(*)::int
@@ -1145,36 +1104,19 @@ export const getDeliveryOrderOfferService = async ({ deliveryAgentId }) => {
 
       WHERE
         da.delivery_agent_id = $1
-
         AND da.status = 'OFFERED'
+        AND o.status = 'READY_FOR_PICKUP'
 
-        AND da.expires_at >
-            CURRENT_TIMESTAMP
-
-        AND o.status =
-            'READY_FOR_PICKUP'
-
-      ORDER BY
-        da.offered_at DESC
+      ORDER BY da.offered_at DESC
 
       LIMIT 1
     `,
     [deliveryAgentId],
   );
 
-  console.log(result);
-
-  // =========================================
-  // 3. NO OFFER
-  // =========================================
-
   if (result.rows.length === 0) {
     return null;
   }
-
-  // =========================================
-  // 4. RETURN ACTIVE OFFER
-  // =========================================
 
   return result.rows[0];
 };

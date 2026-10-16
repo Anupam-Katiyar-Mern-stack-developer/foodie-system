@@ -176,13 +176,13 @@ const DeliveryOffers = () => {
             </div>
           </div>
 
-          {/* <Button
+          <Button
             type="button"
             variant="outline"
             onClick={() => navigate("/delivery/active")}
           >
             Active Delivery
-          </Button> */}
+          </Button>
         </div>
       </section>
 
