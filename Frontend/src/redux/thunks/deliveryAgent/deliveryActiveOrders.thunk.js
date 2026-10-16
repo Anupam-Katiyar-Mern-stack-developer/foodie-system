@@ -1,22 +1,23 @@
-import { getActiveOrdersService } from "../../../services/deliveryAgent/deliveryActive.service";
 import { createAsyncThunk } from "@reduxjs/toolkit";
+
+import { getActiveOrdersService } from "../../../services/deliveryAgent/deliveryActive.service";
 import { getErrorMessage } from "../../../utils/getErrorMessage";
 import { showErrorToast } from "../../../utils/toast";
 
-export const activeOrders = createAsyncThunk(
-  "/deliveryActiveorders/activeOrders",
-  async (_, { rejectwithValue }) => {
+export const getActiveOrder = createAsyncThunk(
+  "deliveryActive/getActiveOrder",
+  async (_, { rejectWithValue }) => {
     try {
       const response = await getActiveOrdersService();
-      response?.data || response;
-    } catch (error) {
-      const message = getErrorMessage(
-        error,
-        "Unable to load delivery dashboard",
-      );
-      showErrorToast(message);
 
-      return rejectwithValue(message);
+      // Axios response / response.data / direct data
+      // tino cases safely handle karega.
+      return response?.data?.data ?? response?.data ?? response ?? null;
+    } catch (error) {
+      const message = getErrorMessage(error, "Unable to load active delivery");
+
+      showErrorToast(message);
+      return rejectWithValue(message);
     }
   },
 );

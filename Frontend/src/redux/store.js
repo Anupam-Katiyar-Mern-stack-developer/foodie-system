@@ -21,6 +21,7 @@ import deliveryOfferReducer from "./slices/deliveryAgent/deliveryOffer.slice";
 import deliveryProfileReducer from "./slices/deliveryAgent/deliveryProfile.slice";
 import deliveryHistoryReducer from "./slices/deliveryAgent/deliveryHistory.slice";
 import deliveryLocationReducer from "./slices/deliveryAgent/deliveryLocation.slice";
+import deliveryActiveOrderReducer from "./slices/deliveryAgent/deliveryActiveOrders.slice";
 const store = configureStore({
   reducer: {
     publicCategory: publicCategoryReducer,
@@ -52,6 +53,7 @@ const store = configureStore({
     deliveryOffer: deliveryOfferReducer,
     deliveryProfile: deliveryProfileReducer,
     deliveryHistory: deliveryHistoryReducer,
+    deliveryActiveOrder: deliveryActiveOrderReducer,
   },
 });
 

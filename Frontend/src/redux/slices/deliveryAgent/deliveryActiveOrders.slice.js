@@ -1,34 +1,43 @@
 import { createSlice } from "@reduxjs/toolkit";
-
-import { deliveryActiveOrders } from "../../thunks/deliveryAgent/deliveryActiveOrders.thunk";
+import { getActiveOrder } from "../../thunks/deliveryAgent/deliveryActiveOrders.thunk";
 
 const initialState = {
-  ActiveOrder: [],
+  activeOrder: null,
   fetchLoading: false,
-  error: false,
+  error: null,
 };
 
-const deliveryActiveOrder = createSlice({
-  name: "deliveryActiveOrders",
+const deliveryActiveOrderSlice = createSlice({
+  name: "deliveryActiveOrder",
   initialState,
-  reducers: {},
+  reducers: {
+    clearActiveOrder: (state) => {
+      state.activeOrder = null;
+      state.error = null;
+    },
+  },
+
   extraReducers: (builder) => {
     builder
-      .addCase(deliveryActiveOrder.pending, (state) => {
-        state.fetchLoading = false;
+      .addCase(getActiveOrder.pending, (state) => {
+        state.fetchLoading = true;
         state.error = null;
       })
 
-      .addCase(deliveryActiveOrder.fulfilled, (state, action) => {
+      .addCase(getActiveOrder.fulfilled, (state, action) => {
         state.fetchLoading = false;
         state.error = null;
-        state.ActiveOrder = action.payload || [];
+        state.activeOrder = action.payload;
       })
 
-      .addCase(deliveryActiveOrders.rejected, (state, action) => {
+      .addCase(getActiveOrder.rejected, (state, action) => {
         state.fetchLoading = false;
-        state.error = action.payload || "failed to fetch delivery active order";
-        state.ActiveOrder = [];
+        state.error = action.payload || "Failed to fetch active delivery";
+        state.activeOrder = null;
       });
   },
 });
+
+export const { clearActiveOrder } = deliveryActiveOrderSlice.actions;
+
+export default deliveryActiveOrderSlice.reducer;
