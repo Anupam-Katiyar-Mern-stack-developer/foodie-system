@@ -3,9 +3,11 @@ import { getActiveDeliveryOrderService } from "../../services/delivery.service.j
 export const getActiveDeliveryOrder = async (req, res) => {
   try {
     const { deliveryAgentId } = req.deliveryAgent;
+    const { orderNumber } = req.params;
 
     const data = await getActiveDeliveryOrderService({
       deliveryAgentId,
+      orderNumber,
     });
 
     return res.status(200).json({

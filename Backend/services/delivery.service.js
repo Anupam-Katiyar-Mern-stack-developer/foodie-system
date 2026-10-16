@@ -1557,100 +1557,48 @@ export const rejectDeliveryOrderService = async ({
 };
 
 // get active delivery order service
-export const getActiveDeliveryOrderService = async ({ deliveryAgentId }) => {
+export const getActiveDeliveryOrderService = async ({
+  deliveryAgentId,
+  orderId,
+}) => {
   const orderResult = await pool.query(
     `
       SELECT
-        o.id,
-
-        o.order_number
-          AS "orderNumber",
-
+        o.id AS "orderId",
+        o.order_number AS "orderNumber",
         o.status,
-
         o.subtotal,
+        o.delivery_fee AS "deliveryFee",
+        o.tax_amount AS "taxAmount",
+        o.total_amount AS "totalAmount",
 
-        o.delivery_fee
-          AS "deliveryFee",
+        o.delivery_assigned_at AS "deliveryAssignedAt",
+        o.picked_up_at AS "pickedUpAt",
+        o.out_for_delivery_at AS "outForDeliveryAt",
+        o.created_at AS "createdAt",
 
-        o.tax_amount
-          AS "taxAmount",
+        r.restaurant_name AS "restaurantName",
+        r.slug AS "restaurantSlug",
+        r.logo AS "restaurantLogo",
+        r.phone AS "restaurantPhone",
+        r.address_line AS "restaurantAddress",
+        r.city AS "restaurantCity",
+        r.state AS "restaurantState",
+        r.pincode AS "restaurantPincode",
+        r.latitude AS "restaurantLatitude",
+        r.longitude AS "restaurantLongitude",
 
-        o.total_amount
-          AS "totalAmount",
-
-        o.delivery_assigned_at
-          AS "deliveryAssignedAt",
-
-        o.picked_up_at
-          AS "pickedUpAt",
-
-        o.created_at
-          AS "createdAt",
-
-
-        r.restaurant_name
-          AS "restaurantName",
-
-        r.slug
-          AS "restaurantSlug",
-
-        r.logo
-          AS "restaurantLogo",
-
-        r.phone
-          AS "restaurantPhone",
-
-        r.address_line
-          AS "restaurantAddress",
-
-        r.city
-          AS "restaurantCity",
-
-        r.state
-          AS "restaurantState",
-
-        r.pincode
-          AS "restaurantPincode",
-
-        r.latitude
-          AS "restaurantLatitude",
-
-        r.longitude
-          AS "restaurantLongitude",
-
-
-        og.delivery_name
-          AS "customerName",
-
-        og.delivery_phone
-          AS "customerPhone",
-
-        og.address_line
-          AS "deliveryAddress",
-
+        og.delivery_name AS "customerName",
+        og.delivery_phone AS "customerPhone",
+        og.address_line AS "deliveryAddress",
         og.landmark,
-
-        og.city
-          AS "deliveryCity",
-
-        og.state
-          AS "deliveryState",
-
-        og.pincode
-          AS "deliveryPincode",
-
-        og.latitude
-          AS "deliveryLatitude",
-
-        og.longitude
-          AS "deliveryLongitude",
-
-        og.payment_method
-          AS "paymentMethod",
-
-        og.payment_status
-          AS "paymentStatus"
+        og.city AS "deliveryCity",
+        og.state AS "deliveryState",
+        og.pincode AS "deliveryPincode",
+        og.latitude AS "deliveryLatitude",
+        og.longitude AS "deliveryLongitude",
+        og.payment_method AS "paymentMethod",
+        og.payment_status AS "paymentStatus"
 
       FROM orders o
 
@@ -1661,23 +1609,25 @@ export const getActiveDeliveryOrderService = async ({ deliveryAgentId }) => {
         ON og.id = o.order_group_id
 
       WHERE
-        o.assigned_delivery_agent_id = $1
-
+        o.id = $1
+        AND o.assigned_delivery_agent_id = $2
         AND o.status IN (
           'DELIVERY_ASSIGNED',
           'PICKED_UP',
           'OUT_FOR_DELIVERY'
         )
 
-      ORDER BY o.created_at DESC
-
       LIMIT 1
     `,
-    [deliveryAgentId],
+    [orderId, deliveryAgentId],
   );
 
   if (orderResult.rows.length === 0) {
-    return null;
+    const error = new Error(
+      "Active delivery order not found or this order is not assigned to you",
+    );
+    error.statusCode = 404;
+    throw error;
   }
 
   const order = orderResult.rows[0];
@@ -1685,38 +1635,44 @@ export const getActiveDeliveryOrderService = async ({ deliveryAgentId }) => {
   const itemsResult = await pool.query(
     `
       SELECT
-        food_name
-          AS "name",
-
-        food_slug
-          AS "slug",
-
-        food_image
-          AS "image",
-
-        unit_price
-          AS "unitPrice",
-
+        food_name AS "name",
+        food_slug AS "slug",
+        food_image AS "image",
+        unit_price AS "unitPrice",
         quantity,
-
-        item_total
-          AS "itemTotal"
-
+        item_total AS "itemTotal"
       FROM order_items
-
       WHERE order_id = $1
-
       ORDER BY id ASC
     `,
-    [order.id],
+    [order.orderId],
   );
 
-  delete order.id;
+  const activity = [
+    {
+      status: "DELIVERY_ASSIGNED",
+      label: "Delivery Assigned",
+      completed: Boolean(order.deliveryAssignedAt),
+      timestamp: order.deliveryAssignedAt,
+    },
+    {
+      status: "PICKED_UP",
+      label: "Order Picked Up",
+      completed: Boolean(order.pickedUpAt),
+      timestamp: order.pickedUpAt,
+    },
+    {
+      status: "OUT_FOR_DELIVERY",
+      label: "Out For Delivery",
+      completed: Boolean(order.outForDeliveryAt),
+      timestamp: order.outForDeliveryAt,
+    },
+  ];
 
   return {
     ...order,
-
     items: itemsResult.rows,
+    activity,
   };
 };
 
