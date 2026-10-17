@@ -1,17 +1,6 @@
-import {
-    useMemo,
-} from "react";
-
-import {
-    Link,
-    useNavigate,
-    useParams,
-} from "react-router-dom";
-
-import {
-    useSelector,
-} from "react-redux";
-
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import {
     FaArrowLeft,
     FaBoxOpen,
@@ -21,17 +10,15 @@ import {
     FaMotorcycle,
     FaPhoneAlt,
     FaReceipt,
-    FaRoute,
     FaStore,
-    FaUser,
     FaUtensils,
 } from "react-icons/fa";
 
 import Container from "../../../components/common/Container/Container";
+import Button from "../../../components/common/Button/Button";
 import EmptyState from "../../../components/common/EmptyState/EmptyState";
 import ErrorState from "../../../components/common/ErrorState/ErrorState";
 import Skeleton from "../../../components/common/Skeleton/Skeleton";
-
 import OrderStatusTimeline from "../../../components/public/OrderStatusTimeline/OrderStatusTimeline";
 
 import {
@@ -39,158 +26,334 @@ import {
     ORDER_STATUS,
 } from "../../../constants/orderStatus";
 
+import {
+    getMyOrders,
+} from "../../../redux/thunks/public/order.thunk";
+
+import {
+    socket,
+    connectSocket,
+} from "../../../socket/socket";
+
+import {
+    STORAGE_KEYS,
+} from "../../../constants/storageKeys";
 
 const LIVE_TRACKING_STATUSES = [
     ORDER_STATUS.DELIVERY_ASSIGNED,
-
     ORDER_STATUS.PICKED_UP,
-
     ORDER_STATUS.OUT_FOR_DELIVERY,
 ];
 
+const formatPrice = (amount) =>
+    new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(Number(amount || 0));
+
+const formatDate = (value) => {
+    if (!value) return "-";
+
+    return new Intl.DateTimeFormat("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    }).format(new Date(value));
+};
 
 const OrderDetails = () => {
-    const {
-        orderNumber,
-    } = useParams();
-
-
-    const navigate =
-        useNavigate();
-
-
-    // =========================
-    // REDUX
-    // =========================
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const { orderNumber } = useParams();
 
     const {
-        orders,
-        detailLoading,
-        detailError,
-    } = useSelector(
-        (state) =>
-            state.publicOrder
+        orders = [],
+        fetchLoading,
+        error,
+    } = useSelector((state) => state.publicOrder) || {};
+
+    const [initialLoading, setInitialLoading] = useState(true);
+    const [liveStatus, setLiveStatus] = useState(null);
+    const [liveDeliveryAgent, setLiveDeliveryAgent] = useState(null);
+    const [agentLocation, setAgentLocation] = useState(null);
+    const [paymentUpdate, setPaymentUpdate] = useState(null);
+
+    const order = useMemo(
+        () =>
+            orders.find(
+                (item) =>
+                    item.orderNumber === orderNumber,
+            ),
+        [orders, orderNumber],
     );
 
+    // ======================================================
+    // INITIAL FETCH
+    // Refresh ke baad Redux empty hoga, isliye API fetch.
+    // ======================================================
 
-    // =========================
-    // CURRENT ORDER
-    // =========================
+    useEffect(() => {
+        let active = true;
 
-    const order =
-        useMemo(
-            () =>
-                orders.find(
-                    (item) =>
-                        item.orderNumber ===
-                        orderNumber
-                ),
-
-            [
-                orders,
-                orderNumber,
-            ]
-        );
-
-
-    // =========================
-    // HELPERS
-    // =========================
-
-    const formatPrice = (
-        amount
-    ) => {
-        return new Intl.NumberFormat(
-            "en-IN",
-            {
-                style: "currency",
-                currency: "INR",
-                maximumFractionDigits: 0,
-            }
-        ).format(amount || 0);
-    };
-
-
-    const formatDate = (
-        value
-    ) => {
-        if (!value) {
-            return "";
+        if (!orderNumber) {
+            setInitialLoading(false);
+            return undefined;
         }
 
+        setInitialLoading(true);
 
-        return new Intl.DateTimeFormat(
-            "en-IN",
-            {
-                day: "2-digit",
-
-                month: "short",
-
-                year: "numeric",
-
-                hour: "2-digit",
-
-                minute: "2-digit",
+        dispatch(getMyOrders()).finally(() => {
+            if (active) {
+                setInitialLoading(false);
             }
-        ).format(
-            new Date(value)
+        });
+
+        return () => {
+            active = false;
+        };
+    }, [dispatch, orderNumber]);
+
+    // ======================================================
+    // SOCKET.IO — USER ORDER ROOM
+    // ======================================================
+
+    useEffect(() => {
+        if (!orderNumber) return undefined;
+
+        const token =
+            localStorage.getItem(
+                STORAGE_KEYS.USER_TOKEN,
+            );
+
+        if (!token) {
+            return undefined;
+        }
+
+        let joinedOnce = false;
+
+        const joinOrderRoom = () => {
+            socket.emit(
+                "order:join",
+                { orderNumber },
+                (response) => {
+                    if (!response?.success) {
+                        console.error(
+                            "ORDER ROOM JOIN ERROR:",
+                            response?.message,
+                        );
+                    }
+                },
+            );
+
+            // Reconnect ke baad missed event ho sakta hai.
+            // REST API se latest source-of-truth reload.
+            if (joinedOnce) {
+                dispatch(getMyOrders());
+            }
+
+            joinedOnce = true;
+        };
+
+        const handleStatusUpdate = (data) => {
+            if (
+                data?.orderNumber !== orderNumber
+            ) {
+                return;
+            }
+
+            setLiveStatus(data.status);
+
+            // REST remains source of truth.
+            dispatch(getMyOrders());
+        };
+
+        const handleDeliveryAssigned = (data) => {
+            if (
+                data?.orderNumber !== orderNumber
+            ) {
+                return;
+            }
+
+            setLiveStatus(
+                data.status ||
+                ORDER_STATUS.DELIVERY_ASSIGNED,
+            );
+
+            if (data.deliveryAgent) {
+                setLiveDeliveryAgent(
+                    data.deliveryAgent,
+                );
+            }
+
+            dispatch(getMyOrders());
+        };
+
+        const handleDeliveryLocation = (data) => {
+            if (
+                data?.orderNumber !== orderNumber
+            ) {
+                return;
+            }
+
+            const latitude =
+                Number(data.latitude);
+
+            const longitude =
+                Number(data.longitude);
+
+            if (
+                !Number.isFinite(latitude) ||
+                !Number.isFinite(longitude)
+            ) {
+                return;
+            }
+
+            setAgentLocation({
+                latitude,
+                longitude,
+                updatedAt:
+                    data.updatedAt ||
+                    new Date().toISOString(),
+            });
+        };
+
+        const handlePaymentUpdate = (data) => {
+            if (
+                data?.orderNumber !== orderNumber
+            ) {
+                return;
+            }
+
+            setPaymentUpdate({
+                paymentMethod:
+                    data.paymentMethod,
+                paymentStatus:
+                    data.paymentStatus,
+            });
+
+            dispatch(getMyOrders());
+        };
+
+        const handleConnectError = (socketError) => {
+            console.error(
+                "USER ORDER SOCKET ERROR:",
+                socketError.message,
+            );
+        };
+
+        socket.on(
+            "connect",
+            joinOrderRoom,
         );
-    };
 
+        socket.on(
+            "order:status-updated",
+            handleStatusUpdate,
+        );
 
-    // =========================
+        socket.on(
+            "delivery:assigned",
+            handleDeliveryAssigned,
+        );
+
+        socket.on(
+            "delivery:location-updated",
+            handleDeliveryLocation,
+        );
+
+        socket.on(
+            "payment:updated",
+            handlePaymentUpdate,
+        );
+
+        socket.on(
+            "connect_error",
+            handleConnectError,
+        );
+
+        connectSocket(token);
+
+        if (socket.connected) {
+            joinOrderRoom();
+        }
+
+        return () => {
+            if (socket.connected) {
+                socket.emit(
+                    "order:leave",
+                    { orderNumber },
+                );
+            }
+
+            socket.off(
+                "connect",
+                joinOrderRoom,
+            );
+
+            socket.off(
+                "order:status-updated",
+                handleStatusUpdate,
+            );
+
+            socket.off(
+                "delivery:assigned",
+                handleDeliveryAssigned,
+            );
+
+            socket.off(
+                "delivery:location-updated",
+                handleDeliveryLocation,
+            );
+
+            socket.off(
+                "payment:updated",
+                handlePaymentUpdate,
+            );
+
+            socket.off(
+                "connect_error",
+                handleConnectError,
+            );
+        };
+    }, [dispatch, orderNumber]);
+
+    // Route change par temporary live data reset.
+    useEffect(() => {
+        setLiveStatus(null);
+        setLiveDeliveryAgent(null);
+        setAgentLocation(null);
+        setPaymentUpdate(null);
+    }, [orderNumber]);
+
+    // ======================================================
     // LOADING
-    // =========================
+    // ======================================================
 
-    if (detailLoading) {
+    if (
+        initialLoading &&
+        !order
+    ) {
         return (
-            <div
-                className="
-          min-h-screen
-          bg-[#fffaf5]
-          py-10
-        "
-            >
+            <div className="min-h-screen bg-[#fffaf5] py-10">
                 <Container>
                     <Skeleton
                         width="w-full"
-                        height="h-[210px]"
+                        height="h-[180px]"
                         rounded="rounded-[2rem]"
                     />
-
-
-                    <div
-                        className="
-              mt-6
-
-              grid
-              gap-6
-
-              lg:grid-cols-[minmax(0,1fr)_360px]
-            "
-                    >
-                        <div
-                            className="
-                space-y-5
-              "
-                        >
-                            <Skeleton
-                                width="w-full"
-                                height="h-[480px]"
-                                rounded="rounded-[1.75rem]"
-                            />
-
-                            <Skeleton
-                                width="w-full"
-                                height="h-[300px]"
-                                rounded="rounded-[1.75rem]"
-                            />
-                        </div>
-
-
+                    <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
                         <Skeleton
                             width="w-full"
-                            height="h-[440px]"
+                            height="h-[420px]"
+                            rounded="rounded-[1.75rem]"
+                        />
+                        <Skeleton
+                            width="w-full"
+                            height="h-[340px]"
                             rounded="rounded-[1.75rem]"
                         />
                     </div>
@@ -199,31 +362,26 @@ const OrderDetails = () => {
         );
     }
 
-
-    // =========================
+    // ======================================================
     // ERROR
-    // =========================
+    // ======================================================
 
-    if (detailError) {
+    if (
+        error &&
+        !order
+    ) {
         return (
-            <div
-                className="
-          min-h-[60vh]
-
-          bg-[#fffaf5]
-
-          py-14
-        "
-            >
+            <div className="min-h-[70vh] bg-[#fffaf5] py-14">
                 <Container>
                     <ErrorState
                         title="Unable to load order"
-
                         description={
-                            typeof detailError ===
-                                "string"
-                                ? detailError
+                            typeof error === "string"
+                                ? error
                                 : "Something went wrong while loading this order."
+                        }
+                        onRetry={() =>
+                            dispatch(getMyOrders())
                         }
                     />
                 </Container>
@@ -231,58 +389,27 @@ const OrderDetails = () => {
         );
     }
 
-
-    // =========================
+    // ======================================================
     // NOT FOUND
-    // =========================
+    // ======================================================
 
     if (!order) {
         return (
-            <div
-                className="
-          min-h-[70vh]
-
-          bg-[#fffaf5]
-
-          py-14
-        "
-            >
+            <div className="min-h-[70vh] bg-[#fffaf5] py-14">
                 <Container>
                     <EmptyState
-                        icon={
-                            FaBoxOpen
-                        }
-
+                        icon={FaBoxOpen}
                         title="Order not found"
-
-                        description="The order you are looking for does not exist or is unavailable."
-
+                        description="The requested order could not be found."
                         action={
-                            <button
+                            <Button
                                 type="button"
-
                                 onClick={() =>
-                                    navigate(
-                                        "/orders"
-                                    )
+                                    navigate("/orders")
                                 }
-
-                                className="
-                  min-h-11
-
-                  rounded-xl
-
-                  bg-orange-500
-
-                  px-5
-
-                  text-sm
-                  font-bold
-                  text-white
-                "
                             >
                                 View My Orders
-                            </button>
+                            </Button>
                         }
                     />
                 </Container>
@@ -290,1516 +417,499 @@ const OrderDetails = () => {
         );
     }
 
+    // ======================================================
+    // DERIVED DATA
+    // ======================================================
+
+    const currentStatus =
+        liveStatus ||
+        order.status;
 
     const statusConfig =
         getOrderStatusConfig(
-            order.status
+            currentStatus,
         );
-
 
     const showLiveTracking =
         LIVE_TRACKING_STATUSES.includes(
-            order.status
+            currentStatus,
         );
 
+    const deliveryAgent =
+        liveDeliveryAgent ||
+        order.deliveryAgent ||
+        null;
+
+    const paymentMethod =
+        paymentUpdate?.paymentMethod ||
+        order.paymentMethod ||
+        "COD";
+
+    const paymentStatus =
+        paymentUpdate?.paymentStatus ||
+        order.paymentStatus ||
+        "PENDING";
 
     const itemCount =
         order.items?.reduce(
-            (
-                total,
-                item
-            ) =>
+            (total, item) =>
                 total +
                 Number(
-                    item.quantity || 0
+                    item.quantity || 0,
                 ),
-
-            0
+            0,
         ) || 0;
 
+    const deliveryAddress = [
+        order.addressLine,
+        order.landmark,
+        order.city,
+        order.state,
+        order.pincode,
+    ]
+        .filter(Boolean)
+        .join(", ");
+
+    const mapUrl =
+        agentLocation
+            ? `https://maps.google.com/maps?q=${agentLocation.latitude},${agentLocation.longitude}&z=16&output=embed`
+            : "";
 
     return (
-        <div
-            className="
-        min-h-screen
-        bg-[#fffaf5]
-      "
-        >
-            {/* =========================
-          HEADER
-      ========================== */}
-
-            <section
-                className="
-          border-b
-          border-orange-100
-
-          bg-white
-        "
-            >
+        <main className="min-h-screen bg-[#fffaf5]">
+            {/* HEADER */}
+            <section className="border-b border-orange-100 bg-white">
                 <Container>
-                    <div
-                        className="
-              py-8
-
-              sm:py-10
-            "
-                    >
-                        <button
+                    <div className="py-8 sm:py-10">
+                        <Button
                             type="button"
-
+                            variant="ghost"
                             onClick={() =>
-                                navigate(
-                                    "/orders"
-                                )
+                                navigate("/orders")
                             }
-
-                            className="
-                inline-flex
-                items-center
-                gap-2
-
-                text-sm
-                font-bold
-                text-slate-500
-
-                transition
-
-                hover:text-orange-600
-              "
                         >
-                            <FaArrowLeft
-                                className="
-                  h-3
-                  w-3
-                "
-                            />
-
+                            <FaArrowLeft />
                             Back to orders
-                        </button>
+                        </Button>
 
-
-                        <div
-                            className="
-                mt-5
-
-                flex
-                flex-col
-                gap-5
-
-                sm:flex-row
-                sm:items-end
-                sm:justify-between
-              "
-                        >
+                        <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
                             <div>
-                                <p
-                                    className="
-                    text-xs
-                    font-black
-                    uppercase
-                    tracking-[0.14em]
-                    text-orange-500
-                  "
-                                >
+                                <p className="text-xs font-black uppercase tracking-[0.14em] text-orange-500">
                                     Order details
                                 </p>
 
-
-                                <h1
-                                    className="
-                    mt-2
-
-                    break-all
-
-                    text-2xl
-                    font-black
-                    tracking-tight
-                    text-slate-950
-
-                    sm:text-3xl
-                    lg:text-4xl
-                  "
-                                >
-                                    {
-                                        order.orderNumber
-                                    }
+                                <h1 className="mt-2 break-all text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
+                                    {order.orderNumber}
                                 </h1>
 
-
-                                <div
-                                    className="
-                    mt-3
-
-                    flex
-                    flex-wrap
-                    items-center
-                    gap-3
-
-                    text-xs
-                    text-slate-500
-                  "
-                                >
-                                    <span
-                                        className="
-                      inline-flex
-                      items-center
-                      gap-2
-                    "
-                                    >
+                                <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                                    <span className="inline-flex items-center gap-2">
                                         <FaCalendarAlt />
-
                                         {formatDate(
-                                            order.createdAt
+                                            order.createdAt,
                                         )}
                                     </span>
 
+                                    <span>•</span>
 
                                     <span>
-                                        •
-                                    </span>
-
-
-                                    <span>
-                                        {itemCount} item
-                                        {itemCount !== 1
-                                            ? "s"
-                                            : ""}
+                                        {itemCount}{" "}
+                                        {itemCount === 1
+                                            ? "item"
+                                            : "items"}
                                     </span>
                                 </div>
                             </div>
 
-
-                            {/* STATUS */}
-
                             <span
-                                className={`
-                  inline-flex
-                  w-fit
-
-                  rounded-full
-
-                  border
-
-                  px-4
-                  py-2
-
-                  text-xs
-                  font-black
-                  uppercase
-                  tracking-wide
-
-                  ${statusConfig.className}
-                `}
+                                className={`inline-flex w-fit rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide ${statusConfig.className}`}
                             >
-                                {
-                                    statusConfig.label
-                                }
+                                {statusConfig.label}
                             </span>
                         </div>
                     </div>
                 </Container>
             </section>
 
+            <Container>
+                <div className="space-y-6 py-8 sm:py-10">
+                    {/* STATUS */}
+                    <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                        <div className="mb-6">
+                            <p className="text-xs font-black uppercase tracking-[0.14em] text-orange-500">
+                                Live status
+                            </p>
 
-            {/* =========================
-          BODY
-      ========================== */}
+                            <h2 className="mt-1 text-xl font-black text-slate-950">
+                                Order progress
+                            </h2>
 
-            <section
-                className="
-          py-8
+                            {fetchLoading && (
+                                <p className="mt-1 text-xs text-slate-400">
+                                    Syncing latest order data...
+                                </p>
+                            )}
+                        </div>
 
-          sm:py-10
+                        <OrderStatusTimeline
+                            status={currentStatus}
+                        />
+                    </section>
 
-          lg:py-12
-        "
-            >
-                <Container>
-                    <div
-                        className="
-              grid
-              gap-6
+                    {/* LIVE MAP */}
+                    {showLiveTracking && (
+                        <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+                            <div className="flex items-center justify-between gap-4 border-b border-slate-100 p-5 sm:p-6">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-xs font-black uppercase tracking-[0.14em] text-orange-500">
+                                            Delivery tracking
+                                        </p>
 
-              lg:grid-cols-[minmax(0,1fr)_360px]
-              lg:items-start
-            "
-                    >
-                        {/* =====================
-                LEFT
-            ====================== */}
-
-                        <div
-                            className="
-                space-y-6
-              "
-                        >
-                            {/* =====================
-                  STATUS TIMELINE
-              ====================== */}
-
-                            <div
-                                className="
-                  rounded-[1.75rem]
-
-                  border
-                  border-slate-200
-
-                  bg-white
-
-                  p-5
-
-                  shadow-sm
-
-                  sm:p-6
-                "
-                            >
-                                <div
-                                    className="
-                    mb-6
-                  "
-                                >
-                                    <p
-                                        className="
-                      text-xs
-                      font-black
-                      uppercase
-                      tracking-[0.14em]
-                      text-orange-500
-                    "
-                                    >
-                                        Live status
-                                    </p>
-
-                                    <h2
-                                        className="
-                      mt-2
-
-                      text-xl
-                      font-black
-                      text-slate-950
-
-                      sm:text-2xl
-                    "
-                                    >
-                                        Order progress
-                                    </h2>
-                                </div>
-
-
-                                <OrderStatusTimeline
-                                    status={
-                                        order.status
-                                    }
-                                />
-                            </div>
-
-
-                            {/* =====================
-                  LIVE TRACKING
-              ====================== */}
-
-                            {showLiveTracking && (
-                                <div
-                                    className="
-                    overflow-hidden
-
-                    rounded-[1.75rem]
-
-                    border
-                    border-slate-200
-
-                    bg-white
-
-                    shadow-sm
-                  "
-                                >
-                                    {/* HEADER */}
-
-                                    <div
-                                        className="
-                      flex
-                      items-center
-                      justify-between
-                      gap-4
-
-                      border-b
-                      border-slate-100
-
-                      p-5
-
-                      sm:p-6
-                    "
-                                    >
-                                        <div>
-                                            <p
-                                                className="
-                          text-xs
-                          font-black
-                          uppercase
-                          tracking-[0.14em]
-                          text-orange-500
-                        "
-                                            >
-                                                Delivery tracking
-                                            </p>
-
-                                            <h2
-                                                className="
-                          mt-1
-
-                          text-xl
-                          font-black
-                          text-slate-950
-                        "
-                                            >
-                                                Track your order
-                                            </h2>
-                                        </div>
-
-
-                                        <span
-                                            className="
-                        flex
-                        h-11
-                        w-11
-                        shrink-0
-                        items-center
-                        justify-center
-
-                        rounded-2xl
-
-                        bg-orange-100
-
-                        text-orange-600
-                      "
-                                        >
-                                            <FaRoute />
+                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700">
+                                            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                                            LIVE
                                         </span>
                                     </div>
 
+                                    <h2 className="mt-1 text-xl font-black text-slate-950">
+                                        Track delivery partner
+                                    </h2>
+                                </div>
 
-                                    {/* MAP PLACEHOLDER */}
+                                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
+                                    <FaMotorcycle />
+                                </span>
+                            </div>
 
-                                    <div
-                                        className="
-                      relative
+                            {agentLocation ? (
+                                <>
+                                    <iframe
+                                        key={`${agentLocation.latitude}-${agentLocation.longitude}`}
+                                        title="Delivery partner live location"
+                                        src={mapUrl}
+                                        loading="lazy"
+                                        className="h-[320px] w-full border-0 sm:h-[380px]"
+                                    />
 
-                      min-h-[300px]
-
-                      overflow-hidden
-
-                      bg-[#f3efe7]
-                    "
-                                    >
-                                        {/* ROAD LINES */}
-
-                                        <div
-                                            className="
-                        absolute
-                        -left-10
-                        top-1/2
-
-                        h-10
-                        w-[120%]
-
-                        -rotate-6
-
-                        bg-white/80
-                      "
-                                        />
-
-                                        <div
-                                            className="
-                        absolute
-                        left-1/3
-                        top-0
-
-                        h-[130%]
-                        w-8
-
-                        rotate-[28deg]
-
-                        bg-white/70
-                      "
-                                        />
-
-                                        <div
-                                            className="
-                        absolute
-                        right-12
-                        top-6
-
-                        h-[80%]
-                        w-6
-
-                        -rotate-[20deg]
-
-                        bg-white/60
-                      "
-                                        />
-
-
-                                        {/* RESTAURANT */}
-
-                                        <div
-                                            className="
-                        absolute
-                        left-[14%]
-                        top-[30%]
-
-                        flex
-                        flex-col
-                        items-center
-                      "
-                                        >
-                                            <span
-                                                className="
-                          flex
-                          h-11
-                          w-11
-                          items-center
-                          justify-center
-
-                          rounded-full
-
-                          bg-slate-950
-
-                          text-white
-
-                          shadow-xl
-                        "
-                                            >
-                                                <FaStore />
-                                            </span>
-
-                                            <span
-                                                className="
-                          mt-2
-
-                          rounded-lg
-
-                          bg-white
-
-                          px-2
-                          py-1
-
-                          text-[9px]
-                          font-black
-                          text-slate-700
-
-                          shadow
-                        "
-                                            >
-                                                Restaurant
-                                            </span>
+                                    <div className="grid gap-3 border-t border-slate-100 p-4 text-xs sm:grid-cols-3 sm:p-5">
+                                        <div>
+                                            <p className="font-bold text-slate-400">
+                                                Latitude
+                                            </p>
+                                            <p className="mt-1 font-black text-slate-800">
+                                                {agentLocation.latitude.toFixed(
+                                                    6,
+                                                )}
+                                            </p>
                                         </div>
 
-
-                                        {/* RIDER */}
-
-                                        <div
-                                            className="
-                        absolute
-                        left-[52%]
-                        top-[48%]
-
-                        flex
-                        flex-col
-                        items-center
-                      "
-                                        >
-                                            <span
-                                                className="
-                          flex
-                          h-14
-                          w-14
-                          items-center
-                          justify-center
-
-                          rounded-full
-
-                          border-4
-                          border-white
-
-                          bg-orange-500
-
-                          text-white
-
-                          shadow-2xl
-                          shadow-orange-500/30
-                        "
-                                            >
-                                                <FaMotorcycle />
-                                            </span>
-
-                                            <span
-                                                className="
-                          mt-2
-
-                          rounded-lg
-
-                          bg-orange-500
-
-                          px-2
-                          py-1
-
-                          text-[9px]
-                          font-black
-                          text-white
-
-                          shadow
-                        "
-                                            >
-                                                Delivery Agent
-                                            </span>
+                                        <div>
+                                            <p className="font-bold text-slate-400">
+                                                Longitude
+                                            </p>
+                                            <p className="mt-1 font-black text-slate-800">
+                                                {agentLocation.longitude.toFixed(
+                                                    6,
+                                                )}
+                                            </p>
                                         </div>
 
-
-                                        {/* USER */}
-
-                                        <div
-                                            className="
-                        absolute
-                        bottom-[18%]
-                        right-[12%]
-
-                        flex
-                        flex-col
-                        items-center
-                      "
-                                        >
-                                            <span
-                                                className="
-                          flex
-                          h-11
-                          w-11
-                          items-center
-                          justify-center
-
-                          rounded-full
-
-                          bg-emerald-500
-
-                          text-white
-
-                          shadow-xl
-                        "
-                                            >
-                                                <FaMapMarkerAlt />
-                                            </span>
-
-                                            <span
-                                                className="
-                          mt-2
-
-                          rounded-lg
-
-                          bg-white
-
-                          px-2
-                          py-1
-
-                          text-[9px]
-                          font-black
-                          text-slate-700
-
-                          shadow
-                        "
-                                            >
-                                                You
-                                            </span>
-                                        </div>
-
-
-                                        {/* INFO */}
-
-                                        <div
-                                            className="
-                        absolute
-                        bottom-4
-                        left-4
-                        right-4
-
-                        rounded-2xl
-
-                        border
-                        border-white/60
-
-                        bg-white/90
-
-                        p-4
-
-                        backdrop-blur
-                      "
-                                        >
-                                            <div
-                                                className="
-                          flex
-                          items-center
-                          gap-3
-                        "
-                                            >
-                                                <span
-                                                    className="
-                            flex
-                            h-10
-                            w-10
-                            shrink-0
-                            items-center
-                            justify-center
-
-                            rounded-xl
-
-                            bg-orange-100
-
-                            text-orange-600
-                          "
-                                                >
-                                                    <FaMotorcycle />
-                                                </span>
-
-
-                                                <div>
-                                                    <p
-                                                        className="
-                              text-sm
-                              font-black
-                              text-slate-950
-                            "
-                                                    >
-                                                        {
-                                                            statusConfig.label
-                                                        }
-                                                    </p>
-
-                                                    <p
-                                                        className="
-                              mt-0.5
-
-                              text-xs
-                              text-slate-500
-                            "
-                                                    >
-                                                        Live GPS map will
-                                                        connect here using
-                                                        Socket.IO and Redis.
-                                                    </p>
-                                                </div>
-                                            </div>
+                                        <div>
+                                            <p className="font-bold text-slate-400">
+                                                Last updated
+                                            </p>
+                                            <p className="mt-1 font-black text-slate-800">
+                                                {formatDate(
+                                                    agentLocation.updatedAt,
+                                                )}
+                                            </p>
                                         </div>
                                     </div>
+                                </>
+                            ) : (
+                                <div className="flex min-h-[260px] flex-col items-center justify-center px-6 text-center">
+                                    <span className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-100 text-xl text-orange-600">
+                                        <FaMapMarkerAlt />
+                                    </span>
+
+                                    <h3 className="mt-4 font-black text-slate-900">
+                                        Waiting for live location
+                                    </h3>
+
+                                    <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
+                                        Delivery partner is assigned.
+                                        Live coordinates will appear
+                                        automatically as soon as the
+                                        rider shares location.
+                                    </p>
                                 </div>
                             )}
+                        </section>
+                    )}
 
-
-                            {/* =====================
-                  ORDER ITEMS
-              ====================== */}
-
-                            <div
-                                className="
-                  rounded-[1.75rem]
-
-                  border
-                  border-slate-200
-
-                  bg-white
-
-                  p-5
-
-                  shadow-sm
-
-                  sm:p-6
-                "
-                            >
-                                <div
-                                    className="
-                    flex
-                    items-center
-                    gap-3
-                  "
-                                >
-                                    <span
-                                        className="
-                      flex
-                      h-10
-                      w-10
-                      items-center
-                      justify-center
-
-                      rounded-xl
-
-                      bg-orange-100
-
-                      text-orange-600
-                    "
-                                    >
+                    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+                        <div className="space-y-6">
+                            {/* ITEMS */}
+                            <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                                <div className="flex items-center gap-3">
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
                                         <FaUtensils />
                                     </span>
 
-
                                     <div>
-                                        <h2
-                                            className="
-                        text-lg
-                        font-black
-                        text-slate-950
-
-                        sm:text-xl
-                      "
-                                        >
+                                        <h2 className="text-lg font-black text-slate-950">
                                             Order items
                                         </h2>
 
-                                        <p
-                                            className="
-                        mt-0.5
-
-                        text-xs
-                        text-slate-500
-                      "
-                                        >
-                                            {itemCount} item
-                                            {itemCount !== 1
-                                                ? "s"
-                                                : ""}
+                                        <p className="text-xs text-slate-500">
+                                            {itemCount}{" "}
+                                            {itemCount === 1
+                                                ? "item"
+                                                : "items"}
                                         </p>
                                     </div>
                                 </div>
 
-
-                                <div
-                                    className="
-                    mt-5
-
-                    divide-y
-                    divide-slate-100
-                  "
-                                >
-                                    {order.items.map(
-                                        (item) => {
-                                            const subtotal =
+                                <div className="mt-5 divide-y divide-slate-100">
+                                    {(order.items || []).map(
+                                        (item, index) => {
+                                            const unitPrice =
                                                 Number(
-                                                    item.price
-                                                ) *
-                                                Number(
-                                                    item.quantity
+                                                    item.unitPrice ||
+                                                    0,
                                                 );
 
+                                            const itemTotal =
+                                                Number(
+                                                    item.itemTotal ??
+                                                    unitPrice *
+                                                    Number(
+                                                        item.quantity ||
+                                                        0,
+                                                    ),
+                                                );
 
                                             return (
                                                 <div
                                                     key={
-                                                        item.name
+                                                        item.slug ||
+                                                        `${item.name}-${index}`
                                                     }
-
-                                                    className="
-                            flex
-                            items-center
-                            justify-between
-                            gap-4
-
-                            py-4
-
-                            first:pt-0
-                            last:pb-0
-                          "
+                                                    className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
                                                 >
-                                                    <div
-                                                        className="
-                              min-w-0
-                            "
-                                                    >
-                                                        <p
-                                                            className="
-                                text-sm
-                                font-black
-                                text-slate-900
-                              "
-                                                        >
-                                                            {
-                                                                item.name
-                                                            }
+                                                    <div className="min-w-0">
+                                                        <p className="truncate text-sm font-black text-slate-900">
+                                                            {item.name}
                                                         </p>
 
-
-                                                        <p
-                                                            className="
-                                mt-1
-
-                                text-xs
-                                text-slate-500
-                              "
-                                                        >
+                                                        <p className="mt-1 text-xs text-slate-500">
                                                             {formatPrice(
-                                                                item.price
+                                                                unitPrice,
                                                             )}
-
                                                             {" × "}
-
-                                                            {
-                                                                item.quantity
-                                                            }
+                                                            {item.quantity}
                                                         </p>
                                                     </div>
 
-
-                                                    <p
-                                                        className="
-                              shrink-0
-
-                              text-sm
-                              font-black
-                              text-slate-950
-                            "
-                                                    >
+                                                    <p className="shrink-0 text-sm font-black text-slate-950">
                                                         {formatPrice(
-                                                            subtotal
+                                                            itemTotal,
                                                         )}
                                                     </p>
                                                 </div>
                                             );
-                                        }
+                                        },
                                     )}
                                 </div>
-                            </div>
+                            </section>
 
-
-                            {/* =====================
-                  DELIVERY ADDRESS
-              ====================== */}
-
-                            {order.deliveryAddress && (
-                                <div
-                                    className="
-                    rounded-[1.75rem]
-
-                    border
-                    border-slate-200
-
-                    bg-white
-
-                    p-5
-
-                    shadow-sm
-
-                    sm:p-6
-                  "
-                                >
-                                    <div
-                                        className="
-                      flex
-                      items-start
-                      gap-3
-                    "
-                                    >
-                                        <span
-                                            className="
-                        flex
-                        h-11
-                        w-11
-                        shrink-0
-                        items-center
-                        justify-center
-
-                        rounded-xl
-
-                        bg-rose-100
-
-                        text-rose-600
-                      "
-                                        >
+                            {/* ADDRESS */}
+                            {deliveryAddress && (
+                                <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                                    <div className="flex items-start gap-3">
+                                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
                                             <FaMapMarkerAlt />
                                         </span>
 
-
                                         <div>
-                                            <p
-                                                className="
-                          text-xs
-                          font-black
-                          uppercase
-                          tracking-wide
-                          text-slate-400
-                        "
-                                            >
-                                                Delivery Address
+                                            <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                                                Delivery address
                                             </p>
 
-
-                                            <p
-                                                className="
-                          mt-2
-
-                          text-sm
-                          leading-6
-                          text-slate-700
-                        "
-                                            >
-                                                {
-                                                    order
-                                                        .deliveryAddress
-                                                        .addressLine
-                                                }
-                                                ,{" "}
-                                                {
-                                                    order
-                                                        .deliveryAddress
-                                                        .city
-                                                }
-                                                ,{" "}
-                                                {
-                                                    order
-                                                        .deliveryAddress
-                                                        .state
-                                                }
-                                                {" - "}
-                                                {
-                                                    order
-                                                        .deliveryAddress
-                                                        .pincode
-                                                }
+                                            <p className="mt-2 text-sm leading-6 text-slate-700">
+                                                {deliveryAddress}
                                             </p>
                                         </div>
                                     </div>
-                                </div>
+                                </section>
+                            )}
+
+                            {/* REJECTION */}
+                            {order.rejectionReason && (
+                                <section className="rounded-2xl border border-rose-200 bg-rose-50 p-5">
+                                    <p className="text-xs font-black uppercase text-rose-500">
+                                        Rejection reason
+                                    </p>
+
+                                    <p className="mt-2 text-sm font-semibold text-rose-700">
+                                        {order.rejectionReason}
+                                    </p>
+                                </section>
                             )}
                         </div>
 
-
-                        {/* =====================
-                RIGHT
-            ====================== */}
-
-                        <aside
-                            className="
-                space-y-5
-
-                lg:sticky
-                lg:top-28
-              "
-                        >
-                            {/* =====================
-                  SUMMARY
-              ====================== */}
-
-                            <div
-                                className="
-                  rounded-[1.75rem]
-
-                  border
-                  border-slate-200
-
-                  bg-white
-
-                  p-5
-
-                  shadow-sm
-                "
-                            >
-                                <div
-                                    className="
-                    flex
-                    items-center
-                    gap-3
-                  "
-                                >
-                                    <span
-                                        className="
-                      flex
-                      h-10
-                      w-10
-                      items-center
-                      justify-center
-
-                      rounded-xl
-
-                      bg-slate-100
-
-                      text-slate-700
-                    "
-                                    >
+                        <aside className="space-y-5 lg:sticky lg:top-28">
+                            {/* SUMMARY */}
+                            <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
                                         <FaReceipt />
                                     </span>
 
-
-                                    <h2
-                                        className="
-                      text-lg
-                      font-black
-                      text-slate-950
-                    "
-                                    >
+                                    <h2 className="text-lg font-black text-slate-950">
                                         Order summary
                                     </h2>
                                 </div>
 
-
-                                <div
-                                    className="
-                    mt-5
-                    space-y-4
-                  "
-                                >
-                                    <div
-                                        className="
-                      flex
-                      items-center
-                      justify-between
-                      gap-3
-
-                      text-sm
-                    "
-                                    >
-                                        <span
-                                            className="
-                        text-slate-500
-                      "
-                                        >
-                                            Items
+                                <div className="mt-5 space-y-3 text-sm">
+                                    <div className="flex justify-between gap-4">
+                                        <span className="text-slate-500">
+                                            Subtotal
                                         </span>
 
-                                        <span
-                                            className="
-                        font-bold
-                        text-slate-900
-                      "
-                                        >
-                                            {itemCount}
-                                        </span>
-                                    </div>
-
-
-                                    <div
-                                        className="
-                      flex
-                      items-center
-                      justify-between
-                      gap-3
-
-                      text-sm
-                    "
-                                    >
-                                        <span
-                                            className="
-                        text-slate-500
-                      "
-                                        >
-                                            Payment
-                                        </span>
-
-                                        <span
-                                            className="
-                        inline-flex
-                        items-center
-                        gap-1.5
-
-                        font-bold
-                        text-emerald-600
-                      "
-                                        >
-                                            <FaMoneyBillWave />
-
-                                            {
-                                                order.paymentMethod ||
-                                                "COD"
-                                            }
-                                        </span>
-                                    </div>
-
-
-                                    <div
-                                        className="
-                      h-px
-                      bg-slate-100
-                    "
-                                    />
-
-
-                                    <div
-                                        className="
-                      flex
-                      items-end
-                      justify-between
-                      gap-4
-                    "
-                                    >
-                                        <span
-                                            className="
-                        text-sm
-                        font-bold
-                        text-slate-500
-                      "
-                                        >
-                                            Total
-                                        </span>
-
-                                        <span
-                                            className="
-                        text-2xl
-                        font-black
-                        text-slate-950
-                      "
-                                        >
+                                        <span className="font-bold text-slate-900">
                                             {formatPrice(
-                                                order.total
+                                                order.subtotal,
                                             )}
                                         </span>
                                     </div>
+
+                                    <div className="flex justify-between gap-4">
+                                        <span className="text-slate-500">
+                                            Delivery fee
+                                        </span>
+
+                                        <span className="font-bold text-slate-900">
+                                            {formatPrice(
+                                                order.deliveryFee,
+                                            )}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex justify-between gap-4">
+                                        <span className="text-slate-500">
+                                            Tax
+                                        </span>
+
+                                        <span className="font-bold text-slate-900">
+                                            {formatPrice(
+                                                order.taxAmount,
+                                            )}
+                                        </span>
+                                    </div>
+
+                                    <div className="border-t border-slate-100 pt-4">
+                                        <div className="flex items-end justify-between gap-4">
+                                            <span className="font-bold text-slate-500">
+                                                Total
+                                            </span>
+
+                                            <span className="text-2xl font-black text-slate-950">
+                                                {formatPrice(
+                                                    order.totalAmount,
+                                                )}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            </section>
 
+                            {/* PAYMENT */}
+                            <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                                        <FaMoneyBillWave />
+                                    </span>
 
-                            {/* =====================
-                  RESTAURANT
-              ====================== */}
+                                    <div>
+                                        <p className="text-xs font-black uppercase text-slate-400">
+                                            Payment
+                                        </p>
 
-                            <div
-                                className="
-                  rounded-[1.75rem]
+                                        <p className="mt-1 font-black text-slate-950">
+                                            {paymentMethod}
+                                        </p>
 
-                  border
-                  border-slate-200
+                                        <p className="mt-0.5 text-xs font-bold text-slate-500">
+                                            {paymentStatus}
+                                        </p>
+                                    </div>
+                                </div>
+                            </section>
 
-                  bg-white
-
-                  p-5
-
-                  shadow-sm
-                "
-                            >
-                                <div
-                                    className="
-                    flex
-                    items-start
-                    gap-3
-                  "
-                                >
-                                    <span
-                                        className="
-                      flex
-                      h-11
-                      w-11
-                      shrink-0
-                      items-center
-                      justify-center
-
-                      rounded-xl
-
-                      bg-orange-100
-
-                      text-orange-600
-                    "
-                                    >
+                            {/* RESTAURANT */}
+                            <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+                                <div className="flex items-start gap-3">
+                                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
                                         <FaStore />
                                     </span>
 
-
-                                    <div
-                                        className="
-                      min-w-0
-                      flex-1
-                    "
-                                    >
-                                        <p
-                                            className="
-                        text-[10px]
-                        font-black
-                        uppercase
-                        tracking-wide
-                        text-slate-400
-                      "
-                                        >
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
                                             Restaurant
                                         </p>
 
-
-                                        <p
-                                            className="
-                        mt-1
-
-                        truncate
-
-                        text-sm
-                        font-black
-                        text-slate-950
-                      "
-                                        >
-                                            {
-                                                order.restaurantName
-                                            }
+                                        <p className="mt-1 truncate text-sm font-black text-slate-950">
+                                            {order.restaurantName}
                                         </p>
 
-
-                                        <Link
-                                            to={`/restaurants/${order.restaurantSlug}`}
-
-                                            className="
-                        mt-3
-
-                        inline-flex
-
-                        text-xs
-                        font-black
-                        text-orange-600
-
-                        hover:text-orange-700
-                      "
-                                        >
-                                            View restaurant
-                                        </Link>
+                                        {order.restaurantSlug && (
+                                            <Link
+                                                to={`/restaurants/${order.restaurantSlug}`}
+                                                className="mt-3 inline-flex text-xs font-black text-orange-600 hover:text-orange-700"
+                                            >
+                                                View restaurant
+                                            </Link>
+                                        )}
                                     </div>
                                 </div>
-                            </div>
+                            </section>
 
-
-                            {/* =====================
-                  DELIVERY AGENT
-              ====================== */}
-
-                            {order.deliveryAgent && (
-                                <div
-                                    className="
-                    rounded-[1.75rem]
-
-                    border
-                    border-slate-200
-
-                    bg-white
-
-                    p-5
-
-                    shadow-sm
-                  "
-                                >
-                                    <div
-                                        className="
-                      flex
-                      items-center
-                      gap-3
-                    "
-                                    >
-                                        <span
-                                            className="
-                        flex
-                        h-11
-                        w-11
-                        shrink-0
-                        items-center
-                        justify-center
-
-                        rounded-xl
-
-                        bg-emerald-100
-
-                        text-emerald-600
-                      "
-                                        >
+                            {/* DELIVERY AGENT */}
+                            {showLiveTracking && (
+                                <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+                                    <div className="flex items-center gap-3">
+                                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
                                             <FaMotorcycle />
                                         </span>
 
-
                                         <div>
-                                            <p
-                                                className="
-                          text-[10px]
-                          font-black
-                          uppercase
-                          tracking-wide
-                          text-slate-400
-                        "
-                                            >
-                                                Delivery Partner
+                                            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                                                Delivery partner
                                             </p>
 
-                                            <p
-                                                className="
-                          mt-1
-
-                          text-sm
-                          font-black
-                          text-slate-950
-                        "
-                                            >
-                                                {
-                                                    order
-                                                        .deliveryAgent
-                                                        .name
-                                                }
+                                            <p className="mt-1 text-sm font-black text-slate-950">
+                                                {deliveryAgent?.name ||
+                                                    "Delivery partner assigned"}
                                             </p>
-                                        </div>
-                                    </div>
 
-
-                                    <div
-                                        className="
-                      mt-4
-
-                      space-y-3
-
-                      border-t
-                      border-slate-100
-
-                      pt-4
-                    "
-                                    >
-                                        <div
-                                            className="
-                        flex
-                        items-center
-                        gap-3
-
-                        text-xs
-                        text-slate-600
-                      "
-                                        >
-                                            <FaMotorcycle
-                                                className="
-                          text-slate-400
-                        "
-                                            />
-
-                                            <span>
-                                                {
-                                                    order
-                                                        .deliveryAgent
-                                                        .vehicleType
-                                                }
-
-                                                {" • "}
-
-                                                {
-                                                    order
-                                                        .deliveryAgent
-                                                        .vehicleNumber
-                                                }
-                                            </span>
-                                        </div>
-
-
-                                        {order.deliveryAgent
-                                            .phone && (
-                                                <div
-                                                    className="
-                          flex
-                          items-center
-                          gap-3
-
-                          text-xs
-                          text-slate-600
-                        "
-                                                >
-                                                    <FaPhoneAlt
-                                                        className="
-                            text-slate-400
-                          "
-                                                    />
-
-                                                    <span>
-                                                        +91{" "}
-                                                        {
-                                                            order
-                                                                .deliveryAgent
-                                                                .phone
-                                                        }
-                                                    </span>
-                                                </div>
+                                            {deliveryAgent?.phone && (
+                                                <p className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                                                    <FaPhoneAlt />
+                                                    {deliveryAgent.phone}
+                                                </p>
                                             )}
-
-
-                                        <div
-                                            className="
-                        flex
-                        items-center
-                        gap-3
-
-                        text-xs
-                        text-slate-600
-                      "
-                                        >
-                                            <FaUser
-                                                className="
-                          text-slate-400
-                        "
-                                            />
-
-                                            <span>
-                                                {
-                                                    order
-                                                        .deliveryAgent
-                                                        .publicId
-                                                }
-                                            </span>
                                         </div>
                                     </div>
-                                </div>
+                                </section>
                             )}
-
-
-                            {/* NOT ASSIGNED */}
-
-                            {!order.deliveryAgent &&
-                                order.status !==
-                                ORDER_STATUS.DELIVERED &&
-                                order.status !==
-                                ORDER_STATUS.CANCELLED && (
-                                    <div
-                                        className="
-                      rounded-[1.75rem]
-
-                      border
-                      border-dashed
-                      border-orange-200
-
-                      bg-orange-50
-
-                      p-5
-                    "
-                                    >
-                                        <FaMotorcycle
-                                            className="
-                        text-xl
-                        text-orange-500
-                      "
-                                        />
-
-                                        <p
-                                            className="
-                        mt-3
-
-                        text-sm
-                        font-black
-                        text-slate-900
-                      "
-                                        >
-                                            Delivery partner
-                                            not assigned yet
-                                        </p>
-
-                                        <p
-                                            className="
-                        mt-1
-
-                        text-xs
-                        leading-5
-                        text-slate-500
-                      "
-                                        >
-                                            A delivery agent will
-                                            be assigned when your
-                                            order is ready for
-                                            pickup.
-                                        </p>
-                                    </div>
-                                )}
                         </aside>
                     </div>
-                </Container>
-            </section>
-        </div>
+                </div>
+            </Container>
+        </main>
     );
 };
-
 
 export default OrderDetails;
