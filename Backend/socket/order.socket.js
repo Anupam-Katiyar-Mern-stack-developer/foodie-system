@@ -17,6 +17,32 @@ export const emitNewRestaurantOrder = ({ restaurantId, order }) => {
   io.to(`restaurant:${restaurantId}`).emit("restaurant:new-order", order);
 };
 
+export const emitPlacedOrdersToRestaurants = (orders = []) => {
+  for (const order of orders) {
+    const {
+      restaurantId,
+      ...publicOrder
+    } = order;
+
+    if (!restaurantId) {
+      console.error(
+        "Restaurant socket skipped: restaurantId missing",
+        order.orderNumber,
+      );
+
+      continue;
+    }
+
+    emitNewRestaurantOrder({
+      restaurantId,
+      order: {
+        ...publicOrder,
+        message: "You have received a new order",
+      },
+    });
+  }
+};
+
 export const emitDeliveryOffer = ({ deliveryAgentPublicId, offer }) => {
   const io = getIO();
 

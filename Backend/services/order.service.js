@@ -440,11 +440,15 @@ export const placeOrderService = async ({
       }
 
       createdOrders.push({
+        // Internal use only.
+        // Socket.IO me correct restaurant room identify karne ke liye.
+        // Controller API response se isko remove karega.
+        restaurantId: group.restaurantId,
+
         orderNumber,
 
         restaurant: {
           name: group.restaurantName,
-
           slug: group.restaurantSlug,
         },
 
@@ -460,15 +464,10 @@ export const placeOrderService = async ({
 
         items: group.items.map((item) => ({
           name: item.foodName,
-
           slug: item.foodSlug,
-
           image: item.foodImage,
-
           unitPrice: item.unitPrice,
-
           quantity: item.quantity,
-
           itemTotal: item.itemTotal,
         })),
       });
