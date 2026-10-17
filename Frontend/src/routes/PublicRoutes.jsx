@@ -28,6 +28,9 @@ import Search from "../pages/public/Search/Search";
 // AUTH
 // =========================
 
+import ForgotPassword from "../pages/public/auth/ForgotPassword";
+import ResetPassword from "../pages/public/auth/ResetPassword";
+
 import Login from "../pages/public/Login/Login";
 
 import Register from "../pages/public/Register/Register";
@@ -55,6 +58,16 @@ const PublicRoutes = () => {
   return (
     <Routes>
 
+      {/* password reset +foget ling */}
+      <Route
+        path="/forgot-password"
+        element={<ForgotPassword />}
+      />
+
+      <Route
+        path="/reset-password/:token"
+        element={<ResetPassword />}
+      />
       {/* =========================
           PUBLIC LAYOUT
       ========================== */}

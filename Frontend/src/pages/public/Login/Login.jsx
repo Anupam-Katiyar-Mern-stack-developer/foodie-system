@@ -636,7 +636,7 @@ const Login = () => {
                     pt-5
                   "
                                 >
-                                    <button
+                                    {/* <button
                                         type="button"
 
                                         className="
@@ -650,7 +650,14 @@ const Login = () => {
                     "
                                     >
                                         Forgot password?
-                                    </button>
+                                    </button> */}
+
+                                    <Link
+                                        to="/forgot-password?type=USER"
+                                        className="text-sm font-bold text-orange-600 transition hover:text-orange-700"
+                                    >
+                                        Forgot password?
+                                    </Link>
                                 </div>
                             </div>
 

@@ -233,6 +233,12 @@ const RestaurantLogin = () => {
                             )}
 
                             {/* REGISTER LINK */}
+                            <Link
+                                to="/forgot-password?type=RESTAURANT"
+                                className="text-sm font-bold text-orange-600 transition hover:text-orange-700"
+                            >
+                                Forgot password?
+                            </Link>
 
                             <div className="mt-7 border-t border-slate-100 pt-6 text-center">
                                 <p className="text-sm text-slate-500">
