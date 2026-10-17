@@ -2980,19 +2980,6 @@ export const createRestaurantDeliveryOfferService = async ({
   try {
     await client.query("BEGIN");
 
-    // Expire old offers
-    await client.query(`
-      UPDATE delivery_assignments
-      SET
-        status = 'EXPIRED',
-        responded_at = CURRENT_TIMESTAMP,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE
-        status = 'OFFERED'
-        AND expires_at IS NOT NULL
-        AND expires_at <= CURRENT_TIMESTAMP
-    `);
-
     // Order
     const orderResult = await client.query(
       `
@@ -3004,8 +2991,11 @@ export const createRestaurantDeliveryOfferService = async ({
           r.latitude AS "restaurantLatitude",
           r.longitude AS "restaurantLongitude"
         FROM orders o
-        INNER JOIN restaurants r ON r.id = o.restaurant_id
-        WHERE o.order_number = $1 AND o.restaurant_id = $2
+        INNER JOIN restaurants r
+          ON r.id = o.restaurant_id
+        WHERE
+          o.order_number = $1
+          AND o.restaurant_id = $2
         LIMIT 1
         FOR UPDATE OF o
       `,
@@ -3048,17 +3038,16 @@ export const createRestaurantDeliveryOfferService = async ({
       throw error;
     }
 
-    // Order par koi active offer already hai?
+    // Is order par already koi pending offer hai?
     const existingOrderOffer = await client.query(
       `
-        SELECT id
-        FROM delivery_assignments
-        WHERE
-          order_id = $1
-          AND status = 'OFFERED'
-          AND expires_at > CURRENT_TIMESTAMP
-        LIMIT 1
-      `,
+          SELECT id
+          FROM delivery_assignments
+          WHERE
+            order_id = $1
+            AND status = 'OFFERED'
+          LIMIT 1
+        `,
       [order.id],
     );
 
@@ -3070,48 +3059,73 @@ export const createRestaurantDeliveryOfferService = async ({
       throw error;
     }
 
-    // Selected agent
+    // Selected delivery agent
     const agentResult = await client.query(
       `
-        SELECT
-          d.id,
-          d.public_id AS "publicId",
-          d.name,
-          d.image,
-          d.vehicle_type AS "vehicleType",
-          d.vehicle_number AS "vehicleNumber",
-          d.latitude,
-          d.longitude,
-          d.location_updated_at AS "locationUpdatedAt",
-          d.approval_status AS "approvalStatus",
-          d.is_online AS "isOnline",
-          d.is_available AS "isAvailable",
-          d.is_blocked AS "isBlocked",
+          SELECT
+            d.id,
+            d.public_id AS "publicId",
+            d.name,
+            d.image,
+            d.vehicle_type AS "vehicleType",
+            d.vehicle_number AS "vehicleNumber",
+            d.latitude,
+            d.longitude,
+            d.location_updated_at AS "locationUpdatedAt",
+            d.approval_status AS "approvalStatus",
+            d.is_online AS "isOnline",
+            d.is_available AS "isAvailable",
+            d.is_blocked AS "isBlocked",
 
-          (
-            6371 * ACOS(
-              LEAST(
-                1,
-                GREATEST(
-                  -1,
-                  COS(RADIANS($2::double precision))
-                  * COS(RADIANS(d.latitude::double precision))
-                  * COS(
-                    RADIANS(d.longitude::double precision)
-                    - RADIANS($3::double precision)
+            (
+              6371 * ACOS(
+                LEAST(
+                  1,
+                  GREATEST(
+                    -1,
+                    COS(
+                      RADIANS(
+                        $2::double precision
+                      )
+                    )
+                    *
+                    COS(
+                      RADIANS(
+                        d.latitude::double precision
+                      )
+                    )
+                    *
+                    COS(
+                      RADIANS(
+                        d.longitude::double precision
+                      )
+                      -
+                      RADIANS(
+                        $3::double precision
+                      )
+                    )
+                    +
+                    SIN(
+                      RADIANS(
+                        $2::double precision
+                      )
+                    )
+                    *
+                    SIN(
+                      RADIANS(
+                        d.latitude::double precision
+                      )
+                    )
                   )
-                  + SIN(RADIANS($2::double precision))
-                  * SIN(RADIANS(d.latitude::double precision))
                 )
               )
-            )
-          ) AS "distanceKm"
+            ) AS "distanceKm"
 
-        FROM delivery_agents d
-        WHERE d.public_id = $1
-        LIMIT 1
-        FOR UPDATE OF d
-      `,
+          FROM delivery_agents d
+          WHERE d.public_id = $1
+          LIMIT 1
+          FOR UPDATE OF d
+        `,
       [deliveryAgentPublicId, restaurantLatitude, restaurantLongitude],
     );
 
@@ -3123,7 +3137,7 @@ export const createRestaurantDeliveryOfferService = async ({
 
     const agent = agentResult.rows[0];
 
-    // Agent account
+    // Account validation
     if (agent.approvalStatus !== "APPROVED" || agent.isBlocked) {
       const error = new Error("Delivery partner account is not available");
       error.statusCode = 409;
@@ -3144,7 +3158,7 @@ export const createRestaurantDeliveryOfferService = async ({
       throw error;
     }
 
-    // Fresh location check only when timestamp exists
+    // Fresh location
     if (agent.locationUpdatedAt) {
       const locationAge =
         Date.now() - new Date(agent.locationUpdatedAt).getTime();
@@ -3167,20 +3181,20 @@ export const createRestaurantDeliveryOfferService = async ({
       throw error;
     }
 
-    // Active delivery?
+    // Active delivery check
     const activeDeliveryResult = await client.query(
       `
-        SELECT id
-        FROM orders
-        WHERE
-          assigned_delivery_agent_id = $1
-          AND status IN (
-            'DELIVERY_ASSIGNED',
-            'PICKED_UP',
-            'OUT_FOR_DELIVERY'
-          )
-        LIMIT 1
-      `,
+          SELECT id
+          FROM orders
+          WHERE
+            assigned_delivery_agent_id = $1
+            AND status IN (
+              'DELIVERY_ASSIGNED',
+              'PICKED_UP',
+              'OUT_FOR_DELIVERY'
+            )
+          LIMIT 1
+        `,
       [agent.id],
     );
 
@@ -3192,17 +3206,16 @@ export const createRestaurantDeliveryOfferService = async ({
       throw error;
     }
 
-    // Agent ke paas active pending offer?
+    // Agent ke paas koi pending offer?
     const agentOfferResult = await client.query(
       `
-        SELECT id
-        FROM delivery_assignments
-        WHERE
-          delivery_agent_id = $1
-          AND status = 'OFFERED'
-          AND expires_at > CURRENT_TIMESTAMP
-        LIMIT 1
-      `,
+          SELECT id
+          FROM delivery_assignments
+          WHERE
+            delivery_agent_id = $1
+            AND status = 'OFFERED'
+          LIMIT 1
+        `,
       [agent.id],
     );
 
@@ -3214,18 +3227,20 @@ export const createRestaurantDeliveryOfferService = async ({
       throw error;
     }
 
-    // Same order + agent ka OLD assignment record
+    // Same order + same agent previous offer
     const previousOfferResult = await client.query(
       `
-        SELECT id, status
-        FROM delivery_assignments
-        WHERE
-          order_id = $1
-          AND delivery_agent_id = $2
-        ORDER BY id DESC
-        LIMIT 1
-        FOR UPDATE
-      `,
+          SELECT
+            id,
+            status
+          FROM delivery_assignments
+          WHERE
+            order_id = $1
+            AND delivery_agent_id = $2
+          ORDER BY id DESC
+          LIMIT 1
+          FOR UPDATE
+        `,
       [order.id, agent.id],
     );
 
@@ -3234,27 +3249,24 @@ export const createRestaurantDeliveryOfferService = async ({
     if (previousOfferResult.rows.length > 0) {
       const previousOffer = previousOfferResult.rows[0];
 
-      // Old rejected/expired offer ko reuse karo
       if (
         previousOffer.status === "REJECTED" ||
         previousOffer.status === "EXPIRED"
       ) {
         const offerResult = await client.query(
           `
-            UPDATE delivery_assignments
-            SET
-              status = 'OFFERED',
-              offered_at = CURRENT_TIMESTAMP,
-              expires_at =
-                CURRENT_TIMESTAMP + INTERVAL '120 seconds',
-              responded_at = NULL,
-              updated_at = CURRENT_TIMESTAMP
-            WHERE id = $1
-            RETURNING
-              status,
-              offered_at AS "offeredAt",
-              expires_at AS "expiresAt"
-          `,
+              UPDATE delivery_assignments
+              SET
+                status = 'OFFERED',
+                offered_at = CURRENT_TIMESTAMP,
+                expires_at = NULL,
+                responded_at = NULL,
+                updated_at = CURRENT_TIMESTAMP
+              WHERE id = $1
+              RETURNING
+                status,
+                offered_at AS "offeredAt"
+            `,
           [previousOffer.id],
         );
 
@@ -3267,26 +3279,24 @@ export const createRestaurantDeliveryOfferService = async ({
         throw error;
       }
     } else {
-      // First time offer
       const offerResult = await client.query(
         `
-          INSERT INTO delivery_assignments (
-            order_id,
-            delivery_agent_id,
-            status,
-            expires_at
-          )
-          VALUES (
-            $1,
-            $2,
-            'OFFERED',
-            CURRENT_TIMESTAMP + INTERVAL '120 seconds'
-          )
-          RETURNING
-            status,
-            offered_at AS "offeredAt",
-            expires_at AS "expiresAt"
-        `,
+            INSERT INTO delivery_assignments (
+              order_id,
+              delivery_agent_id,
+              status,
+              expires_at
+            )
+            VALUES (
+              $1,
+              $2,
+              'OFFERED',
+              NULL
+            )
+            RETURNING
+              status,
+              offered_at AS "offeredAt"
+          `,
         [order.id, agent.id],
       );
 
@@ -3316,7 +3326,9 @@ export const createRestaurantDeliveryOfferService = async ({
       const conflictError = new Error(
         "This order or delivery partner already has an active offer",
       );
+
       conflictError.statusCode = 409;
+
       throw conflictError;
     }
 

@@ -1513,7 +1513,7 @@ export const getRestaurantDashboardService = async ({ restaurantId }) => {
 };
 
 // update restaurant current location
-// update restaurant current location
+
 export const updateRestaurantLocationService = async ({
   restaurantId,
   latitude,
