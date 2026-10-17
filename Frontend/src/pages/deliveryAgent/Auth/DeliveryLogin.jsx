@@ -192,7 +192,12 @@ const DeliveryLogin = () => {
                 submitText="Sign In"
                 columns={1}
               />
-
+              <Link
+                to="/forgot-password?type=DELIVERY_AGENT"
+                className="text-sm font-bold text-orange-600 transition hover:text-orange-700"
+              >
+                Forgot password?
+              </Link>
               {/* REGISTER */}
 
               <div className="mt-7 border-t border-slate-100 pt-6 text-center">
