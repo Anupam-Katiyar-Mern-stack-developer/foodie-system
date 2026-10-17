@@ -120,7 +120,9 @@ export const forgotPasswordService = async ({ email, accountType }) => {
     .trim()
     .replace(/\/+$/, "");
 
-  const resetUrl = `${frontendUrl}/reset-password/${rawToken}`;
+  const resetUrl = `${frontendUrl}/reset-password/${rawToken}?type=${encodeURIComponent(
+    normalizedAccountType,
+  )}`;
 
   const template = passwordResetTemplate({
     resetUrl,

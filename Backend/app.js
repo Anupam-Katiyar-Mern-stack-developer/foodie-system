@@ -17,6 +17,9 @@ import orderRoutes from "./routes/order.routes.js";
 import deliveryRoutes from "./routes/delivery.routes.js";
 
 import foodRoutes from "./routes/food.routes.js";
+// app.js me import add karo
+
+import passwordResetRoutes from "./routes/passwordReset.routes.js";
 const app = express();
 
 app.use("/images", express.static(path.join(process.cwd(), "images")));
@@ -45,6 +48,10 @@ app.use("/api/user/cart", cartRoutes);
 app.use("/api", orderRoutes);
 app.use("/api/delivery", deliveryRoutes);
 app.use("/api/foods", foodRoutes);
+
+// app.js me routes mount karo
+
+app.use("/api/auth", passwordResetRoutes);
 
 //Error handler
 
