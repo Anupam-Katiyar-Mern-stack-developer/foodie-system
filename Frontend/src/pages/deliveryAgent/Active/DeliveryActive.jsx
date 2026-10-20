@@ -149,7 +149,7 @@ const DeliveryActive = () => {
         actionError,
         otpSent,
         otpExpiresAt,
-    } = useSelector((state) => state.deliveryActive) || {};
+    } = useSelector((state) => state.deliveryActiveOrder) || {};
 
     const [agentLocation, setAgentLocation] = useState(null);
     const [locationError, setLocationError] = useState("");
