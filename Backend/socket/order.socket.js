@@ -92,3 +92,35 @@ export const emitPaymentUpdate = ({
     paidAt,
   });
 };
+
+export const emitDeliveryOfferResponse = ({
+  restaurantId,
+  deliveryAgentPublicId,
+  assignmentId,
+  orderNumber,
+  offeredAt,
+  expiresAt,
+  status,
+}) => {
+  const io = getIO();
+
+  const payload = {
+    assignmentId,
+    orderNumber,
+    deliveryAgentPublicId,
+    offeredAt,
+    expiresAt,
+    status,
+    updatedAt: new Date().toISOString(),
+  };
+
+  io.to(`restaurant:${restaurantId}`).emit(
+    "restaurant:delivery-offer-response",
+    payload,
+  );
+
+  io.to(`delivery-public:${deliveryAgentPublicId}`).emit(
+    "delivery:offer-response",
+    payload,
+  );
+};
