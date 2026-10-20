@@ -3255,18 +3255,21 @@ export const createRestaurantDeliveryOfferService = async ({
       ) {
         const offerResult = await client.query(
           `
-              UPDATE delivery_assignments
-              SET
-                status = 'OFFERED',
-                offered_at = CURRENT_TIMESTAMP,
-                expires_at = NULL,
-                responded_at = NULL,
-                updated_at = CURRENT_TIMESTAMP
-              WHERE id = $1
-              RETURNING
-                status,
-                offered_at AS "offeredAt"
-            `,
+            UPDATE delivery_assignments
+            SET
+              status = 'OFFERED',
+              offered_at = CURRENT_TIMESTAMP,
+              expires_at =
+                CURRENT_TIMESTAMP + INTERVAL '2 minutes',
+              responded_at = NULL,
+              updated_at = CURRENT_TIMESTAMP
+            WHERE id = $1
+            RETURNING
+              id AS "assignmentId",
+              status,
+              offered_at AS "offeredAt",
+              expires_at AS "expiresAt"
+          `,
           [previousOffer.id],
         );
 
@@ -3281,22 +3284,24 @@ export const createRestaurantDeliveryOfferService = async ({
     } else {
       const offerResult = await client.query(
         `
-            INSERT INTO delivery_assignments (
-              order_id,
-              delivery_agent_id,
-              status,
-              expires_at
-            )
-            VALUES (
-              $1,
-              $2,
-              'OFFERED',
-              NULL
-            )
-            RETURNING
-              status,
-              offered_at AS "offeredAt"
-          `,
+          INSERT INTO delivery_assignments (
+            order_id,
+            delivery_agent_id,
+            status,
+            expires_at
+          )
+          VALUES (
+            $1,
+            $2,
+            'OFFERED',
+            CURRENT_TIMESTAMP + INTERVAL '2 minutes'
+          )
+          RETURNING
+            id AS "assignmentId",
+            status,
+            offered_at AS "offeredAt",
+            expires_at AS "expiresAt"
+        `,
         [order.id, agent.id],
       );
 
