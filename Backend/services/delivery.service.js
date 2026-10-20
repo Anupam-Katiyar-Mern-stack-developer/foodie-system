@@ -1508,7 +1508,7 @@ d.public_id AS "deliveryAgentPublicId",
 // get active delivery order service
 export const getActiveDeliveryOrderService = async ({
   deliveryAgentId,
-  orderId,
+  orderNumber = null,
 }) => {
   const orderResult = await pool.query(
     `
@@ -1557,28 +1557,27 @@ export const getActiveDeliveryOrderService = async ({
       INNER JOIN order_groups og
         ON og.id = o.order_group_id
 
-      WHERE
-        o.id = $1
-        AND o.assigned_delivery_agent_id = $2
-        AND o.status IN (
-          'DELIVERY_ASSIGNED',
-          'PICKED_UP',
-          'OUT_FOR_DELIVERY'
-        )
+     WHERE
+  o.assigned_delivery_agent_id = $1
+  AND (
+    $2::text IS NULL
+    OR o.order_number = $2
+  )
+  AND o.status IN (
+    'DELIVERY_ASSIGNED',
+    'PICKED_UP',
+    'OUT_FOR_DELIVERY'
+  )
 
-      LIMIT 1
+ORDER BY o.delivery_assigned_at DESC, o.id DESC
+LIMIT 1
     `,
-    [orderId, deliveryAgentId],
+    [deliveryAgentId, orderNumber],
   );
 
   if (orderResult.rows.length === 0) {
-    const error = new Error(
-      "Active delivery order not found or this order is not assigned to you",
-    );
-    error.statusCode = 404;
-    throw error;
+    return null;
   }
-
   const order = orderResult.rows[0];
 
   const itemsResult = await pool.query(
