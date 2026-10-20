@@ -520,7 +520,6 @@ export const placeOrderService = async ({
 };
 
 // get user order service
-
 export const getUserOrdersService = async ({
   userId,
   page = 1,
@@ -570,6 +569,24 @@ export const getUserOrdersService = async ({
           AS "orderNumber",
 
         o.status,
+        (
+  SELECT json_build_object(
+    'publicId', d.public_id,
+    'name', d.name,
+    'phone', d.phone,
+    'latitude', d.latitude,
+    'longitude', d.longitude,
+    'locationUpdatedAt', d.location_updated_at
+  )
+  FROM delivery_agents d
+  WHERE d.id = o.assigned_delivery_agent_id
+    AND o.status IN (
+      'DELIVERY_ASSIGNED',
+      'PICKED_UP',
+      'OUT_FOR_DELIVERY'
+    )
+  LIMIT 1
+) AS "deliveryAgent",
 
         o.subtotal,
 
@@ -788,7 +805,6 @@ export const getUserOrdersService = async ({
 };
 
 // get single order service
-
 export const getUserOrderByNumberService = async ({ userId, orderNumber }) => {
   const orderResult = await pool.query(
     `
@@ -796,7 +812,24 @@ export const getUserOrderByNumberService = async ({ userId, orderNumber }) => {
           o.id,
           o.order_number AS "orderNumber",
           o.status,
-
+        (
+  SELECT json_build_object(
+    'publicId', d.public_id,
+    'name', d.name,
+    'phone', d.phone,
+    'latitude', d.latitude,
+    'longitude', d.longitude,
+    'locationUpdatedAt', d.location_updated_at
+  )
+  FROM delivery_agents d
+  WHERE d.id = o.assigned_delivery_agent_id
+    AND o.status IN (
+      'DELIVERY_ASSIGNED',
+      'PICKED_UP',
+      'OUT_FOR_DELIVERY'
+    )
+  LIMIT 1
+) AS "deliveryAgent",
           o.subtotal,
           o.delivery_fee AS "deliveryFee",
           o.tax_amount AS "taxAmount",
