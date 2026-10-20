@@ -1,6 +1,7 @@
 import {
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from "react";
 
@@ -68,6 +69,12 @@ import {
     clearSelectedOrder,
 } from "../../../redux/slices/restaurant/restaurantOrder.slice";
 
+import {
+    socket,
+    connectSocket,
+} from "../../../socket/socket";
+
+import { STORAGE_KEYS } from "../../../constants/storageKeys";
 
 // ========================================================
 // STATUS CONFIG
@@ -242,6 +249,9 @@ const RestaurantOrderDetails = () => {
             state.restaurantOrder,
     ) || {};
 
+    const [deliveryMessage, setDeliveryMessage] = useState("");
+    const pendingOfferRef = useRef(null);
+
 
     // ======================================================
     // REJECT STATE
@@ -368,6 +378,90 @@ const RestaurantOrderDetails = () => {
         orderNumber,
     ]);
 
+
+    useEffect(() => {
+        pendingOfferRef.current = null;
+        setSelectedAgent(null);
+        setDeliveryMessage("");
+
+        if (!orderNumber) return;
+
+        const token = localStorage.getItem(
+            STORAGE_KEYS.RESTAURANT_TOKEN,
+        );
+
+        if (!token) return;
+
+        const reloadOrder = () => {
+            dispatch(getRestaurantOrder(orderNumber));
+        };
+
+        const handleOfferResponse = (data) => {
+            if (data?.orderNumber !== orderNumber) return;
+
+            const messages = {
+                ACCEPTED: "Delivery partner ne offer accept kar liya.",
+                REJECTED:
+                    "Delivery partner ne offer reject kar diya. Dobara partner select karo.",
+                EXPIRED:
+                    "Delivery offer expire ho gaya. Dobara offer bhej sakte ho.",
+            };
+
+            if (!messages[data.status]) return;
+
+            const pending = pendingOfferRef.current;
+
+            // Purane offer ka event naye offer ko clear na kare.
+            if (
+                pending &&
+                (
+                    String(pending.assignmentId) !==
+                    String(data.assignmentId) ||
+                    new Date(pending.offeredAt).getTime() !==
+                    new Date(data.offeredAt).getTime()
+                )
+            ) {
+                return;
+            }
+
+            pendingOfferRef.current = null;
+            setSelectedAgent(null);
+            setAvailableAgents([]);
+            setDeliveryError("");
+            setDeliveryMessage(messages[data.status]);
+
+            reloadOrder();
+        };
+
+        const handleConnectError = (error) => {
+            console.error(
+                "Restaurant offer socket error:",
+                error.message,
+            );
+        };
+
+        socket.on("connect", reloadOrder);
+        socket.on(
+            "restaurant:delivery-offer-response",
+            handleOfferResponse,
+        );
+        socket.on("connect_error", handleConnectError);
+
+        connectSocket(token);
+
+        if (socket.connected) {
+            reloadOrder();
+        }
+
+        return () => {
+            socket.off("connect", reloadOrder);
+            socket.off(
+                "restaurant:delivery-offer-response",
+                handleOfferResponse,
+            );
+            socket.off("connect_error", handleConnectError);
+        };
+    }, [dispatch, orderNumber]);
 
     // ======================================================
     // MODAL ESCAPE + BODY SCROLL
@@ -667,14 +761,15 @@ const RestaurantOrderDetails = () => {
 
                 setDeliveryError("");
 
-                await dispatch(
+                const result = await dispatch(
                     sendRestaurantDeliveryOffer({
                         orderNumber,
-
-                        deliveryAgentPublicId:
-                            agent.publicId,
+                        deliveryAgentPublicId: agent.publicId,
                     }),
                 ).unwrap();
+
+                pendingOfferRef.current = result.offer;
+                setDeliveryMessage("");
 
 
                 setSelectedAgent({
@@ -953,7 +1048,14 @@ const RestaurantOrderDetails = () => {
                             </div>
                         )
                     }
-
+                    {deliveryMessage && (
+                        <div
+                            role="status"
+                            className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-800"
+                        >
+                            {deliveryMessage}
+                        </div>
+                    )}
 
                     {/* OFFER SENT INFO */}
 
