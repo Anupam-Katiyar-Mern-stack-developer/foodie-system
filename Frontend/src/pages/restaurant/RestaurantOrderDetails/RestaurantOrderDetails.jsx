@@ -463,6 +463,61 @@ const RestaurantOrderDetails = () => {
         };
     }, [dispatch, orderNumber]);
 
+
+    useEffect(() => {
+        // API loading ke time order null hota hai.
+        if (!order || order.orderNumber !== orderNumber) return;
+
+        const latestOffer = order.deliveryOffer;
+        const pending = pendingOfferRef.current;
+
+        // Purana API response naye offer ki state overwrite na kare.
+        if (
+            pending &&
+            (
+                !latestOffer ||
+                new Date(latestOffer.offeredAt).getTime() <
+                new Date(pending.offeredAt).getTime()
+            )
+        ) {
+            return;
+        }
+
+        if (!latestOffer) {
+            pendingOfferRef.current = null;
+            setSelectedAgent(null);
+            setDeliveryMessage("");
+            return;
+        }
+
+        if (
+            latestOffer.status === "OFFERED" &&
+            order.status === "READY_FOR_PICKUP"
+        ) {
+            pendingOfferRef.current = latestOffer;
+
+            setSelectedAgent({
+                ...latestOffer.deliveryAgent,
+                offerStatus: "OFFERED",
+            });
+
+            setDeliveryMessage("");
+            return;
+        }
+
+        pendingOfferRef.current = null;
+        setSelectedAgent(null);
+
+        const messages = {
+            ACCEPTED: "Delivery partner ne offer accept kar liya.",
+            REJECTED:
+                "Delivery partner ne offer reject kar diya. Dobara partner select karo.",
+            EXPIRED:
+                "Delivery offer expire ho gaya. Dobara offer bhej sakte ho.",
+        };
+
+        setDeliveryMessage(messages[latestOffer.status] || "");
+    }, [order, orderNumber]);
     // ======================================================
     // MODAL ESCAPE + BODY SCROLL
     // ======================================================
