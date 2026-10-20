@@ -100,10 +100,26 @@ const MapFocus = ({ position }) => {
 };
 
 const getPosition = (latitude, longitude) => {
+    if (
+        latitude == null ||
+        longitude == null ||
+        String(latitude).trim() === "" ||
+        String(longitude).trim() === ""
+    ) {
+        return null;
+    }
+
     const lat = Number(latitude);
     const lng = Number(longitude);
 
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng) ||
+        lat < -90 ||
+        lat > 90 ||
+        lng < -180 ||
+        lng > 180
+    ) {
         return null;
     }
 
@@ -565,6 +581,32 @@ const DeliveryActive = () => {
                             Start Navigation
                         </span>
                     </Button>
+                </div>
+
+                <div className="grid gap-3 border-t border-slate-100 px-5 py-4 sm:grid-cols-2">
+                    <div>
+                        <p className="text-xs font-bold text-slate-500">
+                            Your GPS coordinates
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-slate-800">
+                            {agentPosition
+                                ? `${agentPosition[0].toFixed(6)}, ${agentPosition[1].toFixed(6)}`
+                                : "Waiting for GPS location..."}
+                        </p>
+                    </div>
+
+                    <div>
+                        <p className="text-xs font-bold text-slate-500">
+                            {goingToRestaurant
+                                ? "Restaurant coordinates"
+                                : "Customer delivery coordinates"}
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-slate-800">
+                            {destinationPosition
+                                ? `${destinationPosition[0].toFixed(6)}, ${destinationPosition[1].toFixed(6)}`
+                                : "Destination coordinates unavailable"}
+                        </p>
+                    </div>
                 </div>
 
                 <div className="h-[380px] w-full lg:h-[480px]">
