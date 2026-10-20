@@ -1407,6 +1407,10 @@ export const rejectDeliveryOrderService = async ({
           SELECT
             da.id
               AS "assignmentId",
+              da.offered_at AS "offeredAt",
+da.expires_at AS "expiresAt",
+o.restaurant_id AS "restaurantId",
+d.public_id AS "deliveryAgentPublicId",
 
             o.id
               AS "orderId",
@@ -1420,6 +1424,8 @@ export const rejectDeliveryOrderService = async ({
 
           INNER JOIN orders o
             ON o.id = da.order_id
+            INNER JOIN delivery_agents d
+  ON d.id = da.delivery_agent_id
 
           WHERE
             o.order_number = $1
@@ -1474,8 +1480,17 @@ export const rejectDeliveryOrderService = async ({
 
     rejectedOrder = {
       orderNumber: offer.orderNumber,
-
       status: "REJECTED",
+
+      offerResponse: {
+        restaurantId: offer.restaurantId,
+        deliveryAgentPublicId: offer.deliveryAgentPublicId,
+        assignmentId: offer.assignmentId,
+        orderNumber: offer.orderNumber,
+        offeredAt: offer.offeredAt,
+        expiresAt: offer.expiresAt,
+        status: "REJECTED",
+      },
     };
 
     await client.query("COMMIT");
@@ -1487,26 +1502,7 @@ export const rejectDeliveryOrderService = async ({
     client.release();
   }
 
-  /*
-    Transaction complete hone ke baad
-    next agent find karo.
-  */
-
-  let nextOffer = null;
-
-  try {
-    nextOffer = await findAndOfferDeliveryAgentService({
-      orderNumber,
-    });
-  } catch (error) {
-    console.error("Next delivery agent offer failed:", error.message);
-  }
-
-  return {
-    ...rejectedOrder,
-
-    nextOffer,
-  };
+  return rejectedOrder;
 };
 
 // get active delivery order service
