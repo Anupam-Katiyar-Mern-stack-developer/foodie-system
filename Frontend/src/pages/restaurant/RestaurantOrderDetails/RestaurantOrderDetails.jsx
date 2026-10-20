@@ -1112,6 +1112,37 @@ const RestaurantOrderDetails = () => {
                         </div>
                     )}
 
+                    {order.deliveryOffer?.status === "ACCEPTED" &&
+                        order.deliveryOffer?.deliveryAgent && (
+                            <div className="mt-4 rounded-2xl border border-green-200 bg-green-50 p-4">
+                                <p className="text-sm font-bold text-green-800">
+                                    Assigned Delivery Partner
+                                </p>
+
+                                <div className="mt-3 flex items-center gap-3">
+                                    <AgentAvatar
+                                        agent={order.deliveryOffer.deliveryAgent}
+                                    />
+
+                                    <div>
+                                        <p className="font-bold text-slate-900">
+                                            {order.deliveryOffer.deliveryAgent.name}
+                                        </p>
+
+                                        <p className="text-sm text-slate-600">
+                                            {order.deliveryOffer.deliveryAgent.vehicleType}
+                                            {" · "}
+                                            {order.deliveryOffer.deliveryAgent.vehicleNumber}
+                                        </p>
+
+                                        <p className="text-xs text-slate-500">
+                                            {order.deliveryOffer.deliveryAgent.publicId}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                     {/* OFFER SENT INFO */}
 
                     {

@@ -1,6 +1,11 @@
-import { createRestaurantDeliveryOfferService } from "../../services/delivery.service.js";
-import { emitDeliveryOffer } from "../../socket/order.socket.js";
-
+import {
+  emitDeliveryOffer,
+  emitDeliveryOfferResponse,
+} from "../../socket/order.socket.js";
+import {
+  createRestaurantDeliveryOfferService,
+  expireDeliveryOffersService,
+} from "../../services/delivery.service.js";
 export const createDeliveryOffer = async (req, res) => {
   try {
     const restaurantId = req.restaurant.restaurantId;
@@ -14,6 +19,20 @@ export const createDeliveryOffer = async (req, res) => {
         success: false,
         message: "Delivery agent is required",
       });
+    }
+    // Resend se pehle expired offers ke DB locks clear karo.
+    const expiredOffers = await expireDeliveryOffersService();
+
+    for (const expiredOffer of expiredOffers) {
+      try {
+        emitDeliveryOfferResponse(expiredOffer);
+      } catch (socketError) {
+        console.error(
+          "Delivery offer expiry socket error:",
+          expiredOffer.assignmentId,
+          socketError.message,
+        );
+      }
     }
 
     const data = await createRestaurantDeliveryOfferService({
