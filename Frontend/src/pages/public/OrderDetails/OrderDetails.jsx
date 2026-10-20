@@ -329,6 +329,58 @@ const OrderDetails = () => {
         setPaymentUpdate(null);
     }, [orderNumber]);
 
+    useEffect(() => {
+        if (!order || order.orderNumber !== orderNumber) return;
+
+        const agent = order.deliveryAgent;
+
+        if (
+            agent?.latitude == null ||
+            agent?.longitude == null ||
+            String(agent.latitude).trim() === "" ||
+            String(agent.longitude).trim() === ""
+        ) {
+            return;
+        }
+
+        const latitude = Number(agent.latitude);
+        const longitude = Number(agent.longitude);
+        const updatedAt = agent.locationUpdatedAt;
+        const savedTime = new Date(updatedAt).getTime();
+
+        if (
+            !Number.isFinite(latitude) ||
+            !Number.isFinite(longitude) ||
+            latitude < -90 ||
+            latitude > 90 ||
+            longitude < -180 ||
+            longitude > 180 ||
+            !Number.isFinite(savedTime)
+        ) {
+            return;
+        }
+
+        setAgentLocation((current) => {
+            const currentTime = current
+                ? new Date(current.updatedAt).getTime()
+                : NaN;
+
+            // Purana API response fresh socket location overwrite na kare.
+            if (
+                Number.isFinite(currentTime) &&
+                currentTime >= savedTime
+            ) {
+                return current;
+            }
+
+            return {
+                latitude,
+                longitude,
+                updatedAt,
+            };
+        });
+    }, [order, orderNumber]);
+
     // ======================================================
     // LOADING
     // ======================================================
