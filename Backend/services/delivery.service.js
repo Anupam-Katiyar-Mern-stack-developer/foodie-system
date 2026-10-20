@@ -2622,6 +2622,8 @@ export const getDeliveryHistoryService = async ({
   const values = [deliveryAgentId];
   const conditions = [
     "da.delivery_agent_id = $1",
+    "o.assigned_delivery_agent_id = $1",
+    "da.status = 'ACCEPTED'",
     "o.status IN ('DELIVERED', 'CANCELLED')",
   ];
 
@@ -2669,10 +2671,11 @@ export const getDeliveryHistoryService = async ({
 
       INNER JOIN orders o
         ON o.id = da.order_id
-
-      WHERE
-        da.delivery_agent_id = $1
-        AND o.status IN ('DELIVERED', 'CANCELLED')
+    WHERE
+  da.delivery_agent_id = $1
+  AND o.assigned_delivery_agent_id = $1
+  AND da.status = 'ACCEPTED'
+  AND o.status IN ('DELIVERED', 'CANCELLED')
     `,
     [deliveryAgentId],
   );
