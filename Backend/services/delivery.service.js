@@ -2776,19 +2776,6 @@ export const getAvailableDeliveryAgentsForOrderService = async ({
   restaurantId,
   orderNumber,
 }) => {
-  // Expire old offers
-  await pool.query(`
-    UPDATE delivery_assignments
-    SET
-      status = 'EXPIRED',
-      responded_at = CURRENT_TIMESTAMP,
-      updated_at = CURRENT_TIMESTAMP
-    WHERE
-      status = 'OFFERED'
-      AND expires_at IS NOT NULL
-      AND expires_at <= CURRENT_TIMESTAMP
-  `);
-
   // Get order
   const orderResult = await pool.query(
     `
