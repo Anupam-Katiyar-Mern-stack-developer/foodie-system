@@ -1104,9 +1104,9 @@ export const getDeliveryOrderOfferService = async ({ deliveryAgentId }) => {
 
       WHERE
         da.delivery_agent_id = $1
-        AND da.status = 'OFFERED'
-        AND o.status = 'READY_FOR_PICKUP'
-
+AND da.status = 'OFFERED'
+AND da.expires_at > CURRENT_TIMESTAMP
+AND o.status = 'READY_FOR_PICKUP'
       ORDER BY da.offered_at DESC
 
       LIMIT 1
@@ -3347,8 +3347,10 @@ export const expireDeliveryOffersService = async () => {
         updated_at = CURRENT_TIMESTAMP
       WHERE
         status = 'OFFERED'
-        AND expires_at IS NOT NULL
-        AND expires_at <= CURRENT_TIMESTAMP
+       AND COALESCE(
+  expires_at,
+  offered_at + INTERVAL '2 minutes'
+) <= CURRENT_TIMESTAMP
       RETURNING
         id,
         order_id,

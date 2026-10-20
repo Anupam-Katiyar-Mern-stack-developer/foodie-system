@@ -1169,12 +1169,15 @@ export const getRestaurantOrderByNumberService = async ({
       da.offered_at AS "offeredAt",
       da.expires_at AS "expiresAt",
 
-      CASE
-        WHEN da.status = 'OFFERED'
-          AND da.expires_at <= CURRENT_TIMESTAMP
-        THEN 'EXPIRED'
-        ELSE da.status
-      END AS status,
+     CASE
+  WHEN da.status = 'OFFERED'
+    AND COALESCE(
+      da.expires_at,
+      da.offered_at + INTERVAL '2 minutes'
+    ) <= CURRENT_TIMESTAMP
+  THEN 'EXPIRED'
+  ELSE da.status
+END AS status,
 
       json_build_object(
         'publicId', d.public_id,
