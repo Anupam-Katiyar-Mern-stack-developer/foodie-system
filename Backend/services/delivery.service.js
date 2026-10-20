@@ -1212,6 +1212,8 @@ export const acceptDeliveryOrderService = async ({
 
             da.expires_at
               AS "expiresAt",
+              da.offered_at AS "offeredAt",
+o.restaurant_id AS "restaurantId",
 
             o.id
               AS "orderId",
@@ -1366,8 +1368,17 @@ export const acceptDeliveryOrderService = async ({
 
       deliveryAgent: {
         publicId: agent.publicId,
-
         name: agent.name,
+      },
+
+      offerResponse: {
+        restaurantId: offer.restaurantId,
+        deliveryAgentPublicId: agent.publicId,
+        assignmentId: offer.assignmentId,
+        orderNumber: orderResult.rows[0].orderNumber,
+        offeredAt: offer.offeredAt,
+        expiresAt: offer.expiresAt,
+        status: "ACCEPTED",
       },
     };
   } catch (error) {

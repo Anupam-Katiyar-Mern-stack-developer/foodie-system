@@ -1,7 +1,9 @@
 import { acceptDeliveryOrderService } from "../../services/delivery.service.js";
 // accept delivery order controller file me import add karo
-import { emitDeliveryAssigned } from "../../socket/order.socket.js";
-
+import {
+  emitDeliveryAssigned,
+  emitDeliveryOfferResponse,
+} from "../../socket/order.socket.js";
 export const acceptDeliveryOrder = async (req, res) => {
   try {
     const deliveryAgentId = req.deliveryAgent.deliveryAgentId;
@@ -20,15 +22,30 @@ export const acceptDeliveryOrder = async (req, res) => {
       orderNumber: req.params.orderNumber,
     });
 
-    emitDeliveryAssigned({
-      orderNumber: result.orderNumber,
-      deliveryAgent: result.deliveryAgent,
-    });
+    const { offerResponse, ...publicResult } = result;
+
+    try {
+      emitDeliveryAssigned({
+        orderNumber: result.orderNumber,
+        deliveryAgent: result.deliveryAgent,
+      });
+    } catch (socketError) {
+      console.error("Delivery assigned socket error:", socketError.message);
+    }
+
+    try {
+      emitDeliveryOfferResponse(offerResponse);
+    } catch (socketError) {
+      console.error(
+        "Delivery accepted response socket error:",
+        socketError.message,
+      );
+    }
 
     return res.status(200).json({
       success: true,
       message: "Delivery offer accepted successfully",
-      data: result,
+      data: publicResult,
     });
   } catch (error) {
     return res.status(error.statusCode || 500).json({
