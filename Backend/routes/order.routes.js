@@ -40,10 +40,9 @@ import { deliveryAuthMiddleware } from "../middleware/deliveryAuth.middleware.js
 
 import { getDeliveryOrderOffer } from "../controllers/order/getDeliveryOrderOffer.controller.js";
 
-import { acceptDeliveryOrder } from "../controllers/order/acceptDeliveryOrder.controller.js";
+import { acceptDeliveryOrder } from "../controllers/delivery/acceptDeliveryOrder.controller.js";
 
-import { rejectDeliveryOrder } from "../controllers/order/rejectDeliveryOrder.controller.js";
-
+import { rejectDeliveryOrder } from "../controllers/delivery/rejectDeliveryOrder.controller.js";
 import { getActiveDeliveryOrder } from "../controllers/order/getActiveDeliveryOrder.controller.js";
 import { markOrderOutForDelivery } from "../controllers/order/markOrderOutForDelivery.controller.js";
 
