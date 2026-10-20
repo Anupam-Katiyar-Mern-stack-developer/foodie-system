@@ -1162,12 +1162,46 @@ export const getRestaurantOrderByNumberService = async ({
     [order.id],
   );
 
+  const deliveryOfferResult = await pool.query(
+    `
+    SELECT
+      da.id AS "assignmentId",
+      da.offered_at AS "offeredAt",
+      da.expires_at AS "expiresAt",
+
+      CASE
+        WHEN da.status = 'OFFERED'
+          AND da.expires_at <= CURRENT_TIMESTAMP
+        THEN 'EXPIRED'
+        ELSE da.status
+      END AS status,
+
+      json_build_object(
+        'publicId', d.public_id,
+        'name', d.name,
+        'image', d.image,
+        'vehicleType', d.vehicle_type,
+        'vehicleNumber', d.vehicle_number
+      ) AS "deliveryAgent"
+
+    FROM delivery_assignments da
+    INNER JOIN delivery_agents d
+      ON d.id = da.delivery_agent_id
+
+    WHERE da.order_id = $1
+
+    ORDER BY da.offered_at DESC, da.id DESC
+    LIMIT 1
+  `,
+    [order.id],
+  );
+
   delete order.id;
 
   return {
     ...order,
-
     items: itemsResult.rows,
+    deliveryOffer: deliveryOfferResult.rows[0] || null,
   };
 };
 
