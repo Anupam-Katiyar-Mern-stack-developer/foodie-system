@@ -19,10 +19,7 @@ export const emitNewRestaurantOrder = ({ restaurantId, order }) => {
 
 export const emitPlacedOrdersToRestaurants = (orders = []) => {
   for (const order of orders) {
-    const {
-      restaurantId,
-      ...publicOrder
-    } = order;
+    const { restaurantId, ...publicOrder } = order;
 
     if (!restaurantId) {
       console.error(
