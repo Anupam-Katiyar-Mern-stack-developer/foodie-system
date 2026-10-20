@@ -1,4 +1,5 @@
 import { createRestaurantDeliveryOfferService } from "../../services/delivery.service.js";
+import { emitDeliveryOffer } from "../../socket/order.socket.js";
 
 export const createDeliveryOffer = async (req, res) => {
   try {
@@ -20,6 +21,19 @@ export const createDeliveryOffer = async (req, res) => {
       orderNumber,
       deliveryAgentPublicId,
     });
+
+    try {
+      emitDeliveryOffer({
+        deliveryAgentPublicId: data.deliveryAgent.publicId,
+        offer: {
+          orderNumber: data.orderNumber,
+          ...data.offer,
+        },
+      });
+    } catch (socketError) {
+      // Offer database mein save ho chuka hai.
+      console.error("Delivery offer socket error:", socketError.message);
+    }
 
     return res.status(201).json({
       success: true,
