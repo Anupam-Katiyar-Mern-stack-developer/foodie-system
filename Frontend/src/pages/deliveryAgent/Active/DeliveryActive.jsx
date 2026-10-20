@@ -49,6 +49,14 @@ import {
 } from "../../../forms/deliveryAgent/deliveryOtp.form";
 
 import { deliveryOtpSchema } from "../../../validations/deliveryAgent/deliveryOtp.validation";
+import {
+    socket,
+    connectSocket,
+} from "../../../socket/socket";
+
+import { STORAGE_KEYS } from "../../../constants/storageKeys";
+
+import "leaflet/dist/leaflet.css";
 
 delete L.Icon.Default.prototype._getIconUrl;
 
@@ -136,23 +144,112 @@ const DeliveryActive = () => {
     }, [dispatch]);
 
     useEffect(() => {
-        if (!navigator.geolocation) {
-            setLocationError("Live location is not supported on this device.");
+        const orderNumber = delivery?.orderNumber;
+
+        const activeStatuses = [
+            "DELIVERY_ASSIGNED",
+            "PICKED_UP",
+            "OUT_FOR_DELIVERY",
+        ];
+
+        if (
+            !orderNumber ||
+            !activeStatuses.includes(delivery?.status)
+        ) {
             return;
         }
 
+        const token = localStorage.getItem(
+            STORAGE_KEYS.DELIVERY_TOKEN,
+        );
+
+        if (!token) {
+            setLocationError("Delivery login required.");
+            return;
+        }
+
+        if (!navigator.geolocation) {
+            setLocationError(
+                "Live location is not supported on this device.",
+            );
+            return;
+        }
+
+        let stopped = false;
+        let latestLocation = null;
+        let sending = false;
+
+        const sendLocation = () => {
+            if (
+                stopped ||
+                !latestLocation ||
+                !socket.connected ||
+                sending
+            ) {
+                return;
+            }
+
+            sending = true;
+
+            socket.timeout(5000).emit(
+                "delivery:location:update",
+                {
+                    orderNumber,
+                    ...latestLocation,
+                },
+                (error, response) => {
+                    sending = false;
+
+                    if (stopped) return;
+
+                    if (error || !response?.success) {
+                        setLocationError(
+                            response?.message ||
+                            "Live location sync failed. Retrying...",
+                        );
+                        return;
+                    }
+
+                    setLocationError("");
+                },
+            );
+        };
+
+        const handleConnectError = (error) => {
+            if (!stopped) {
+                setLocationError(error.message);
+            }
+        };
+
+        socket.on("connect", sendLocation);
+        socket.on("connect_error", handleConnectError);
+
+        connectSocket(token);
+
         const watchId = navigator.geolocation.watchPosition(
             (position) => {
-                setAgentLocation({
+                if (stopped) return;
+
+                const firstPosition = !latestLocation;
+
+                latestLocation = {
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
-                });
+                };
 
-                setLocationError("");
+                setAgentLocation(latestLocation);
+
+                if (firstPosition) {
+                    sendLocation();
+                }
             },
-            () => {
+            (error) => {
+                if (stopped) return;
+
+                latestLocation = null;
                 setLocationError(
-                    "Enable location permission for live delivery navigation.",
+                    error.message ||
+                    "Enable location permission for live tracking.",
                 );
             },
             {
@@ -162,8 +259,16 @@ const DeliveryActive = () => {
             },
         );
 
-        return () => navigator.geolocation.clearWatch(watchId);
-    }, []);
+        const timer = setInterval(sendLocation, 5000);
+
+        return () => {
+            stopped = true;
+            clearInterval(timer);
+            navigator.geolocation.clearWatch(watchId);
+            socket.off("connect", sendLocation);
+            socket.off("connect_error", handleConnectError);
+        };
+    }, [delivery?.orderNumber, delivery?.status]);
 
     const restaurant = useMemo(() => {
         if (!delivery) return null;
@@ -703,14 +808,14 @@ const DeliveryProgress = ({ currentStatus }) => {
                     <div
                         key={step.status}
                         className={`flex items-center gap-3 rounded-2xl border p-4 ${completed
-                                ? "border-orange-200 bg-orange-50"
-                                : "border-slate-200 bg-white"
+                            ? "border-orange-200 bg-orange-50"
+                            : "border-slate-200 bg-white"
                             }`}
                     >
                         <div
                             className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${completed
-                                    ? "bg-orange-500 text-white"
-                                    : "bg-slate-100 text-slate-400"
+                                ? "bg-orange-500 text-white"
+                                : "bg-slate-100 text-slate-400"
                                 }`}
                         >
                             {index < currentIndex ? (
