@@ -23,7 +23,7 @@ export const startDeliveryService = async (orderNumber) => {
 
 export const completeDeliveryService = async ({ orderNumber, otp }) => {
   const response = await apiClient.patch(
-    `/delivery/orders/${orderNumber}/complete`,
+    `/delivery/orders/${orderNumber}/delivered`,
     { otp },
   );
 

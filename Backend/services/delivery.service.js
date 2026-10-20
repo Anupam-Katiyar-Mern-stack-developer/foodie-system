@@ -2243,11 +2243,7 @@ export const completeDeliveryOrderService = async ({
     // 8. Verify OTP
     // ==========================================
 
-    const otpValid = verifyDeliveryOtp({
-      otp,
-      otpHash: order.deliveryOtpHash,
-    });
-
+    const otpValid = verifyDeliveryOtp(String(otp), order.deliveryOtpHash);
     // ==========================================
     // WRONG OTP
     // ==========================================
