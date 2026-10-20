@@ -25,6 +25,12 @@ import {
   rejectDeliveryOffer,
 } from "../../../redux/thunks/deliveryAgent/deliveryOffer.thunk";
 
+import {
+  socket,
+  connectSocket,
+} from "../../../socket/socket";
+
+import { STORAGE_KEYS } from "../../../constants/storageKeys";
 const DeliveryOffers = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -47,7 +53,60 @@ const DeliveryOffers = () => {
   const [modalType, setModalType] = useState(null);
 
   useEffect(() => {
-    dispatch(getDeliveryOffer());
+    const reloadOffers = () => {
+      dispatch(getDeliveryOffer());
+    };
+
+    const handleOfferResponse = (data) => {
+      if (
+        !["ACCEPTED", "REJECTED", "EXPIRED"].includes(data?.status)
+      ) {
+        return;
+      }
+
+      reloadOffers();
+
+      setSelectedOffer((current) => {
+        if (
+          current?.orderNumber === data.orderNumber &&
+          new Date(current.offeredAt).getTime() ===
+          new Date(data.offeredAt).getTime()
+        ) {
+          return null;
+        }
+
+        return current;
+      });
+    };
+
+    const handleConnectError = (error) => {
+      console.error(
+        "Delivery offer socket error:",
+        error.message,
+      );
+    };
+
+    socket.on("connect", reloadOffers);
+    socket.on("delivery:new-offer", reloadOffers);
+    socket.on("delivery:offer-response", handleOfferResponse);
+    socket.on("connect_error", handleConnectError);
+
+    const token = localStorage.getItem(
+      STORAGE_KEYS.DELIVERY_TOKEN,
+    );
+
+    if (token) {
+      connectSocket(token);
+    }
+
+    reloadOffers();
+
+    return () => {
+      socket.off("connect", reloadOffers);
+      socket.off("delivery:new-offer", reloadOffers);
+      socket.off("delivery:offer-response", handleOfferResponse);
+      socket.off("connect_error", handleConnectError);
+    };
   }, [dispatch]);
 
   const stats = [
@@ -372,7 +431,7 @@ const DeliveryOffers = () => {
       </section>
 
       <ConfirmModal
-        open={modalType === "ACCEPT"}
+        open={modalType === "ACCEPT" && Boolean(selectedOffer)}
         onClose={handleModalClose}
         title="Accept Delivery?"
         description={
@@ -386,7 +445,7 @@ const DeliveryOffers = () => {
       />
 
       <ConfirmModal
-        open={modalType === "REJECT"}
+        open={modalType === "REJECT" && Boolean(selectedOffer)}
         onClose={handleModalClose}
         title="Reject Delivery Offer?"
         description={
