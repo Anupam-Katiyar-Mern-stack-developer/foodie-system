@@ -3342,3 +3342,40 @@ export const createRestaurantDeliveryOfferService = async ({
     client.release();
   }
 };
+
+// expire masges send
+export const expireDeliveryOffersService = async () => {
+  const result = await pool.query(`
+    WITH expired_offers AS (
+      UPDATE delivery_assignments
+      SET
+        status = 'EXPIRED',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE
+        status = 'OFFERED'
+        AND expires_at IS NOT NULL
+        AND expires_at <= CURRENT_TIMESTAMP
+      RETURNING
+        id,
+        order_id,
+        delivery_agent_id,
+        offered_at,
+        expires_at
+    )
+    SELECT
+      expired.id AS "assignmentId",
+      o.order_number AS "orderNumber",
+      o.restaurant_id AS "restaurantId",
+      d.public_id AS "deliveryAgentPublicId",
+      expired.offered_at AS "offeredAt",
+      expired.expires_at AS "expiresAt",
+      'EXPIRED'::text AS status
+    FROM expired_offers expired
+    INNER JOIN orders o
+      ON o.id = expired.order_id
+    INNER JOIN delivery_agents d
+      ON d.id = expired.delivery_agent_id
+  `);
+
+  return result.rows;
+};
