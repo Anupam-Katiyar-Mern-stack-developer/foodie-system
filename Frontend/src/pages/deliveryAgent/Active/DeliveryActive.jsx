@@ -56,6 +56,8 @@ import {
 
 import { STORAGE_KEYS } from "../../../constants/storageKeys";
 
+import DeliveryTrackingMap from "../../../components/public/LiveTrackingMap/DeliveryTrackingMap";
+
 import "leaflet/dist/leaflet.css";
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -150,9 +152,10 @@ const DeliveryActive = () => {
         otpSent,
         otpExpiresAt,
     } = useSelector((state) => state.deliveryActiveOrder) || {};
-
-    const [agentLocation, setAgentLocation] = useState(null);
-    const [locationError, setLocationError] = useState("");
+    const {
+        location: agentLocation,
+        error: locationError,
+    } = useSelector((state) => state.deliveryLocation) || {};
     const [otpModalOpen, setOtpModalOpen] = useState(false);
 
     useEffect(() => {
@@ -609,62 +612,15 @@ const DeliveryActive = () => {
                     </div>
                 </div>
 
-                <div className="h-[380px] w-full lg:h-[480px]">
-                    {destinationPosition ? (
-                        <MapContainer
-                            center={destinationPosition}
-                            zoom={14}
-                            scrollWheelZoom
-                            className="h-full w-full"
-                        >
-                            <TileLayer
-                                attribution="&copy; OpenStreetMap contributors"
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            />
-
-                            <Marker position={destinationPosition}>
-                                <Popup>
-                                    <strong>
-                                        {destination?.name || "Destination"}
-                                    </strong>
-
-                                    <br />
-
-                                    {destination?.address}
-                                </Popup>
-                            </Marker>
-
-                            {agentPosition && (
-                                <CircleMarker
-                                    center={agentPosition}
-                                    radius={9}
-                                    pathOptions={{
-                                        fillOpacity: 1,
-                                        weight: 3,
-                                    }}
-                                >
-                                    <Popup>Your current location</Popup>
-                                </CircleMarker>
-                            )}
-
-                            {routeLine.length === 2 && (
-                                <Polyline positions={routeLine} />
-                            )}
-
-                            <MapFocus position={destinationPosition} />
-                        </MapContainer>
-                    ) : (
-                        <div className="flex h-full items-center justify-center bg-slate-50">
-                            <div className="text-center">
-                                <MapPin className="mx-auto h-7 w-7 text-slate-300" />
-
-                                <p className="mt-2 text-sm font-bold text-slate-500">
-                                    Destination location unavailable
-                                </p>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                <DeliveryTrackingMap
+                    agent={agentPosition}
+                    destination={destinationPosition}
+                    destinationLabel={
+                        goingToRestaurant
+                            ? "Pickup restaurant"
+                            : "Customer delivery address"
+                    }
+                />
             </section>
 
             <section className="grid gap-5 lg:grid-cols-2">
