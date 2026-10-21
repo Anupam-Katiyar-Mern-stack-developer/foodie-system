@@ -9,6 +9,7 @@ export const createAddressService = async ({
   state,
   pincode,
   latitude,
+  longitude,
   isDefault,
 }) => {
   const client = await pool.connect();
@@ -132,6 +133,7 @@ export const updateAddressService = async ({
   state,
   pincode,
   latitude,
+  longitude,
   isDefault,
 }) => {
   const client = await pool.connect();
@@ -279,10 +281,7 @@ export const deleteAddressService = async ({ userId, addressId }) => {
   }
 };
 
-export const setDefaultAddressService = async ({
-  userId,
-  addressId,
-}) => {
+export const setDefaultAddressService = async ({ userId, addressId }) => {
   const client = await pool.connect();
 
   try {
@@ -297,7 +296,7 @@ export const setDefaultAddressService = async ({
         AND user_id = $2
         LIMIT 1
       `,
-      [addressId, userId]
+      [addressId, userId],
     );
 
     if (addressCheck.rows.length === 0) {
@@ -315,7 +314,7 @@ export const setDefaultAddressService = async ({
           updated_at = CURRENT_TIMESTAMP
         WHERE user_id = $1
       `,
-      [userId]
+      [userId],
     );
 
     // Selected address default
@@ -343,7 +342,7 @@ export const setDefaultAddressService = async ({
           created_at AS "createdAt",
           updated_at AS "updatedAt"
       `,
-      [addressId, userId]
+      [addressId, userId],
     );
 
     await client.query("COMMIT");
