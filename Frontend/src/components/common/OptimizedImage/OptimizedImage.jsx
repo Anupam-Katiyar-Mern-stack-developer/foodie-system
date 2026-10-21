@@ -2,6 +2,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import getImageUrl from "../../../utils/getImageUrl";
 
 const OptimizedImage = ({
   src,
@@ -51,8 +52,8 @@ const OptimizedImage = ({
 
   const finalSrc =
     imageError && fallbackSrc
-      ? fallbackSrc
-      : src;
+      ? getImageUrl(fallbackSrc)
+      : imageError ? "" : getImageUrl(src);
 
 
   const objectFitClasses = {

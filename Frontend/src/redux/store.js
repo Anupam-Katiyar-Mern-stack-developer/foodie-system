@@ -1,5 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
 import adminReducer from "./slices/admin/admin.slice";
+import settingReducer from "./slices/public/setting.slice";
 
 import publicCategoryReducer from "./slices/public/category.slice";
 import publicRestaurantReducer from "./slices/public/restaurant.slice";
@@ -26,6 +27,7 @@ import deliveryActiveOrderReducer from "./slices/deliveryAgent/deliveryActiveOrd
 const store = configureStore({
   reducer: {
     admin: adminReducer,
+    siteSettings: settingReducer,
     publicCategory: publicCategoryReducer,
 
     publicRestaurant: publicRestaurantReducer,

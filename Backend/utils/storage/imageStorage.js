@@ -1,8 +1,9 @@
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import { fileURLToPath } from "url";
 
-const IMAGE_ROOT = path.resolve(process.cwd(), "images");
+export const IMAGE_ROOT = fileURLToPath(new URL("../../images/", import.meta.url));
 
 const extensionByMimeType = {
   "image/jpeg": ".jpg",
@@ -51,7 +52,7 @@ export const deleteImage = async (imagePath) => {
       ? imagePath.substring(1)
       : imagePath;
 
-    const absolutePath = path.resolve(process.cwd(), cleanPath);
+    const absolutePath = path.resolve(IMAGE_ROOT, "..", cleanPath);
 
     // Security:
     // images folder ke bahar kuch delete na ho

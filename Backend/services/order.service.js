@@ -1,4 +1,6 @@
 import pool from "../config/database.js";
+import { getSiteSettingsService,calculateCouponDiscount,priceRestaurantGroups } from "./setting.service.js";
+import { queueOrderEmail } from "./notification.service.js";
 // import { findAndOfferDeliveryAgentService } from "./delivery.service.js";
 import {
   generateCheckoutNumber,
@@ -9,11 +11,27 @@ export const placeOrderService = async ({
   userId,
   addressId,
   paymentMethod,
+  latitude,
+  longitude,
+  couponCode,
+  requestKey,
 }) => {
   const client = await pool.connect();
 
   try {
     await client.query("BEGIN");
+    if (requestKey) {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`checkout:${userId}:${requestKey}`]);
+      const previous=await client.query(`SELECT checkout_number AS "checkoutNumber",payment_method AS "paymentMethod",payment_status AS "paymentStatus",grand_total AS "grandTotal" FROM order_groups WHERE user_id=$1 AND request_key=$2`,[userId,requestKey]);
+      if(previous.rows[0]){
+        const orders=await client.query(`SELECT o.order_number AS "orderNumber",o.status,o.total_amount AS "totalAmount",r.restaurant_name AS "restaurantName" FROM orders o JOIN restaurants r ON r.id=o.restaurant_id JOIN order_groups og ON og.id=o.order_group_id WHERE og.user_id=$1 AND og.request_key=$2`,[userId,requestKey]);
+        await client.query("COMMIT");
+        return {...previous.rows[0],orders:orders.rows,totalRestaurantOrders:orders.rows.length,replayed:true};
+      }
+    }
+    const settings=await getSiteSettingsService(client);
+    if(settings.maintenanceMode) throw Object.assign(new Error(settings.maintenanceMessage),{statusCode:503});
+    if((paymentMethod==='COD'&&!settings.codEnabled)||(paymentMethod==='ONLINE'&&!settings.onlineEnabled)) throw Object.assign(new Error("Selected payment method is disabled"),{statusCode:400});
 
     /*
      * 1. Delivery address + user
@@ -57,6 +75,14 @@ export const placeOrderService = async ({
     }
 
     const address = addressResult.rows[0];
+    const hasBrowserLocation=latitude!=null||longitude!=null;
+    const lat=Number(hasBrowserLocation?latitude:address.latitude);
+    const lng=Number(hasBrowserLocation?longitude:address.longitude);
+    if((hasBrowserLocation&&(latitude==null||longitude==null||String(latitude).trim()===''||String(longitude).trim()===''))||
+      (!hasBrowserLocation&&(address.latitude==null||address.longitude==null))||!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180){
+      throw Object.assign(new Error("A valid delivery location is required"),{statusCode:400});
+    }
+    address.latitude=lat; address.longitude=lng;
 
     if (!address.phone) {
       const error = new Error(
@@ -268,6 +294,11 @@ export const placeOrderService = async ({
     }
 
     grandTotal = Number(grandTotal.toFixed(2));
+    if(grandTotal<Number(settings.minimumOrder)) throw Object.assign(new Error(`Minimum order is ₹${settings.minimumOrder}`),{statusCode:400});
+    if(couponCode&&!settings.couponsEnabled) throw Object.assign(new Error("Coupons are disabled"),{statusCode:400});
+    const {discount,coupon}=await calculateCouponDiscount(client,couponCode,userId,grandTotal,true);
+    const pricing=priceRestaurantGroups([...restaurantGroups.values()],settings,discount);
+    grandTotal=pricing.grandTotal;
 
     /*
      * Abhi delivery fee + tax = 0.
@@ -342,6 +373,8 @@ export const placeOrderService = async ({
     );
 
     const orderGroupId = orderGroupResult.rows[0].id;
+    await client.query("UPDATE order_groups SET discount_amount=$1,coupon_code=$2,request_key=$3 WHERE id=$4",[discount,coupon?.code || null,requestKey || null,orderGroupId]);
+    if(coupon) await client.query("INSERT INTO coupon_redemptions(coupon_id,user_id,order_group_id,discount_amount) VALUES($1,$2,$3,$4)",[coupon.id,userId,orderGroupId,discount]);
 
     /*
      * 7. Har restaurant ka
@@ -350,14 +383,14 @@ export const placeOrderService = async ({
 
     const createdOrders = [];
 
-    for (const group of restaurantGroups.values()) {
+    for (const group of pricing.groups) {
       const orderNumber = generateOrderNumber();
 
-      const deliveryFee = 0;
-      const taxAmount = 0;
+      const deliveryFee = group.deliveryFee;
+      const taxAmount = group.taxAmount;
 
       const totalAmount = Number(
-        (group.subtotal + deliveryFee + taxAmount).toFixed(2),
+        (group.subtotal - group.discountAmount + deliveryFee + taxAmount).toFixed(2),
       );
 
       const orderResult = await client.query(
@@ -396,6 +429,7 @@ export const placeOrderService = async ({
       );
 
       const orderId = orderResult.rows[0].id;
+      await client.query("UPDATE orders SET discount_amount=$1,status=$2 WHERE id=$3",[group.discountAmount,paymentMethod==='ONLINE'?'PAYMENT_PENDING':'PLACED',orderId]);
 
       /*
        * 8. Us restaurant ke
@@ -452,7 +486,8 @@ export const placeOrderService = async ({
           slug: group.restaurantSlug,
         },
 
-        status: "PLACED",
+        status: paymentMethod==='ONLINE'?'PAYMENT_PENDING':'PLACED',
+        discountAmount: group.discountAmount,
 
         subtotal: group.subtotal,
 
@@ -495,6 +530,7 @@ export const placeOrderService = async ({
       se automatically delete.
     */
 
+    if(paymentMethod==='COD' && settings.orderEmailsEnabled) await queueOrderEmail(client,orderGroupId);
     await client.query("COMMIT");
 
     return {
@@ -505,6 +541,8 @@ export const placeOrderService = async ({
       paymentStatus: "PENDING",
 
       grandTotal,
+      discountAmount:discount,
+      couponCode:coupon?.code || null,
 
       totalRestaurantOrders: createdOrders.length,
 

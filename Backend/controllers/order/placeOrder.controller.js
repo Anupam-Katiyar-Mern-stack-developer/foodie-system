@@ -1,12 +1,14 @@
 import { placeOrderService } from "../../services/order.service.js";
 
 import { emitNewRestaurantOrder } from "../../socket/order.socket.js";
+import { paymentConfigured } from "../../services/payment.service.js";
 
 export const placeOrder = async (req, res, next) => {
   try {
     const userId = req.auth.userId;
 
-    const { addressId, paymentMethod = "COD" } = req.body;
+    const { addressId, paymentMethod = "COD", latitude, longitude, couponCode, requestKey } = req.body;
+    if(requestKey && (typeof requestKey!=='string'||!/^[A-Za-z0-9_-]{8,100}$/.test(requestKey))) return res.status(400).json({success:false,message:"Invalid checkout request key"});
 
     // =========================================
     // DELIVERY ADDRESS
@@ -44,12 +46,12 @@ export const placeOrder = async (req, res, next) => {
     // add karenge.
     // =========================================
 
-    const allowedPaymentMethods = ["COD"];
+    const allowedPaymentMethods = ["COD","ONLINE"];
 
     if (!allowedPaymentMethods.includes(paymentMethod)) {
       return res.status(400).json({
         success: false,
-        message: "Only COD is currently available",
+        message: "Select COD or ONLINE payment",
       });
     }
 
@@ -57,10 +59,12 @@ export const placeOrder = async (req, res, next) => {
     // CREATE ORDER
     // =========================================
 
+    if(paymentMethod==='ONLINE'&&!paymentConfigured()) return res.status(503).json({success:false,message:"Online payment is not configured yet. Choose cash on delivery."});
     const result = await placeOrderService({
       userId,
       addressId,
       paymentMethod,
+      latitude, longitude, couponCode, requestKey,
     });
 
     // =========================================
@@ -78,7 +82,7 @@ export const placeOrder = async (req, res, next) => {
     // uska separate order jayega.
     // =========================================
 
-    for (const order of result.orders || []) {
+    for (const order of result.paymentMethod==='COD'&&!result.replayed ? result.orders || [] : []) {
       try {
         const { restaurantId, ...publicOrder } = order;
 

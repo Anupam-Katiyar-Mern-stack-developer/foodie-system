@@ -7,6 +7,7 @@ import AdminPartners from "../pages/admin/Partners/AdminPartners";
 import AdminCategories from "../pages/admin/Categories/AdminCategories";
 import AdminRecords from "../pages/admin/Records/AdminRecords";
 import AdminSettings from "../pages/admin/Settings/AdminSettings";
+import SiteSettings from "../pages/admin/Settings/SiteSettings";
 
 export default function AdminRoutes() {
   return (
@@ -40,6 +41,7 @@ export default function AdminRoutes() {
             element={<AdminRecords key="users" resource="users" />}
           />
           <Route path="settings" element={<AdminSettings />} />
+          <Route path="site-settings" element={<SiteSettings />} />
           <Route
             path="*"
             element={<Navigate to="/admin/dashboard" replace />}

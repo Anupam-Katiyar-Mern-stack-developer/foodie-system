@@ -201,7 +201,7 @@ const Avatar = ({
             >
                 {showImage ? (
                     <img
-                        src={src}
+                        src={getImageUrl(src)}
 
                         alt={
                             alt ||
@@ -282,3 +282,4 @@ const Avatar = ({
 
 
 export default Avatar;
+import getImageUrl from "../../../utils/getImageUrl";

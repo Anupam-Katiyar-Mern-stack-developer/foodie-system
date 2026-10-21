@@ -6,6 +6,7 @@ import { connectDatabase } from "./config/database.js";
 import { initializeSocket } from "./socket/socket.js";
 import { expireDeliveryOffersService } from "./services/delivery.service.js";
 import { emitDeliveryOfferResponse } from "./socket/order.socket.js";
+import { processOrderEmails } from "./services/notification.service.js";
 
 const PORT = process.env.PORT || 5000;
 
@@ -19,6 +20,7 @@ let expiryStopped = false;
 const checkExpiredOffers = async () => {
   try {
     const expiredOffers = await expireDeliveryOffersService();
+    await processOrderEmails();
 
     for (const offer of expiredOffers) {
       try {

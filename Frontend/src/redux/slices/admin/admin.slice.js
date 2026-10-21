@@ -33,6 +33,8 @@ const initialState = {
       "foods",
       "orders",
       "users",
+      "site-settings",
+      "coupons",
     ].map((key) => [key, resourceState()])
   ),
 };

@@ -2,7 +2,10 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import path from "path";
+import settingRoutes from "./routes/setting.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
+import { paymentWebhook } from "./controllers/order/payment.controller.js";
+import { IMAGE_ROOT } from "./utils/storage/imageStorage.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
@@ -22,8 +25,9 @@ import foodRoutes from "./routes/food.routes.js";
 import passwordResetRoutes from "./routes/passwordReset.routes.js";
 const app = express();
 
-app.use("/images", express.static(path.join(process.cwd(), "images")));
+app.use("/images", cors(), express.static(IMAGE_ROOT));
 
+app.post("/api/payments/webhook", express.raw({type:"application/json",limit:"1mb"}), paymentWebhook);
 app.use(express.json());
 
 app.use(cors());
@@ -42,6 +46,8 @@ app.use("/api/user", userRoutes);
 app.use("/api/user/addresses", addressRoutes);
 app.use("/api/restaurant", restaurantRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/settings", settingRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/restaurants", publicRestaurantRoutes);
 app.use("/api/user/cart", cartRoutes);

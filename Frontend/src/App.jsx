@@ -13,6 +13,7 @@ import {
 } from "./redux/thunks/public/auth.thunk";
 
 import { Toaster } from "react-hot-toast";
+import { fetchSiteSettings } from "./redux/thunks/public/setting.thunk";
 
 const App = () => {
   const dispatch =
@@ -20,9 +21,13 @@ const App = () => {
 
 
   useEffect(() => {
+    dispatch(fetchSiteSettings());
+    const refreshSettings = () => dispatch(fetchSiteSettings());
+    window.addEventListener('focus',refreshSettings);
     dispatch(
       bootstrapUserAuth()
     );
+    return () => window.removeEventListener('focus',refreshSettings);
   }, [
     dispatch,
   ]);

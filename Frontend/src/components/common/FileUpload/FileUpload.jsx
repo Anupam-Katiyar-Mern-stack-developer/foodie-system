@@ -4,6 +4,7 @@ import {
     useRef,
     useState,
 } from "react";
+import getImageUrl from "../../../utils/getImageUrl";
 
 import {
     ImageIcon,
@@ -352,7 +353,7 @@ const FileUpload = ({
             "
                     >
                         <img
-                            src={previewUrl}
+                            src={getImageUrl(previewUrl)}
                             alt="Selected preview"
 
                             className="

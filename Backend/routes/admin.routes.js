@@ -15,6 +15,7 @@ import { createCategory } from "../controllers/admin/createCategory.controller.j
 import { getCategories } from "../controllers/admin/getCategories.controller.js";
 
 import { uploadImage } from "../middleware/upload.middleware.js";
+import { getSiteSettings, saveSiteSettings, saveSiteAsset, getCoupons, saveCoupon } from "../controllers/admin/siteSettings.controller.js";
 
 import { updateCategory } from "../controllers/admin/updateCategory.controller.js";
 
@@ -30,6 +31,12 @@ import { approveDeliveryAgent } from "../controllers/admin/approveDeliveryAgent.
 
 import { rejectDeliveryAgent } from "../controllers/admin/rejectDeliveryAgent.controller.js";
 const router = express.Router();
+router.get("/site-settings", adminAuthMiddleware, getSiteSettings);
+router.put("/site-settings", adminAuthMiddleware, saveSiteSettings);
+router.post("/site-settings/asset", adminAuthMiddleware, uploadImage("site", "image"), saveSiteAsset);
+router.get("/coupons", adminAuthMiddleware, getCoupons);
+router.post("/coupons", adminAuthMiddleware, saveCoupon);
+router.put("/coupons/:id", adminAuthMiddleware, saveCoupon);
 import {
   getAdminDashboard,
   getAdminList,

@@ -35,6 +35,7 @@ const navigation = [
   ["categories", "Categories", Tags],
   ["foods", "Food catalogue", UtensilsCrossed],
   ["settings", "Account settings", Settings],
+  ["site-settings", "Website settings", Settings],
 ];
 
 export default function AdminLayout() {
