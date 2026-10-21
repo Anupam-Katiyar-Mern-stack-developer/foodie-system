@@ -12,13 +12,14 @@ import DeliverySidebar
 import DeliveryNavbar
     from "../components/deliveryAgent/DeliveryNavbar";
 
-
+import DeliveryRealtime from "../components/deliveryAgent/DeliveryRealtime";
 const DeliveryLayout = () => {
 
     const [
         sidebarOpen,
         setSidebarOpen,
     ] = useState(false);
+
 
 
     return (
@@ -30,6 +31,7 @@ const DeliveryLayout = () => {
         bg-[#fffaf5]
       "
         >
+            <DeliveryRealtime />
 
             <DeliverySidebar
                 mobileOpen={
@@ -61,7 +63,7 @@ const DeliveryLayout = () => {
                 />
 
 
-                <main  className="p-4
+                <main className="p-4
 
             sm:p-6
             lg:p-8
