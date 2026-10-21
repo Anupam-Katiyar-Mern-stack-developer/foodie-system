@@ -11,4 +11,4 @@ alter table orders
 add column if not exists delivery_otp_attempts integer not null default 0;
 
 alter table orders 
-add column if not exists delivery_otp_veriefied_at timestamptz;
+add column if not exists delivery_otp_verified_at timestamptz;

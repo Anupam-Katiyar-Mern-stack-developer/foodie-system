@@ -1,6 +1,9 @@
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT),
 
@@ -12,11 +15,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendEmail = async ({ to, subject, html, text }) => {
+export const sendEmail = async ({ to, subject, html, text, fromName }) => {
   try {
     const mailOptions = {
       from: {
-        name: process.env.MAIL_FROM_NAME || "Foodie",
+        name: fromName || process.env.MAIL_FROM_NAME || "Foodie",
         address: process.env.MAIL_FROM_EMAIL || process.env.SMTP_USER,
       },
 

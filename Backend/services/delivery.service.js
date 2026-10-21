@@ -12,21 +12,16 @@ import {
 import { sendEmail } from "../utils/sendEmail.js";
 
 import { deliveryOtpTemplate } from "../templates/order/deliveryOtp.template.js";
+
 // register delivery agent
 export const registerDeliveryAgentService = async ({
   name,
   email,
   phone,
   password,
-
   vehicleType,
   vehicleNumber,
-
   address,
-
-  latitude,
-  longitude,
-
   imageFile,
   imageFolder,
 }) => {
@@ -34,7 +29,8 @@ export const registerDeliveryAgentService = async ({
 
   const normalizedPhone = phone.trim();
 
-  const normalizedVehicleNumber = vehicleNumber.trim().toUpperCase();
+  const normalizedVehicleNumber =
+    vehicleType === "BICYCLE" ? null : vehicleNumber?.trim().toUpperCase();
 
   // Email / phone already registered?
   const existingResult = await pool.query(
@@ -51,7 +47,7 @@ export const registerDeliveryAgentService = async ({
 
         LIMIT 1
       `,
-    [normalizedEmail, normalizedPhone],
+    [normalizedEmail, normalizedPhone]
   );
 
   if (existingResult.rows.length > 0) {
@@ -65,7 +61,7 @@ export const registerDeliveryAgentService = async ({
     }
 
     const error = new Error(
-      "Delivery agent phone number is already registered",
+      "Delivery agent phone number is already registered"
     );
 
     error.statusCode = 409;
@@ -89,87 +85,50 @@ export const registerDeliveryAgentService = async ({
   try {
     const result = await pool.query(
       `
-          INSERT INTO delivery_agents (
-            public_id,
+    INSERT INTO delivery_agents (
+      public_id,
+      name,
+      email,
+      phone,
+      password,
+      image,
+      vehicle_type,
+      vehicle_number,
+      address
+    )
 
-            name,
-            email,
-            phone,
-            password,
+    VALUES (
+      $1, $2, $3, $4, $5,
+      $6, $7, $8, $9
+    )
 
-            image,
-
-            vehicle_type,
-            vehicle_number,
-
-            address,
-
-            latitude,
-            longitude
-          )
-
-          VALUES (
-            $1, $2, $3, $4, $5,
-            $6, $7, $8,
-            $9, $10, $11
-          )
-
-          RETURNING
-            public_id AS "publicId",
-
-            name,
-            email,
-            phone,
-
-            image,
-
-            vehicle_type
-              AS "vehicleType",
-
-            vehicle_number
-              AS "vehicleNumber",
-
-            address,
-
-            latitude,
-            longitude,
-
-            approval_status
-              AS "approvalStatus",
-
-            email_verified
-              AS "emailVerified",
-
-            is_online
-              AS "isOnline",
-
-            is_available
-              AS "isAvailable",
-
-            created_at
-              AS "createdAt"
-        `,
+    RETURNING
+      public_id AS "publicId",
+      name,
+      email,
+      phone,
+      image,
+      vehicle_type AS "vehicleType",
+      vehicle_number AS "vehicleNumber",
+      address,
+      approval_status AS "approvalStatus",
+      email_verified AS "emailVerified",
+      is_online AS "isOnline",
+      is_available AS "isAvailable",
+      created_at AS "createdAt"
+  `,
       [
         publicId,
-
         name.trim(),
         normalizedEmail,
         normalizedPhone,
         hashedPassword,
-
         image,
-
         vehicleType.trim(),
         normalizedVehicleNumber,
-
         address?.trim() || null,
-
-        latitude !== undefined && latitude !== "" ? Number(latitude) : null,
-
-        longitude !== undefined && longitude !== "" ? Number(longitude) : null,
-      ],
+      ]
     );
-
     return result.rows[0];
   } catch (error) {
     // DB insert fail hua to saved image clean
@@ -179,7 +138,7 @@ export const registerDeliveryAgentService = async ({
       } catch (deleteError) {
         console.error(
           "Delivery agent image cleanup failed:",
-          deleteError.message,
+          deleteError.message
         );
       }
     }
@@ -190,7 +149,6 @@ export const registerDeliveryAgentService = async ({
 // login delivery agent
 export const loginDeliveryAgentService = async ({ email, password }) => {
   const normalizedEmail = email.trim().toLowerCase();
-  console.log("email in services =>", normalizedEmail, password);
 
   // Agent find
   const result = await pool.query(
@@ -225,7 +183,7 @@ export const loginDeliveryAgentService = async ({ email, password }) => {
 
       LIMIT 1
     `,
-    [normalizedEmail],
+    [normalizedEmail]
   );
 
   if (result.rows.length === 0) {
@@ -240,7 +198,7 @@ export const loginDeliveryAgentService = async ({ email, password }) => {
   // Password verify
   const passwordMatched = await bcrypt.compare(password, agent.password);
 
-  if (passwordMatched) {
+  if (!passwordMatched) {
     const error = new Error("Invalid email or password");
 
     error.statusCode = 401;
@@ -268,7 +226,7 @@ export const loginDeliveryAgentService = async ({ email, password }) => {
     const error = new Error(
       agent.rejectionReason
         ? `Your registration was rejected: ${agent.rejectionReason}`
-        : "Your delivery agent registration was rejected",
+        : "Your delivery agent registration was rejected"
     );
 
     error.statusCode = 403;
@@ -303,7 +261,7 @@ export const loginDeliveryAgentService = async ({ email, password }) => {
 
     {
       expiresIn: "7d",
-    },
+    }
   );
 
   // Password response me nahi bhejna
@@ -365,7 +323,7 @@ export const getPendingDeliveryAgentsService = async () => {
       WHERE approval_status = 'PENDING'
 
       ORDER BY created_at ASC
-    `,
+    `
   );
 
   return result.rows;
@@ -395,7 +353,7 @@ export const approveDeliveryAgentService = async ({ publicId }) => {
 
         updated_at AS "updatedAt"
     `,
-    [publicId],
+    [publicId]
   );
 
   if (result.rows.length === 0) {
@@ -409,7 +367,7 @@ export const approveDeliveryAgentService = async ({ publicId }) => {
 
         LIMIT 1
       `,
-      [publicId],
+      [publicId]
     );
 
     if (existing.rows.length === 0) {
@@ -420,7 +378,7 @@ export const approveDeliveryAgentService = async ({ publicId }) => {
     }
 
     const error = new Error(
-      `Delivery agent cannot be approved from ${existing.rows[0].approvalStatus} status`,
+      `Delivery agent cannot be approved from ${existing.rows[0].approvalStatus} status`
     );
 
     error.statusCode = 409;
@@ -457,7 +415,7 @@ export const rejectDeliveryAgentService = async ({ publicId, reason }) => {
 
         updated_at AS "updatedAt"
     `,
-    [reason, publicId],
+    [reason, publicId]
   );
 
   if (result.rows.length === 0) {
@@ -471,7 +429,7 @@ export const rejectDeliveryAgentService = async ({ publicId, reason }) => {
 
         LIMIT 1
       `,
-      [publicId],
+      [publicId]
     );
 
     if (existing.rows.length === 0) {
@@ -482,7 +440,7 @@ export const rejectDeliveryAgentService = async ({ publicId, reason }) => {
     }
 
     const error = new Error(
-      `Delivery agent cannot be rejected from ${existing.rows[0].approvalStatus} status`,
+      `Delivery agent cannot be rejected from ${existing.rows[0].approvalStatus} status`
     );
 
     error.statusCode = 409;
@@ -493,7 +451,6 @@ export const rejectDeliveryAgentService = async ({ publicId, reason }) => {
 };
 
 // get delivery profile service
-
 export const getDeliveryProfileService = async ({ deliveryAgentId }) => {
   const result = await pool.query(
     `
@@ -544,7 +501,7 @@ export const getDeliveryProfileService = async ({ deliveryAgentId }) => {
 
         LIMIT 1
       `,
-    [deliveryAgentId],
+    [deliveryAgentId]
   );
 
   if (result.rows.length === 0) {
@@ -627,7 +584,7 @@ export const updateDeliveryProfileService = async ({
 
         LIMIT 1
       `,
-    [deliveryAgentId],
+    [deliveryAgentId]
   );
 
   if (existingResult.rows.length === 0) {
@@ -719,7 +676,7 @@ export const updateDeliveryProfileService = async ({
 
         LIMIT 1
       `,
-    [deliveryAgentId, finalEmail, finalPhone],
+    [deliveryAgentId, finalEmail, finalPhone]
   );
 
   if (duplicateResult.rows.length > 0) {
@@ -727,7 +684,7 @@ export const updateDeliveryProfileService = async ({
 
     if (duplicate.email.toLowerCase() === finalEmail.toLowerCase()) {
       const error = new Error(
-        "Email is already registered with another delivery agent",
+        "Email is already registered with another delivery agent"
       );
 
       error.statusCode = 409;
@@ -735,7 +692,7 @@ export const updateDeliveryProfileService = async ({
     }
 
     const error = new Error(
-      "Phone number is already registered with another delivery agent",
+      "Phone number is already registered with another delivery agent"
     );
 
     error.statusCode = 409;
@@ -825,7 +782,7 @@ export const updateDeliveryProfileService = async ({
         newImage || existingAgent.image,
 
         deliveryAgentId,
-      ],
+      ]
     );
 
     const updatedAgent = result.rows[0];
@@ -849,7 +806,7 @@ export const updateDeliveryProfileService = async ({
       } catch (deleteError) {
         console.error(
           "New delivery image cleanup failed:",
-          deleteError.message,
+          deleteError.message
         );
       }
     }
@@ -859,7 +816,6 @@ export const updateDeliveryProfileService = async ({
 };
 
 // update delivery status service
-
 export const updateDeliveryStatusService = async ({
   deliveryAgentId,
   isOnline,
@@ -897,7 +853,7 @@ export const updateDeliveryStatusService = async ({
 
           FOR UPDATE
         `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     if (agentResult.rows.length === 0) {
@@ -918,7 +874,7 @@ export const updateDeliveryStatusService = async ({
 
     if (agent.approvalStatus !== "APPROVED") {
       const error = new Error(
-        "Only approved delivery agents can change online status",
+        "Only approved delivery agents can change online status"
       );
 
       error.statusCode = 403;
@@ -945,7 +901,7 @@ export const updateDeliveryStatusService = async ({
 
           LIMIT 1
         `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     const hasActiveOrder = activeOrderResult.rows.length > 0;
@@ -958,7 +914,7 @@ export const updateDeliveryStatusService = async ({
       const activeOrder = activeOrderResult.rows[0];
 
       const error = new Error(
-        `You cannot go offline while order ${activeOrder.orderNumber} is ${activeOrder.status}`,
+        `You cannot go offline while order ${activeOrder.orderNumber} is ${activeOrder.status}`
       );
 
       error.statusCode = 409;
@@ -1000,7 +956,7 @@ export const updateDeliveryStatusService = async ({
             updated_at
               AS "updatedAt"
         `,
-      [isOnline, isAvailable, deliveryAgentId],
+      [isOnline, isAvailable, deliveryAgentId]
     );
 
     await client.query("COMMIT");
@@ -1016,7 +972,7 @@ export const updateDeliveryStatusService = async ({
 };
 
 // update location service
-
+// update delivery agent live location
 export const updateDeliveryLocationService = async ({
   deliveryAgentId,
   latitude,
@@ -1024,27 +980,19 @@ export const updateDeliveryLocationService = async ({
 }) => {
   const agentResult = await pool.query(
     `
-        SELECT
-          id,
-
-          approval_status
-            AS "approvalStatus",
-
-          is_blocked
-            AS "isBlocked"
-
-        FROM delivery_agents
-
-        WHERE id = $1
-
-        LIMIT 1
-      `,
-    [deliveryAgentId],
+      SELECT
+        id,
+        approval_status AS "approvalStatus",
+        is_blocked AS "isBlocked"
+      FROM delivery_agents
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [deliveryAgentId]
   );
 
   if (agentResult.rows.length === 0) {
     const error = new Error("Delivery agent not found");
-
     error.statusCode = 404;
     throw error;
   }
@@ -1053,495 +1001,99 @@ export const updateDeliveryLocationService = async ({
 
   if (agent.isBlocked) {
     const error = new Error("Your delivery account has been blocked");
-
     error.statusCode = 403;
     throw error;
   }
 
   if (agent.approvalStatus !== "APPROVED") {
     const error = new Error(
-      "Only approved delivery agents can update location",
+      "Only approved delivery agents can update location"
     );
-
     error.statusCode = 403;
     throw error;
   }
 
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+  if (
+    latitude === null ||
+    latitude === undefined ||
+    latitude === "" ||
+    longitude === null ||
+    longitude === undefined ||
+    longitude === "" ||
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    lat < -90 ||
+    lat > 90 ||
+    lng < -180 ||
+    lng > 180
+  ) {
+    const error = new Error("Valid latitude and longitude are required");
+    error.statusCode = 400;
+    throw error;
+  }
+
   const result = await pool.query(
     `
-        UPDATE delivery_agents
-
-        SET
-          latitude = $1,
-          longitude = $2,
-          updated_at =
-            CURRENT_TIMESTAMP
-
-        WHERE id = $3
-
-        RETURNING
-          public_id AS "publicId",
-
-          latitude,
-          longitude,
-
-          is_online
-            AS "isOnline",
-
-          is_available
-            AS "isAvailable",
-
-          updated_at
-            AS "updatedAt"
-      `,
-    [latitude, longitude, deliveryAgentId],
+      UPDATE delivery_agents
+      SET
+        latitude = $1,
+        longitude = $2,
+        location_updated_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $3
+      RETURNING
+        public_id AS "publicId",
+        latitude,
+        longitude,
+        is_online AS "isOnline",
+        is_available AS "isAvailable",
+        location_updated_at AS "locationUpdatedAt",
+        updated_at AS "updatedAt"
+    `,
+    [lat, lng, deliveryAgentId]
   );
 
   return result.rows[0];
 };
-
 // find and assign offer delivery agents service
-export const findAndOfferDeliveryAgentService = async ({ orderNumber }) => {
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
-    // ==========================================
-    // 1. Order + restaurant location
-    // ==========================================
-
-    const orderResult = await client.query(
-      `
-        SELECT
-          o.id,
-
-          o.order_number
-            AS "orderNumber",
-
-          o.status,
-
-          o.assigned_delivery_agent_id
-            AS "assignedDeliveryAgentId",
-
-          r.restaurant_name
-            AS "restaurantName",
-
-          r.latitude
-            AS "restaurantLatitude",
-
-          r.longitude
-            AS "restaurantLongitude"
-
-        FROM orders o
-
-        INNER JOIN restaurants r
-          ON r.id = o.restaurant_id
-
-        WHERE o.order_number = $1
-
-        LIMIT 1
-
-        FOR UPDATE OF o
-      `,
-      [orderNumber],
-    );
-
-    if (orderResult.rows.length === 0) {
-      const error = new Error("Order not found");
-
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const order = orderResult.rows[0];
-
-    // ==========================================
-    // 2. Order ready hona chahiye
-    // ==========================================
-
-    if (order.status !== "READY_FOR_PICKUP") {
-      const error = new Error("Order is not ready for delivery assignment");
-
-      error.statusCode = 409;
-      throw error;
-    }
-
-    if (order.assignedDeliveryAgentId) {
-      const error = new Error("Delivery agent is already assigned");
-
-      error.statusCode = 409;
-      throw error;
-    }
-
-    // ==========================================
-    // 3. Restaurant location required
-    // ==========================================
-
-    if (
-      order.restaurantLatitude === null ||
-      order.restaurantLongitude === null
-    ) {
-      const error = new Error(
-        "Restaurant location is required for delivery assignment",
-      );
-
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // ==========================================
-    // 4. Expired offers update
-    // ==========================================
-
-    await client.query(
-      `
-        UPDATE delivery_assignments
-
-        SET
-          status = 'EXPIRED',
-
-          responded_at =
-            CURRENT_TIMESTAMP,
-
-          updated_at =
-            CURRENT_TIMESTAMP
-
-        WHERE
-          status = 'OFFERED'
-
-          AND expires_at IS NOT NULL
-
-          AND expires_at <=
-              CURRENT_TIMESTAMP
-      `,
-    );
-
-    // ==========================================
-    // 5. Is order par already active offer?
-    // ==========================================
-
-    const existingOfferResult = await client.query(
-      `
-          SELECT
-            da.status,
-
-            da.offered_at
-              AS "offeredAt",
-
-            da.expires_at
-              AS "expiresAt",
-
-            d.public_id
-              AS "deliveryAgentPublicId",
-
-            d.name
-              AS "deliveryAgentName"
-
-          FROM delivery_assignments da
-
-          INNER JOIN delivery_agents d
-            ON d.id =
-               da.delivery_agent_id
-
-          WHERE
-            da.order_id = $1
-
-            AND da.status =
-                'OFFERED'
-
-            AND da.expires_at >
-                CURRENT_TIMESTAMP
-
-          LIMIT 1
-        `,
-      [order.id],
-    );
-
-    if (existingOfferResult.rows.length > 0) {
-      await client.query("COMMIT");
-
-      return {
-        offered: true,
-
-        alreadyOffered: true,
-
-        offer: existingOfferResult.rows[0],
-      };
-    }
-
-    // ==========================================
-    // 6. Nearest eligible agent find
-    // ==========================================
-
-    const agentResult = await client.query(
-      `
-          SELECT
-            d.id,
-
-            d.public_id
-              AS "publicId",
-
-            d.name,
-
-            d.latitude,
-            d.longitude,
-
-            (
-              6371 * ACOS(
-                LEAST(
-                  1,
-                  GREATEST(
-                    -1,
-
-                    COS(
-                      RADIANS(
-                        $1::double precision
-                      )
-                    )
-                    *
-                    COS(
-                      RADIANS(
-                        d.latitude::double precision
-                      )
-                    )
-                    *
-                    COS(
-                      RADIANS(
-                        d.longitude::double precision
-                      )
-                      -
-                      RADIANS(
-                        $2::double precision
-                      )
-                    )
-                    +
-                    SIN(
-                      RADIANS(
-                        $1::double precision
-                      )
-                    )
-                    *
-                    SIN(
-                      RADIANS(
-                        d.latitude::double precision
-                      )
-                    )
-                  )
-                )
-              )
-            ) AS "distanceKm"
-
-          FROM delivery_agents d
-
-          WHERE
-            d.approval_status =
-              'APPROVED'
-
-            AND d.is_online = TRUE
-
-            AND d.is_available = TRUE
-
-            AND d.is_blocked = FALSE
-
-            AND d.latitude IS NOT NULL
-
-            AND d.longitude IS NOT NULL
-
-
-            -- Is order ko jis agent ne
-            -- pehle reject/expire kiya hai,
-            -- usko same order dobara nahi denge
-
-            AND NOT EXISTS (
-              SELECT 1
-
-              FROM delivery_assignments da
-
-              WHERE
-                da.order_id = $3
-
-                AND da.delivery_agent_id =
-                    d.id
-            )
-
-
-            -- Agent ke paas doosra
-            -- active offer nahi hona chahiye
-
-            AND NOT EXISTS (
-              SELECT 1
-
-              FROM delivery_assignments active_da
-
-              WHERE
-                active_da.delivery_agent_id =
-                    d.id
-
-                AND active_da.status =
-                    'OFFERED'
-
-                AND active_da.expires_at >
-                    CURRENT_TIMESTAMP
-            )
-
-
-          ORDER BY
-            "distanceKm" ASC
-
-          LIMIT 1
-
-          FOR UPDATE OF d
-          SKIP LOCKED
-        `,
-      [order.restaurantLatitude, order.restaurantLongitude, order.id],
-    );
-
-    // ==========================================
-    // 7. Koi agent available nahi
-    // ==========================================
-
-    if (agentResult.rows.length === 0) {
-      await client.query("COMMIT");
-
-      return {
-        offered: false,
-
-        message: "No delivery agent is currently available",
-      };
-    }
-
-    const agent = agentResult.rows[0];
-
-    // ==========================================
-    // 8. Delivery offer create
-    // 120 seconds
-    // ==========================================
-
-    const offerResult = await client.query(
-      `
-          INSERT INTO delivery_assignments (
-            order_id,
-            delivery_agent_id,
-            status,
-            expires_at
-          )
-
-          VALUES (
-            $1,
-            $2,
-            'OFFERED',
-            CURRENT_TIMESTAMP
-            + INTERVAL '120 seconds'
-          )
-
-          RETURNING
-            status,
-
-            offered_at
-              AS "offeredAt",
-
-            expires_at
-              AS "expiresAt"
-        `,
-      [order.id, agent.id],
-    );
-
-    await client.query("COMMIT");
-
-    return {
-      offered: true,
-
-      alreadyOffered: false,
-
-      deliveryAgent: {
-        publicId: agent.publicId,
-
-        name: agent.name,
-
-        distanceKm: Number(Number(agent.distanceKm).toFixed(2)),
-      },
-
-      offer: offerResult.rows[0],
-    };
-  } catch (error) {
-    await client.query("ROLLBACK");
-
-    throw error;
-  } finally {
-    client.release();
-  }
-};
 
 // get delivery order offer service
 export const getDeliveryOrderOfferService = async ({ deliveryAgentId }) => {
-  // Expired offer ko expire kar do
-  await pool.query(
-    `
-      UPDATE delivery_assignments
-
-      SET
-        status = 'EXPIRED',
-        responded_at = CURRENT_TIMESTAMP,
-        updated_at = CURRENT_TIMESTAMP
-
-      WHERE
-        delivery_agent_id = $1
-        AND status = 'OFFERED'
-        AND expires_at <= CURRENT_TIMESTAMP
-    `,
-    [deliveryAgentId],
-  );
-
   const result = await pool.query(
     `
       SELECT
-        o.order_number
-          AS "orderNumber",
-
+        o.id AS "orderId",
+        o.order_number AS "orderNumber",
         o.status AS "orderStatus",
+        o.total_amount AS "totalAmount",
 
-        o.total_amount
-          AS "totalAmount",
+        da.status AS "offerStatus",
+        da.offered_at AS "offeredAt",
+        da.expires_at AS "expiresAt",
 
-        da.status
-          AS "offerStatus",
+        r.restaurant_name AS "restaurantName",
+        r.slug AS "restaurantSlug",
+        r.address_line AS "restaurantAddress",
+        r.city AS "restaurantCity",
+        r.state AS "restaurantState",
+        r.pincode AS "restaurantPincode",
+        r.latitude AS "restaurantLatitude",
+        r.longitude AS "restaurantLongitude",
 
-        da.offered_at
-          AS "offeredAt",
-
-        da.expires_at
-          AS "expiresAt",
-
-        r.restaurant_name
-          AS "restaurantName",
-
-        r.slug
-          AS "restaurantSlug",
-
-        r.address_line
-          AS "restaurantAddress",
-
-        r.city
-          AS "restaurantCity",
-
-        r.latitude
-          AS "restaurantLatitude",
-
-        r.longitude
-          AS "restaurantLongitude",
-
-        og.city
-          AS "deliveryCity",
-
-        og.pincode
-          AS "deliveryPincode",
+        og.delivery_name AS "customerName",
+        og.delivery_phone AS "customerPhone",
+        og.address_line AS "deliveryAddress",
+        og.landmark,
+        og.city AS "deliveryCity",
+        og.state AS "deliveryState",
+        og.pincode AS "deliveryPincode",
 
         (
           SELECT COUNT(*)::int
-
           FROM order_items oi
-
           WHERE oi.order_id = o.id
         ) AS "totalItems"
 
@@ -1558,20 +1110,14 @@ export const getDeliveryOrderOfferService = async ({ deliveryAgentId }) => {
 
       WHERE
         da.delivery_agent_id = $1
-
-        AND da.status = 'OFFERED'
-
-        AND da.expires_at >
-            CURRENT_TIMESTAMP
-
-        AND o.status =
-            'READY_FOR_PICKUP'
-
+AND da.status = 'OFFERED'
+AND da.expires_at > CURRENT_TIMESTAMP
+AND o.status = 'READY_FOR_PICKUP'
       ORDER BY da.offered_at DESC
 
       LIMIT 1
     `,
-    [deliveryAgentId],
+    [deliveryAgentId]
   );
 
   if (result.rows.length === 0) {
@@ -1625,7 +1171,7 @@ export const acceptDeliveryOrderService = async ({
 
           FOR UPDATE
         `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     if (agentResult.rows.length === 0) {
@@ -1653,7 +1199,7 @@ export const acceptDeliveryOrderService = async ({
 
     if (!agent.isAvailable) {
       const error = new Error(
-        "You are currently unavailable for a new delivery",
+        "You are currently unavailable for a new delivery"
       );
 
       error.statusCode = 409;
@@ -1672,6 +1218,8 @@ export const acceptDeliveryOrderService = async ({
 
             da.expires_at
               AS "expiresAt",
+              da.offered_at AS "offeredAt",
+o.restaurant_id AS "restaurantId",
 
             o.id
               AS "orderId",
@@ -1700,7 +1248,7 @@ export const acceptDeliveryOrderService = async ({
 
           FOR UPDATE OF da, o
         `,
-      [orderNumber, deliveryAgentId],
+      [orderNumber, deliveryAgentId]
     );
 
     if (offerResult.rows.length === 0) {
@@ -1714,7 +1262,7 @@ export const acceptDeliveryOrderService = async ({
 
     if (offer.status !== "READY_FOR_PICKUP") {
       const error = new Error(
-        `Order cannot be accepted from ${offer.status} status`,
+        `Order cannot be accepted from ${offer.status} status`
       );
 
       error.statusCode = 409;
@@ -1723,7 +1271,7 @@ export const acceptDeliveryOrderService = async ({
 
     if (offer.assignedDeliveryAgentId) {
       const error = new Error(
-        "Another delivery agent is already assigned to this order",
+        "Another delivery agent is already assigned to this order"
       );
 
       error.statusCode = 409;
@@ -1749,7 +1297,7 @@ export const acceptDeliveryOrderService = async ({
 
         WHERE id = $1
       `,
-      [offer.assignmentId],
+      [offer.assignmentId]
     );
 
     // =================================
@@ -1790,7 +1338,7 @@ export const acceptDeliveryOrderService = async ({
             delivery_assigned_at
               AS "deliveryAssignedAt"
         `,
-      [deliveryAgentId, offer.orderId],
+      [deliveryAgentId, offer.orderId]
     );
 
     if (orderResult.rows.length === 0) {
@@ -1816,7 +1364,7 @@ export const acceptDeliveryOrderService = async ({
 
         WHERE id = $1
       `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     await client.query("COMMIT");
@@ -1826,8 +1374,17 @@ export const acceptDeliveryOrderService = async ({
 
       deliveryAgent: {
         publicId: agent.publicId,
-
         name: agent.name,
+      },
+
+      offerResponse: {
+        restaurantId: offer.restaurantId,
+        deliveryAgentPublicId: agent.publicId,
+        assignmentId: offer.assignmentId,
+        orderNumber: orderResult.rows[0].orderNumber,
+        offeredAt: offer.offeredAt,
+        expiresAt: offer.expiresAt,
+        status: "ACCEPTED",
       },
     };
   } catch (error) {
@@ -1856,6 +1413,10 @@ export const rejectDeliveryOrderService = async ({
           SELECT
             da.id
               AS "assignmentId",
+              da.offered_at AS "offeredAt",
+da.expires_at AS "expiresAt",
+o.restaurant_id AS "restaurantId",
+d.public_id AS "deliveryAgentPublicId",
 
             o.id
               AS "orderId",
@@ -1869,6 +1430,8 @@ export const rejectDeliveryOrderService = async ({
 
           INNER JOIN orders o
             ON o.id = da.order_id
+            INNER JOIN delivery_agents d
+  ON d.id = da.delivery_agent_id
 
           WHERE
             o.order_number = $1
@@ -1884,7 +1447,7 @@ export const rejectDeliveryOrderService = async ({
 
           FOR UPDATE OF da, o
         `,
-      [orderNumber, deliveryAgentId],
+      [orderNumber, deliveryAgentId]
     );
 
     if (offerResult.rows.length === 0) {
@@ -1918,13 +1481,22 @@ export const rejectDeliveryOrderService = async ({
 
         WHERE id = $1
       `,
-      [offer.assignmentId],
+      [offer.assignmentId]
     );
 
     rejectedOrder = {
       orderNumber: offer.orderNumber,
-
       status: "REJECTED",
+
+      offerResponse: {
+        restaurantId: offer.restaurantId,
+        deliveryAgentPublicId: offer.deliveryAgentPublicId,
+        assignmentId: offer.assignmentId,
+        orderNumber: offer.orderNumber,
+        offeredAt: offer.offeredAt,
+        expiresAt: offer.expiresAt,
+        status: "REJECTED",
+      },
     };
 
     await client.query("COMMIT");
@@ -1936,123 +1508,52 @@ export const rejectDeliveryOrderService = async ({
     client.release();
   }
 
-  /*
-    Transaction complete hone ke baad
-    next agent find karo.
-  */
-
-  let nextOffer = null;
-
-  try {
-    nextOffer = await findAndOfferDeliveryAgentService({
-      orderNumber,
-    });
-  } catch (error) {
-    console.error("Next delivery agent offer failed:", error.message);
-  }
-
-  return {
-    ...rejectedOrder,
-
-    nextOffer,
-  };
+  return rejectedOrder;
 };
 
 // get active delivery order service
-export const getActiveDeliveryOrderService = async ({ deliveryAgentId }) => {
+export const getActiveDeliveryOrderService = async ({
+  deliveryAgentId,
+  orderNumber = null,
+}) => {
   const orderResult = await pool.query(
     `
       SELECT
-        o.id,
-
-        o.order_number
-          AS "orderNumber",
-
+        o.id AS "orderId",
+        o.order_number AS "orderNumber",
         o.status,
-
         o.subtotal,
+        o.delivery_fee AS "deliveryFee",
+        o.tax_amount AS "taxAmount",
+        o.total_amount AS "totalAmount",
 
-        o.delivery_fee
-          AS "deliveryFee",
+        o.delivery_assigned_at AS "deliveryAssignedAt",
+        o.picked_up_at AS "pickedUpAt",
+        o.out_for_delivery_at AS "outForDeliveryAt",
+        o.created_at AS "createdAt",
 
-        o.tax_amount
-          AS "taxAmount",
+        r.restaurant_name AS "restaurantName",
+        r.slug AS "restaurantSlug",
+        r.logo AS "restaurantLogo",
+        r.phone AS "restaurantPhone",
+        r.address_line AS "restaurantAddress",
+        r.city AS "restaurantCity",
+        r.state AS "restaurantState",
+        r.pincode AS "restaurantPincode",
+        r.latitude AS "restaurantLatitude",
+        r.longitude AS "restaurantLongitude",
 
-        o.total_amount
-          AS "totalAmount",
-
-        o.delivery_assigned_at
-          AS "deliveryAssignedAt",
-
-        o.picked_up_at
-          AS "pickedUpAt",
-
-        o.created_at
-          AS "createdAt",
-
-
-        r.restaurant_name
-          AS "restaurantName",
-
-        r.slug
-          AS "restaurantSlug",
-
-        r.logo
-          AS "restaurantLogo",
-
-        r.phone
-          AS "restaurantPhone",
-
-        r.address_line
-          AS "restaurantAddress",
-
-        r.city
-          AS "restaurantCity",
-
-        r.state
-          AS "restaurantState",
-
-        r.pincode
-          AS "restaurantPincode",
-
-        r.latitude
-          AS "restaurantLatitude",
-
-        r.longitude
-          AS "restaurantLongitude",
-
-
-        og.delivery_name
-          AS "customerName",
-
-        og.delivery_phone
-          AS "customerPhone",
-
-        og.address_line
-          AS "deliveryAddress",
-
+        og.delivery_name AS "customerName",
+        og.delivery_phone AS "customerPhone",
+        og.address_line AS "deliveryAddress",
         og.landmark,
-
-        og.city
-          AS "deliveryCity",
-
-        og.state
-          AS "deliveryState",
-
-        og.pincode
-          AS "deliveryPincode",
-
-        og.latitude
-          AS "deliveryLatitude",
-
-        og.longitude
-          AS "deliveryLongitude",
-
-        og.payment_method
-          AS "paymentMethod",
-
-        og.payment_status
-          AS "paymentStatus"
+        og.city AS "deliveryCity",
+        og.state AS "deliveryState",
+        og.pincode AS "deliveryPincode",
+        og.latitude AS "deliveryLatitude",
+        og.longitude AS "deliveryLongitude",
+        og.payment_method AS "paymentMethod",
+        og.payment_status AS "paymentStatus"
 
       FROM orders o
 
@@ -2062,63 +1563,70 @@ export const getActiveDeliveryOrderService = async ({ deliveryAgentId }) => {
       INNER JOIN order_groups og
         ON og.id = o.order_group_id
 
-      WHERE
-        o.assigned_delivery_agent_id = $1
+     WHERE
+  o.assigned_delivery_agent_id = $1
+  AND (
+    $2::text IS NULL
+    OR o.order_number = $2
+  )
+  AND o.status IN (
+    'DELIVERY_ASSIGNED',
+    'PICKED_UP',
+    'OUT_FOR_DELIVERY'
+  )
 
-        AND o.status IN (
-          'DELIVERY_ASSIGNED',
-          'PICKED_UP',
-          'OUT_FOR_DELIVERY'
-        )
-
-      ORDER BY o.created_at DESC
-
-      LIMIT 1
+ORDER BY o.delivery_assigned_at DESC, o.id DESC
+LIMIT 1
     `,
-    [deliveryAgentId],
+    [deliveryAgentId, orderNumber]
   );
 
   if (orderResult.rows.length === 0) {
     return null;
   }
-
   const order = orderResult.rows[0];
 
   const itemsResult = await pool.query(
     `
       SELECT
-        food_name
-          AS "name",
-
-        food_slug
-          AS "slug",
-
-        food_image
-          AS "image",
-
-        unit_price
-          AS "unitPrice",
-
+        food_name AS "name",
+        food_slug AS "slug",
+        food_image AS "image",
+        unit_price AS "unitPrice",
         quantity,
-
-        item_total
-          AS "itemTotal"
-
+        item_total AS "itemTotal"
       FROM order_items
-
       WHERE order_id = $1
-
       ORDER BY id ASC
     `,
-    [order.id],
+    [order.orderId]
   );
 
-  delete order.id;
+  const activity = [
+    {
+      status: "DELIVERY_ASSIGNED",
+      label: "Delivery Assigned",
+      completed: Boolean(order.deliveryAssignedAt),
+      timestamp: order.deliveryAssignedAt,
+    },
+    {
+      status: "PICKED_UP",
+      label: "Order Picked Up",
+      completed: Boolean(order.pickedUpAt),
+      timestamp: order.pickedUpAt,
+    },
+    {
+      status: "OUT_FOR_DELIVERY",
+      label: "Out For Delivery",
+      completed: Boolean(order.outForDeliveryAt),
+      timestamp: order.outForDeliveryAt,
+    },
+  ];
 
   return {
     ...order,
-
     items: itemsResult.rows,
+    activity,
   };
 };
 
@@ -2159,7 +1667,7 @@ export const pickupDeliveryOrderService = async ({
 
           FOR UPDATE
         `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     if (agentResult.rows.length === 0) {
@@ -2204,7 +1712,7 @@ export const pickupDeliveryOrderService = async ({
 
           FOR UPDATE
         `,
-      [orderNumber],
+      [orderNumber]
     );
 
     if (orderResult.rows.length === 0) {
@@ -2227,7 +1735,7 @@ export const pickupDeliveryOrderService = async ({
     // Correct status required
     if (order.status !== "DELIVERY_ASSIGNED") {
       const error = new Error(
-        `Order cannot be picked up from ${order.status} status`,
+        `Order cannot be picked up from ${order.status} status`
       );
 
       error.statusCode = 409;
@@ -2264,7 +1772,7 @@ export const pickupDeliveryOrderService = async ({
             updated_at
               AS "updatedAt"
         `,
-      [order.id, deliveryAgentId],
+      [order.id, deliveryAgentId]
     );
 
     if (updateResult.rows.length === 0) {
@@ -2291,7 +1799,7 @@ export const pickupDeliveryOrderService = async ({
 
         WHERE id = $1
       `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     await client.query("COMMIT");
@@ -2345,7 +1853,7 @@ export const markOrderOutForDeliveryService = async ({
 
           FOR UPDATE
         `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     if (agentResult.rows.length === 0) {
@@ -2408,7 +1916,7 @@ export const markOrderOutForDeliveryService = async ({
 
           FOR UPDATE OF o
         `,
-      [orderNumber],
+      [orderNumber]
     );
 
     if (orderResult.rows.length === 0) {
@@ -2437,7 +1945,7 @@ export const markOrderOutForDeliveryService = async ({
 
     if (order.status !== "PICKED_UP") {
       const error = new Error(
-        `Order cannot move to out for delivery from ${order.status} status`,
+        `Order cannot move to out for delivery from ${order.status} status`
       );
 
       error.statusCode = 409;
@@ -2503,7 +2011,7 @@ export const markOrderOutForDeliveryService = async ({
             delivery_otp_expires_at
               AS "otpExpiresAt"
         `,
-      [otpHash, order.id, deliveryAgentId],
+      [otpHash, order.id, deliveryAgentId]
     );
 
     if (updateResult.rows.length === 0) {
@@ -2572,6 +2080,7 @@ export const completeDeliveryOrderService = async ({
   deliveryAgentId,
   orderNumber,
   otp,
+  cashCollected = false,
 }) => {
   const client = await pool.connect();
 
@@ -2613,7 +2122,7 @@ export const completeDeliveryOrderService = async ({
 
           FOR UPDATE
         `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     if (agentResult.rows.length === 0) {
@@ -2640,6 +2149,7 @@ export const completeDeliveryOrderService = async ({
       `
           SELECT
             id,
+            order_group_id AS "orderGroupId",
 
             status,
 
@@ -2663,7 +2173,7 @@ export const completeDeliveryOrderService = async ({
 
           FOR UPDATE
         `,
-      [orderNumber],
+      [orderNumber]
     );
 
     if (orderResult.rows.length === 0) {
@@ -2674,6 +2184,31 @@ export const completeDeliveryOrderService = async ({
     }
 
     const order = orderResult.rows[0];
+    const paymentGroup = (
+      await client.query(
+        "SELECT payment_method,payment_status FROM order_groups WHERE id=$1 FOR UPDATE",
+        [order.orderGroupId]
+      )
+    ).rows[0];
+    if (!paymentGroup)
+      throw Object.assign(new Error("Checkout not found"), { statusCode: 404 });
+    if (
+      paymentGroup.payment_method === "ONLINE" &&
+      paymentGroup.payment_status !== "PAID"
+    ) {
+      throw Object.assign(
+        new Error("Online payment must be verified before completing delivery"),
+        { statusCode: 409 }
+      );
+    }
+    if (paymentGroup.payment_method === "COD" && cashCollected !== true) {
+      throw Object.assign(
+        new Error(
+          "Confirm cash collection before completing this COD delivery"
+        ),
+        { statusCode: 400 }
+      );
+    }
 
     // ==========================================
     // 3. Ownership check
@@ -2692,7 +2227,7 @@ export const completeDeliveryOrderService = async ({
 
     if (order.status !== "OUT_FOR_DELIVERY") {
       const error = new Error(
-        `Order cannot be delivered from ${order.status} status`,
+        `Order cannot be delivered from ${order.status} status`
       );
 
       error.statusCode = 409;
@@ -2716,7 +2251,7 @@ export const completeDeliveryOrderService = async ({
 
     if (order.deliveryOtpAttempts >= 5) {
       const error = new Error(
-        "Maximum OTP attempts exceeded. Generate a new OTP.",
+        "Maximum OTP attempts exceeded. Generate a new OTP."
       );
 
       error.statusCode = 429;
@@ -2741,11 +2276,7 @@ export const completeDeliveryOrderService = async ({
     // 8. Verify OTP
     // ==========================================
 
-    const otpValid = verifyDeliveryOtp({
-      otp,
-      otpHash: order.deliveryOtpHash,
-    });
-
+    const otpValid = verifyDeliveryOtp(String(otp), order.deliveryOtpHash);
     // ==========================================
     // WRONG OTP
     // ==========================================
@@ -2768,7 +2299,7 @@ export const completeDeliveryOrderService = async ({
               delivery_otp_attempts
                 AS "deliveryOtpAttempts"
           `,
-        [order.id],
+        [order.id]
       );
 
       const attempts = attemptsResult.rows[0].deliveryOtpAttempts;
@@ -2782,7 +2313,7 @@ export const completeDeliveryOrderService = async ({
       const error = new Error(
         remainingAttempts > 0
           ? `Invalid OTP. ${remainingAttempts} attempts remaining.`
-          : "Maximum OTP attempts exceeded. Generate a new OTP.",
+          : "Maximum OTP attempts exceeded. Generate a new OTP."
       );
 
       error.statusCode = remainingAttempts > 0 ? 400 : 429;
@@ -2840,7 +2371,7 @@ export const completeDeliveryOrderService = async ({
             total_amount
               AS "totalAmount"
         `,
-      [order.id, deliveryAgentId],
+      [order.id, deliveryAgentId]
     );
 
     if (deliveredResult.rows.length === 0) {
@@ -2871,14 +2402,34 @@ export const completeDeliveryOrderService = async ({
 
         WHERE id = $1
       `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
+    if (paymentGroup.payment_method === "COD") {
+      await client.query(
+        "UPDATE orders SET cash_collected_at=NOW() WHERE id=$1",
+        [order.id]
+      );
+      await client.query(
+        `UPDATE order_groups SET payment_status='PAID',updated_at=NOW()
+        WHERE id=$1 AND NOT EXISTS(SELECT 1 FROM orders WHERE order_group_id=$1 AND cash_collected_at IS NULL)`,
+        [order.orderGroupId]
+      );
+    }
+    const finalPayment = (
+      await client.query(
+        "SELECT payment_status FROM order_groups WHERE id=$1",
+        [order.orderGroupId]
+      )
+    ).rows[0];
     await client.query("COMMIT");
 
     transactionOpen = false;
 
     return {
+      paymentStatus: finalPayment.payment_status,
+      paymentMethod: paymentGroup.payment_method,
+
       ...deliveredResult.rows[0],
 
       deliveryAgent: {
@@ -2898,4 +2449,1078 @@ export const completeDeliveryOrderService = async ({
   } finally {
     client.release();
   }
+};
+
+// =========================================
+// DELIVERY DASHBOARD
+// =========================================
+export const getDeliveryDashboardService = async ({ deliveryAgentId }) => {
+  const [
+    agentResult,
+    statsResult,
+    currentDeliveryResult,
+    recentDeliveriesResult,
+  ] = await Promise.all([
+    // =========================
+    // AGENT STATUS
+    // =========================
+    pool.query(
+      `
+        SELECT
+          is_online AS "isOnline"
+
+        FROM delivery_agents
+
+        WHERE id = $1
+
+        LIMIT 1
+      `,
+      [deliveryAgentId]
+    ),
+
+    // =========================
+    // DASHBOARD STATS
+    // =========================
+    pool.query(
+      `
+        SELECT
+          COUNT(DISTINCT o.id) FILTER (
+            WHERE o.created_at::date = CURRENT_DATE
+          )::int AS "todayDeliveries",
+
+          COUNT(DISTINCT o.id) FILTER (
+            WHERE o.status IN (
+              'DELIVERY_ASSIGNED',
+              'PICKED_UP',
+              'OUT_FOR_DELIVERY'
+            )
+          )::int AS "activeDelivery",
+
+          COUNT(DISTINCT o.id) FILTER (
+            WHERE
+              o.status = 'DELIVERED'
+              AND o.delivered_at::date = CURRENT_DATE
+          )::int AS "completedToday",
+
+          COALESCE(
+            SUM(o.delivery_fee) FILTER (
+              WHERE
+                o.status = 'DELIVERED'
+                AND o.delivered_at::date = CURRENT_DATE
+            ),
+            0
+          ) AS "todayEarnings"
+
+        FROM delivery_assignments da
+
+        INNER JOIN orders o
+          ON o.id = da.order_id
+
+        WHERE da.delivery_agent_id = $1
+      `,
+      [deliveryAgentId]
+    ),
+
+    // =========================
+    // CURRENT DELIVERY
+    // =========================
+    pool.query(
+      `
+        SELECT
+          o.order_number AS "orderNumber",
+
+          o.status,
+
+          r.restaurant_name AS "restaurantName",
+
+          og.delivery_name AS "customerName",
+
+          CONCAT_WS(
+            ', ',
+            NULLIF(og.address_line, ''),
+            NULLIF(og.city, ''),
+            NULLIF(og.state, ''),
+            NULLIF(og.pincode, '')
+          ) AS "customerAddress",
+
+          (
+            SELECT COUNT(*)::int
+
+            FROM order_items oi
+
+            WHERE oi.order_id = o.id
+          ) AS "totalItems"
+
+        FROM delivery_assignments da
+
+        INNER JOIN orders o
+          ON o.id = da.order_id
+
+        INNER JOIN order_groups og
+          ON og.id = o.order_group_id
+
+        INNER JOIN restaurants r
+          ON r.id = o.restaurant_id
+
+        WHERE
+          da.delivery_agent_id = $1
+
+          AND o.status IN (
+            'DELIVERY_ASSIGNED',
+            'PICKED_UP',
+            'OUT_FOR_DELIVERY'
+          )
+
+        ORDER BY o.updated_at DESC
+
+        LIMIT 1
+      `,
+      [deliveryAgentId]
+    ),
+
+    // =========================
+    // RECENT DELIVERIES
+    // =========================
+    pool.query(
+      `
+        SELECT
+          o.order_number AS "orderNumber",
+
+          r.restaurant_name AS "restaurantName",
+
+          og.delivery_name AS "customerName",
+
+          o.total_amount AS "amount",
+
+          o.status
+
+        FROM delivery_assignments da
+
+        INNER JOIN orders o
+          ON o.id = da.order_id
+
+        INNER JOIN order_groups og
+          ON og.id = o.order_group_id
+
+        INNER JOIN restaurants r
+          ON r.id = o.restaurant_id
+
+        WHERE
+          da.delivery_agent_id = $1
+
+          AND o.status = 'DELIVERED'
+
+        ORDER BY o.delivered_at DESC NULLS LAST
+
+        LIMIT 5
+      `,
+      [deliveryAgentId]
+    ),
+  ]);
+
+  if (agentResult.rows.length === 0) {
+    const error = new Error("Delivery agent not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const stats = statsResult.rows[0] || {};
+
+  const currentDelivery = currentDeliveryResult.rows[0]
+    ? {
+        ...currentDeliveryResult.rows[0],
+
+        // Restaurant address columns ka exact schema
+        // available nahi tha, abhi empty.
+        restaurantAddress: "",
+      }
+    : null;
+
+  return {
+    isOnline: Boolean(agentResult.rows[0].isOnline),
+
+    stats: {
+      todayDeliveries: Number(stats.todayDeliveries || 0),
+      activeDelivery: Number(stats.activeDelivery || 0),
+      completedToday: Number(stats.completedToday || 0),
+      todayEarnings: Number(stats.todayEarnings || 0),
+    },
+
+    currentDelivery,
+
+    recentDeliveries: recentDeliveriesResult.rows.map((item) => ({
+      ...item,
+      amount: Number(item.amount || 0),
+    })),
+  };
+};
+
+// get delivery history
+export const getDeliveryHistoryService = async ({
+  deliveryAgentId,
+  status,
+  search,
+  page = 1,
+  limit = 20,
+}) => {
+  status =
+    status && String(status).trim().toUpperCase() !== "ALL"
+      ? String(status).trim().toUpperCase()
+      : null;
+  const offset = (page - 1) * limit;
+  const allowedStatuses = ["DELIVERED", "CANCELLED"];
+
+  if (status && !allowedStatuses.includes(status)) {
+    const error = new Error("Invalid delivery history status");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const values = [deliveryAgentId];
+  const conditions = [
+    "da.delivery_agent_id = $1",
+    "o.assigned_delivery_agent_id = $1",
+    "da.status = 'ACCEPTED'",
+    "o.status IN ('DELIVERED', 'CANCELLED')",
+  ];
+
+  if (status) {
+    values.push(status);
+    conditions.push(`o.status = $${values.length}`);
+  }
+
+  if (search) {
+    values.push(
+      `%${String(search)
+        .trim()
+        .slice(0, 150)
+        .replace(/[\\%_]/g, "\\$&")}%`
+    );
+    const position = values.length;
+
+    conditions.push(`
+      (
+        o.order_number ILIKE $${position}
+        OR r.restaurant_name ILIKE $${position}
+        OR og.delivery_name ILIKE $${position}
+      )
+    `);
+  }
+
+  const whereClause = conditions.join(" AND ");
+
+  const statsResult = await pool.query(
+    `
+      SELECT
+        COUNT(DISTINCT o.id)::int AS "totalDeliveries",
+
+        COUNT(DISTINCT o.id) FILTER (
+          WHERE o.status = 'DELIVERED'
+        )::int AS "completed",
+
+        COUNT(DISTINCT o.id) FILTER (
+          WHERE o.status = 'CANCELLED'
+        )::int AS "cancelled",
+
+        COALESCE(
+          SUM(o.delivery_fee) FILTER (
+            WHERE o.status = 'DELIVERED'
+          ),
+          0
+        ) AS "totalEarnings"
+
+      FROM delivery_assignments da
+
+      INNER JOIN orders o
+        ON o.id = da.order_id
+    WHERE
+  da.delivery_agent_id = $1
+  AND o.assigned_delivery_agent_id = $1
+  AND da.status = 'ACCEPTED'
+  AND o.status IN ('DELIVERED', 'CANCELLED')
+    `,
+    [deliveryAgentId]
+  );
+
+  const countResult = await pool.query(
+    `
+      SELECT COUNT(DISTINCT o.id)::int AS total
+
+      FROM delivery_assignments da
+
+      INNER JOIN orders o
+        ON o.id = da.order_id
+
+      INNER JOIN restaurants r
+        ON r.id = o.restaurant_id
+
+      INNER JOIN order_groups og
+        ON og.id = o.order_group_id
+
+      WHERE ${whereClause}
+    `,
+    values
+  );
+
+  const queryValues = [...values, limit, offset];
+  const limitPosition = queryValues.length - 1;
+  const offsetPosition = queryValues.length;
+
+  const historyResult = await pool.query(
+    `
+      SELECT
+        o.order_number AS "orderNumber",
+        r.restaurant_name AS "restaurantName",
+        og.delivery_name AS "customerName",
+        o.total_amount AS "amount",
+        o.delivery_fee AS "earning",
+        o.status,
+
+        CASE
+          WHEN o.status = 'DELIVERED' THEN o.delivered_at
+          WHEN o.status = 'CANCELLED' THEN o.cancelled_at
+          ELSE o.updated_at
+        END AS "completedAt"
+
+      FROM delivery_assignments da
+
+      INNER JOIN orders o
+        ON o.id = da.order_id
+
+      INNER JOIN restaurants r
+        ON r.id = o.restaurant_id
+
+      INNER JOIN order_groups og
+        ON og.id = o.order_group_id
+
+      WHERE ${whereClause}
+
+      ORDER BY
+        COALESCE(
+          o.delivered_at,
+          o.cancelled_at,
+          o.updated_at
+        ) DESC
+
+      LIMIT $${limitPosition}
+      OFFSET $${offsetPosition}
+    `,
+    queryValues
+  );
+
+  const stats = statsResult.rows[0];
+  const total = countResult.rows[0]?.total || 0;
+
+  return {
+    stats: {
+      totalDeliveries: Number(stats?.totalDeliveries || 0),
+      completed: Number(stats?.completed || 0),
+      cancelled: Number(stats?.cancelled || 0),
+      totalEarnings: Number(stats?.totalEarnings || 0),
+    },
+
+    deliveries: historyResult.rows.map((item) => ({
+      ...item,
+      amount: Number(item.amount || 0),
+      earning: Number(item.earning || 0),
+      distance: null,
+    })),
+
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+// ==========================================
+// GET AVAILABLE DELIVERY AGENTS FOR ORDER
+// ==========================================
+
+export const getAvailableDeliveryAgentsForOrderService = async ({
+  restaurantId,
+  orderNumber,
+}) => {
+  // Get order
+  const orderResult = await pool.query(
+    `
+      SELECT
+        o.id,
+        o.order_number AS "orderNumber",
+        o.status,
+        o.assigned_delivery_agent_id AS "assignedDeliveryAgentId",
+        r.latitude AS "restaurantLatitude",
+        r.longitude AS "restaurantLongitude"
+      FROM orders o
+      INNER JOIN restaurants r
+        ON r.id = o.restaurant_id
+      WHERE
+        o.order_number = $1
+        AND o.restaurant_id = $2
+      LIMIT 1
+    `,
+    [orderNumber, restaurantId]
+  );
+
+  if (orderResult.rows.length === 0) {
+    const error = new Error("Order not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const order = orderResult.rows[0];
+
+  if (order.status !== "READY_FOR_PICKUP") {
+    const error = new Error(
+      "Order must be ready for pickup before assigning a delivery partner"
+    );
+    error.statusCode = 409;
+    throw error;
+  }
+
+  if (order.assignedDeliveryAgentId) {
+    const error = new Error(
+      "Delivery partner is already assigned to this order"
+    );
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const restaurantLatitude = Number(order.restaurantLatitude);
+  const restaurantLongitude = Number(order.restaurantLongitude);
+
+  if (
+    order.restaurantLatitude === null ||
+    order.restaurantLongitude === null ||
+    !Number.isFinite(restaurantLatitude) ||
+    !Number.isFinite(restaurantLongitude)
+  ) {
+    const error = new Error("Restaurant location is not available");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Current active offer on this order
+  const activeOfferResult = await pool.query(
+    `
+      SELECT id
+      FROM delivery_assignments
+      WHERE
+        order_id = $1
+        AND status = 'OFFERED'
+        AND expires_at > CURRENT_TIMESTAMP
+      LIMIT 1
+    `,
+    [order.id]
+  );
+
+  if (activeOfferResult.rows.length > 0) {
+    const error = new Error(
+      "A delivery offer is already pending for this order"
+    );
+    error.statusCode = 409;
+    throw error;
+  }
+
+  // Find available agents
+  const agentsResult = await pool.query(
+    `
+      WITH nearby_agents AS (
+        SELECT
+          d.id,
+          d.public_id AS "publicId",
+          d.name,
+          d.image,
+          d.vehicle_type AS "vehicleType",
+          d.vehicle_number AS "vehicleNumber",
+          d.location_updated_at AS "locationUpdatedAt",
+
+          (
+            6371 * ACOS(
+              LEAST(
+                1,
+                GREATEST(
+                  -1,
+                  COS(RADIANS($1::double precision))
+                  * COS(RADIANS(d.latitude::double precision))
+                  * COS(
+                    RADIANS(d.longitude::double precision)
+                    - RADIANS($2::double precision)
+                  )
+                  + SIN(RADIANS($1::double precision))
+                  * SIN(RADIANS(d.latitude::double precision))
+                )
+              )
+            )
+          ) AS "distanceKm"
+
+        FROM delivery_agents d
+
+        WHERE
+          d.approval_status = 'APPROVED'
+          AND d.is_online = TRUE
+          AND d.is_available = TRUE
+          AND d.is_blocked = FALSE
+          AND d.latitude IS NOT NULL
+          AND d.longitude IS NOT NULL
+
+          AND (
+            d.location_updated_at IS NULL
+            OR d.location_updated_at >=
+              CURRENT_TIMESTAMP - INTERVAL '30 minutes'
+          )
+
+          -- Active delivery nahi honi chahiye
+          AND NOT EXISTS (
+            SELECT 1
+            FROM orders active_order
+            WHERE
+              active_order.assigned_delivery_agent_id = d.id
+              AND active_order.status IN (
+                'DELIVERY_ASSIGNED',
+                'PICKED_UP',
+                'OUT_FOR_DELIVERY'
+              )
+          )
+
+          -- Agent ke paas koi active offer nahi hona chahiye
+          AND NOT EXISTS (
+            SELECT 1
+            FROM delivery_assignments active_offer
+            WHERE
+              active_offer.delivery_agent_id = d.id
+              AND active_offer.status = 'OFFERED'
+              AND active_offer.expires_at > CURRENT_TIMESTAMP
+          )
+      )
+
+      SELECT
+        "publicId",
+        name,
+        image,
+        "vehicleType",
+        "vehicleNumber",
+        ROUND("distanceKm"::numeric, 2)::double precision AS "distanceKm",
+        "locationUpdatedAt"
+
+      FROM nearby_agents
+
+      WHERE "distanceKm" <= 10
+
+      ORDER BY "distanceKm" ASC
+
+      LIMIT 30
+    `,
+    [restaurantLatitude, restaurantLongitude]
+  );
+
+  return {
+    orderNumber: order.orderNumber,
+    total: agentsResult.rows.length,
+    agents: agentsResult.rows,
+  };
+};
+// ==========================================
+// RESTAURANT SEND DELIVERY OFFER
+// ==========================================
+
+export const createRestaurantDeliveryOfferService = async ({
+  restaurantId,
+  orderNumber,
+  deliveryAgentPublicId,
+}) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // Order
+    const orderResult = await client.query(
+      `
+        SELECT
+          o.id,
+          o.order_number AS "orderNumber",
+          o.status,
+          o.assigned_delivery_agent_id AS "assignedDeliveryAgentId",
+          r.latitude AS "restaurantLatitude",
+          r.longitude AS "restaurantLongitude"
+        FROM orders o
+        INNER JOIN restaurants r
+          ON r.id = o.restaurant_id
+        WHERE
+          o.order_number = $1
+          AND o.restaurant_id = $2
+        LIMIT 1
+        FOR UPDATE OF o
+      `,
+      [orderNumber, restaurantId]
+    );
+
+    if (orderResult.rows.length === 0) {
+      const error = new Error("Order not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const order = orderResult.rows[0];
+
+    if (order.status !== "READY_FOR_PICKUP") {
+      const error = new Error(
+        "Order must be ready for pickup before sending delivery offer"
+      );
+      error.statusCode = 409;
+      throw error;
+    }
+
+    if (order.assignedDeliveryAgentId) {
+      const error = new Error(
+        "Delivery partner is already assigned to this order"
+      );
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const restaurantLatitude = Number(order.restaurantLatitude);
+    const restaurantLongitude = Number(order.restaurantLongitude);
+
+    if (
+      order.restaurantLatitude === null ||
+      order.restaurantLongitude === null ||
+      !Number.isFinite(restaurantLatitude) ||
+      !Number.isFinite(restaurantLongitude)
+    ) {
+      const error = new Error("Restaurant location is not available");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Is order par already koi pending offer hai?
+    const existingOrderOffer = await client.query(
+      `
+          SELECT id
+          FROM delivery_assignments
+          WHERE
+            order_id = $1
+            AND status = 'OFFERED'
+          LIMIT 1
+        `,
+      [order.id]
+    );
+
+    if (existingOrderOffer.rows.length > 0) {
+      const error = new Error(
+        "This order already has a pending delivery offer"
+      );
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // Selected delivery agent
+    const agentResult = await client.query(
+      `
+          SELECT
+            d.id,
+            d.public_id AS "publicId",
+            d.name,
+            d.image,
+            d.vehicle_type AS "vehicleType",
+            d.vehicle_number AS "vehicleNumber",
+            d.latitude,
+            d.longitude,
+            d.location_updated_at AS "locationUpdatedAt",
+            d.approval_status AS "approvalStatus",
+            d.is_online AS "isOnline",
+            d.is_available AS "isAvailable",
+            d.is_blocked AS "isBlocked",
+
+            (
+              6371 * ACOS(
+                LEAST(
+                  1,
+                  GREATEST(
+                    -1,
+                    COS(
+                      RADIANS(
+                        $2::double precision
+                      )
+                    )
+                    *
+                    COS(
+                      RADIANS(
+                        d.latitude::double precision
+                      )
+                    )
+                    *
+                    COS(
+                      RADIANS(
+                        d.longitude::double precision
+                      )
+                      -
+                      RADIANS(
+                        $3::double precision
+                      )
+                    )
+                    +
+                    SIN(
+                      RADIANS(
+                        $2::double precision
+                      )
+                    )
+                    *
+                    SIN(
+                      RADIANS(
+                        d.latitude::double precision
+                      )
+                    )
+                  )
+                )
+              )
+            ) AS "distanceKm"
+
+          FROM delivery_agents d
+          WHERE d.public_id = $1
+          LIMIT 1
+          FOR UPDATE OF d
+        `,
+      [deliveryAgentPublicId, restaurantLatitude, restaurantLongitude]
+    );
+
+    if (agentResult.rows.length === 0) {
+      const error = new Error("Delivery partner not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const agent = agentResult.rows[0];
+
+    // Account validation
+    if (agent.approvalStatus !== "APPROVED" || agent.isBlocked) {
+      const error = new Error("Delivery partner account is not available");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // Online / available
+    if (!agent.isOnline || !agent.isAvailable) {
+      const error = new Error("Delivery partner is currently unavailable");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // Location
+    if (agent.latitude === null || agent.longitude === null) {
+      const error = new Error("Delivery partner location is unavailable");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // Fresh location
+    if (agent.locationUpdatedAt) {
+      const locationAge =
+        Date.now() - new Date(agent.locationUpdatedAt).getTime();
+
+      if (!Number.isFinite(locationAge) || locationAge > 30 * 60 * 1000) {
+        const error = new Error("Delivery partner location is outdated");
+        error.statusCode = 409;
+        throw error;
+      }
+    }
+
+    // Distance
+    const distanceKm = Number(agent.distanceKm);
+
+    if (!Number.isFinite(distanceKm) || distanceKm > 10) {
+      const error = new Error(
+        "Delivery partner is outside the delivery assignment range"
+      );
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // Active delivery check
+    const activeDeliveryResult = await client.query(
+      `
+          SELECT id
+          FROM orders
+          WHERE
+            assigned_delivery_agent_id = $1
+            AND status IN (
+              'DELIVERY_ASSIGNED',
+              'PICKED_UP',
+              'OUT_FOR_DELIVERY'
+            )
+          LIMIT 1
+        `,
+      [agent.id]
+    );
+
+    if (activeDeliveryResult.rows.length > 0) {
+      const error = new Error(
+        "Delivery partner is currently handling another delivery"
+      );
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // Agent ke paas koi pending offer?
+    const agentOfferResult = await client.query(
+      `
+          SELECT id
+          FROM delivery_assignments
+          WHERE
+            delivery_agent_id = $1
+            AND status = 'OFFERED'
+          LIMIT 1
+        `,
+      [agent.id]
+    );
+
+    if (agentOfferResult.rows.length > 0) {
+      const error = new Error(
+        "Delivery partner already has another pending offer"
+      );
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // Same order + same agent previous offer
+    const previousOfferResult = await client.query(
+      `
+          SELECT
+            id,
+            status
+          FROM delivery_assignments
+          WHERE
+            order_id = $1
+            AND delivery_agent_id = $2
+          ORDER BY id DESC
+          LIMIT 1
+          FOR UPDATE
+        `,
+      [order.id, agent.id]
+    );
+
+    let offer;
+
+    if (previousOfferResult.rows.length > 0) {
+      const previousOffer = previousOfferResult.rows[0];
+
+      if (
+        previousOffer.status === "REJECTED" ||
+        previousOffer.status === "EXPIRED"
+      ) {
+        const offerResult = await client.query(
+          `
+            UPDATE delivery_assignments
+            SET
+              status = 'OFFERED',
+              offered_at = CURRENT_TIMESTAMP,
+              expires_at =
+                CURRENT_TIMESTAMP + INTERVAL '2 minutes',
+              responded_at = NULL,
+              updated_at = CURRENT_TIMESTAMP
+            WHERE id = $1
+            RETURNING
+              id AS "assignmentId",
+              status,
+              offered_at AS "offeredAt",
+              expires_at AS "expiresAt"
+          `,
+          [previousOffer.id]
+        );
+
+        offer = offerResult.rows[0];
+      } else {
+        const error = new Error(
+          "This delivery offer cannot be sent again right now"
+        );
+        error.statusCode = 409;
+        throw error;
+      }
+    } else {
+      const offerResult = await client.query(
+        `
+          INSERT INTO delivery_assignments (
+            order_id,
+            delivery_agent_id,
+            status,
+            expires_at
+          )
+          VALUES (
+            $1,
+            $2,
+            'OFFERED',
+            CURRENT_TIMESTAMP + INTERVAL '2 minutes'
+          )
+          RETURNING
+            id AS "assignmentId",
+            status,
+            offered_at AS "offeredAt",
+            expires_at AS "expiresAt"
+        `,
+        [order.id, agent.id]
+      );
+
+      offer = offerResult.rows[0];
+    }
+
+    await client.query("COMMIT");
+
+    return {
+      orderNumber: order.orderNumber,
+
+      deliveryAgent: {
+        publicId: agent.publicId,
+        name: agent.name,
+        image: agent.image,
+        vehicleType: agent.vehicleType,
+        vehicleNumber: agent.vehicleNumber,
+        distanceKm: Number(distanceKm.toFixed(2)),
+      },
+
+      offer,
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+
+    if (error.code === "23505") {
+      const conflictError = new Error(
+        "This order or delivery partner already has an active offer"
+      );
+
+      conflictError.statusCode = 409;
+
+      throw conflictError;
+    }
+
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// expire masges send
+export const expireDeliveryOffersService = async () => {
+  const result = await pool.query(`
+    WITH expired_offers AS (
+      UPDATE delivery_assignments
+      SET
+        status = 'EXPIRED',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE
+        status = 'OFFERED'
+       AND COALESCE(
+  expires_at,
+  offered_at + INTERVAL '2 minutes'
+) <= CURRENT_TIMESTAMP
+      RETURNING
+        id,
+        order_id,
+        delivery_agent_id,
+        offered_at,
+        expires_at
+    )
+    SELECT
+      expired.id AS "assignmentId",
+      o.order_number AS "orderNumber",
+      o.restaurant_id AS "restaurantId",
+      d.public_id AS "deliveryAgentPublicId",
+      expired.offered_at AS "offeredAt",
+      expired.expires_at AS "expiresAt",
+      'EXPIRED'::text AS status
+    FROM expired_offers expired
+    INNER JOIN orders o
+      ON o.id = expired.order_id
+    INNER JOIN delivery_agents d
+      ON d.id = expired.delivery_agent_id
+  `);
+
+  return result.rows;
+};
+
+// Earnings are earned delivery fees, never the customer's full order value.
+export const getDeliveryEarningsService = async ({
+  deliveryAgentId,
+  page = 1,
+  limit = 15,
+  search = "",
+  range = "ALL",
+  paymentMethod = "ALL",
+}) => {
+  page = Math.max(1, Math.trunc(Number(page) || 1));
+  limit = Math.min(50, Math.max(1, Math.trunc(Number(limit) || 15)));
+  range = String(range).toUpperCase();
+  paymentMethod = String(paymentMethod).toUpperCase();
+  if (
+    !["ALL", "TODAY", "WEEK", "MONTH"].includes(range) ||
+    !["ALL", "COD", "ONLINE"].includes(paymentMethod)
+  )
+    throw Object.assign(new Error("Invalid earnings filter"), {
+      statusCode: 400,
+    });
+  const day =
+    "timezone('Asia/Kolkata',COALESCE(o.delivered_at,o.updated_at))::date";
+  const today = "timezone('Asia/Kolkata',NOW())::date";
+  const base =
+    "o.assigned_delivery_agent_id=$1 AND o.status='DELIVERED' AND EXISTS (SELECT 1 FROM delivery_assignments da WHERE da.order_id=o.id AND da.delivery_agent_id=$1 AND da.status='ACCEPTED')";
+  const summary = (
+    await pool.query(
+      `SELECT COUNT(*)::int AS "completedDeliveries",COALESCE(SUM(o.delivery_fee),0) AS "totalEarnings",COALESCE(SUM(o.delivery_fee) FILTER (WHERE ${day}=${today}),0) AS "todayEarnings",COALESCE(SUM(o.delivery_fee) FILTER (WHERE ${day}>=${today}-6),0) AS "weekEarnings" FROM orders o WHERE ${base}`,
+      [deliveryAgentId]
+    )
+  ).rows[0];
+  const weekly = (
+    await pool.query(
+      `WITH days AS (SELECT generate_series(${today}-6,${today},'1 day')::date AS day), earned AS (SELECT ${day} AS day,SUM(o.delivery_fee) AS amount FROM orders o WHERE ${base} GROUP BY 1) SELECT to_char(d.day,'YYYY-MM-DD') AS date,to_char(d.day,'Dy') AS label,COALESCE(e.amount,0) AS earning FROM days d LEFT JOIN earned e ON e.day=d.day ORDER BY d.day`,
+      [deliveryAgentId]
+    )
+  ).rows;
+  const values = [deliveryAgentId],
+    conditions = [base];
+  if (range !== "ALL")
+    conditions.push(
+      `${day}>=${today}-${range === "TODAY" ? 0 : range === "WEEK" ? 6 : 29}`
+    );
+  if (paymentMethod !== "ALL") {
+    values.push(paymentMethod);
+    conditions.push(`og.payment_method=$${values.length}`);
+  }
+  if (String(search).trim()) {
+    values.push(
+      `%${String(search)
+        .trim()
+        .slice(0, 150)
+        .replace(/[\\%_]/g, "\\$&")}%`
+    );
+    conditions.push(
+      `concat_ws(' ',o.order_number,r.restaurant_name,og.delivery_name) ILIKE $${values.length}`
+    );
+  }
+  const from =
+    "FROM orders o JOIN restaurants r ON r.id=o.restaurant_id JOIN order_groups og ON og.id=o.order_group_id";
+  const where = conditions.join(" AND ");
+  const total = (
+    await pool.query(
+      `SELECT COUNT(*)::int AS total ${from} WHERE ${where}`,
+      values
+    )
+  ).rows[0].total;
+  const entries = (
+    await pool.query(
+      `SELECT o.order_number AS "orderNumber",r.restaurant_name AS "restaurantName",og.delivery_name AS "customerName",o.delivery_fee AS earning,og.payment_method AS "paymentMethod",CASE WHEN og.payment_method='COD' THEN CASE WHEN o.cash_collected_at IS NOT NULL THEN 'PAID' ELSE 'PENDING' END ELSE og.payment_status END AS "customerPaymentStatus",COALESCE(o.delivered_at,o.updated_at) AS "completedAt" ${from} WHERE ${where} ORDER BY COALESCE(o.delivered_at,o.updated_at) DESC,o.id DESC LIMIT $${
+        values.length + 1
+      } OFFSET $${values.length + 2}`,
+      [...values, limit, (page - 1) * limit]
+    )
+  ).rows;
+  return {
+    summary: Object.fromEntries(
+      Object.entries(summary).map(([k, v]) => [k, Number(v)])
+    ),
+    weekly: weekly.map((row) => ({ ...row, earning: Number(row.earning) })),
+    entries: entries.map((row) => ({ ...row, earning: Number(row.earning) })),
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
 };

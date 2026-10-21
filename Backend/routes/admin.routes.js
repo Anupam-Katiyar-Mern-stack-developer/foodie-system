@@ -15,14 +15,19 @@ import { createCategory } from "../controllers/admin/createCategory.controller.j
 import { getCategories } from "../controllers/admin/getCategories.controller.js";
 
 import { uploadImage } from "../middleware/upload.middleware.js";
+import {
+  getSiteSettings,
+  saveSiteSettings,
+  saveSiteAsset,
+  getCoupons,
+  saveCoupon,
+} from "../controllers/admin/siteSettings.controller.js";
 
 import { updateCategory } from "../controllers/admin/updateCategory.controller.js";
 
 import { updateCategoryStatus } from "../controllers/admin/updateCategoryStatus.controller.js";
 
 import { deleteCategory } from "../controllers/admin/deleteCategory.controller.js";
-
-import { getFoods } from "../controllers/admin/getFoods.controller.js";
 
 import { getFoodBySlug } from "../controllers/admin/getFoodBySlug.controller.js";
 
@@ -31,7 +36,38 @@ import { getPendingDeliveryAgents } from "../controllers/admin/getPendingDeliver
 import { approveDeliveryAgent } from "../controllers/admin/approveDeliveryAgent.controller.js";
 
 import { rejectDeliveryAgent } from "../controllers/admin/rejectDeliveryAgent.controller.js";
+import { checkPaymentGateway } from "../controllers/order/payment.controller.js";
 const router = express.Router();
+router.get("/payment-gateway/check", adminAuthMiddleware, checkPaymentGateway);
+router.get("/site-settings", adminAuthMiddleware, getSiteSettings);
+router.put("/site-settings", adminAuthMiddleware, saveSiteSettings);
+router.post(
+  "/site-settings/asset",
+  adminAuthMiddleware,
+  uploadImage("site", "image"),
+  saveSiteAsset
+);
+router.get("/coupons", adminAuthMiddleware, getCoupons);
+router.post("/coupons", adminAuthMiddleware, saveCoupon);
+router.put("/coupons/:id", adminAuthMiddleware, saveCoupon);
+import {
+  getAdminDashboard,
+  getAdminList,
+  getAdminProfile,
+  updateAdminProfile,
+} from "../controllers/admin/adminManagement.controller.js";
+
+router.get("/profile", adminAuthMiddleware, getAdminProfile);
+router.patch("/profile", adminAuthMiddleware, updateAdminProfile);
+router.get("/dashboard", adminAuthMiddleware, getAdminDashboard);
+router.get("/restaurants", adminAuthMiddleware, getAdminList("restaurants"));
+router.get(
+  "/delivery-agents",
+  adminAuthMiddleware,
+  getAdminList("delivery-agents")
+);
+router.get("/orders", adminAuthMiddleware, getAdminList("orders"));
+router.get("/users", adminAuthMiddleware, getAdminList("users"));
 
 // login admin
 router.post("/login", loginAdmin);
@@ -43,14 +79,14 @@ router.get("/restaurants/pending", adminAuthMiddleware, getPendingRestaurants);
 router.patch(
   "/restaurants/:restaurantSlug/approve",
   adminAuthMiddleware,
-  approveRestaurant,
+  approveRestaurant
 );
 
 // reject restaurant
 router.patch(
   "/restaurants/:restaurantSlug/reject",
   adminAuthMiddleware,
-  rejectRestaurant,
+  rejectRestaurant
 );
 
 // create category
@@ -58,7 +94,7 @@ router.post(
   "/categories",
   adminAuthMiddleware,
   uploadImage("categories", "image"),
-  createCategory,
+  createCategory
 );
 
 // get cactegory
@@ -69,21 +105,21 @@ router.patch(
   "/categories/:categorySlug",
   adminAuthMiddleware,
   uploadImage("categories", "image"),
-  updateCategory,
+  updateCategory
 );
 
 // update categoryStatus
 router.patch(
   "/categories/:categorySlug/status",
   adminAuthMiddleware,
-  updateCategoryStatus,
+  updateCategoryStatus
 );
 
 // delete category
 router.delete("/categories/:categorySlug", adminAuthMiddleware, deleteCategory);
 
 // get all foods
-router.get("/foods", adminAuthMiddleware, getFoods);
+router.get("/foods", adminAuthMiddleware, getAdminList("foods"));
 
 // get single food by foodslug
 router.get("/foods/:foodSlug", adminAuthMiddleware, getFoodBySlug);
@@ -92,19 +128,19 @@ router.get("/foods/:foodSlug", adminAuthMiddleware, getFoodBySlug);
 router.get(
   "/delivery-agents/pending",
   adminAuthMiddleware,
-  getPendingDeliveryAgents,
+  getPendingDeliveryAgents
 );
 
 router.patch(
   "/delivery-agents/:publicId/approve",
   adminAuthMiddleware,
-  approveDeliveryAgent,
+  approveDeliveryAgent
 );
 
 router.patch(
   "/delivery-agents/:publicId/reject",
   adminAuthMiddleware,
-  rejectDeliveryAgent,
+  rejectDeliveryAgent
 );
 
 export default router;

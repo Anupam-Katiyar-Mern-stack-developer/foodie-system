@@ -1,8 +1,10 @@
 import {
+    useEffect,
     useState,
 } from "react";
 
 import {
+    useDispatch,
     useSelector,
 } from "react-redux";
 
@@ -22,8 +24,14 @@ import Skeleton from "../../../components/common/Skeleton/Skeleton";
 import RestaurantCard from "../../../components/public/RestaurantCard/RestaurantCard";
 
 import Button from "../../../components/common/Button/Button";
+import {
+    getRestaurants,
+} from "../../../redux/thunks/public/restaurant.thunk";
 
 const Restaurants = () => {
+
+    const dispatch =
+        useDispatch();
     // =========================
     // REDUX
     // =========================
@@ -53,6 +61,15 @@ const Restaurants = () => {
         setStatusFilter,
     ] = useState("all");
 
+
+    useEffect(() => {
+        dispatch(
+            getRestaurants({
+                page: 1,
+                limit: 20,
+            })
+        );
+    }, [dispatch]);
 
     // =========================
     // TEMPORARY UI FILTERING

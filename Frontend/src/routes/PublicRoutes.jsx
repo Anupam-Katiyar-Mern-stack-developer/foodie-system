@@ -28,6 +28,9 @@ import Search from "../pages/public/Search/Search";
 // AUTH
 // =========================
 
+import ForgotPassword from "../pages/public/auth/ForgotPassword";
+import ResetPassword from "../pages/public/auth/ResetPassword";
+
 import Login from "../pages/public/Login/Login";
 
 import Register from "../pages/public/Register/Register";
@@ -48,12 +51,23 @@ import Checkout from "../pages/public/Checkout/Checkout";
 import Orders from "../pages/public/Orders/Orders";
 
 import OrderDetails from "../pages/public/OrderDetails/OrderDetails";
+import FoodDetails from "../pages/public/FoodDetails/FoodDetails";
 
 
 const PublicRoutes = () => {
   return (
     <Routes>
 
+      {/* password reset +foget ling */}
+      <Route
+        path="/forgot-password"
+        element={<ForgotPassword />}
+      />
+
+      <Route
+        path="/reset-password/:token"
+        element={<ResetPassword />}
+      />
       {/* =========================
           PUBLIC LAYOUT
       ========================== */}
@@ -96,6 +110,12 @@ const PublicRoutes = () => {
           path="categories/:slug"
           element={
             <CategoryFoods />
+          }
+        />
+        <Route
+          path="foods/:slug"
+          element={
+            <FoodDetails />
           }
         />
 

@@ -1,142 +1,82 @@
-import {
-  Outlet,
-} from "react-router-dom";
-
+import { useEffect } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import PublicNavbar from "../components/public/PublicNavbar/PublicNavbar";
 import PublicFooter from "../components/public/PublicFooter/PublicFooter";
 import {
-  useSelector,
-  useDispatch,
-} from "react-redux";
-
-import {
   logoutUser,
+  bootstrapUserAuth,
 } from "../redux/thunks/public/auth.thunk";
+import EmailVerification from "../components/common/EmailVerification/EmailVerification";
+import getImageUrl from "../utils/getImageUrl";
 
-const PublicLayout = () => {
-
-  const dispatch =
-  useDispatch();
-  
-  const {
-    profile,
-  } = useSelector(
-    (state) =>
-      state.publicProfile
+export default function PublicLayout() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useSelector((state) => state.publicAuth);
+  const { cartGroups } = useSelector((state) => state.publicCart);
+  const { settings } = useSelector((state) => state.siteSettings);
+  const cartCount = cartGroups.reduce(
+    (sum, group) =>
+      sum +
+      group.items.reduce((count, item) => count + Number(item.quantity), 0),
+    0
   );
-
-  const {
-    user,
-    isAuthenticated,
-  } = useSelector(
-    (state) =>
-      state.publicAuth
-  );
-  /*
-    UI phase.
-
-    Later ye values Redux/API
-    se aayengi.
-  */
-
-
-  const {
-    cartGroups,
-  } = useSelector(
-    (state) =>
-      state.publicCart
-  );
-
-
-  const cartCount =
-    cartGroups.reduce(
-      (
-        total,
-        group
-      ) => {
-        const groupTotal =
-          group.items.reduce(
-            (
-              sum,
-              item
-            ) =>
-              sum +
-              Number(
-                item.quantity
-              ),
-
-            0
-          );
-
-
-        return (
-          total +
-          groupTotal
-        );
-      },
-
-      0
-    );
-
- const handleLogout =
-  async () => {
-    await dispatch(
-      logoutUser()
-    );
-
-    navigate(
-      "/",
-      {
-        replace: true,
+  useEffect(() => {
+    document.title = settings.seoTitle || settings.siteName;
+    let meta = document.querySelector('meta[name="description"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.name = "description";
+      document.head.append(meta);
+    }
+    meta.content = settings.seoDescription || settings.tagline || "";
+    if (settings.favicon) {
+      let icon = document.querySelector('link[rel="icon"]');
+      if (!icon) {
+        icon = document.createElement("link");
+        icon.rel = "icon";
+        document.head.append(icon);
       }
-    );
+      icon.href = getImageUrl(settings.favicon);
+    }
+  }, [settings]);
+  const handleLogout = async () => {
+    await dispatch(logoutUser());
+    navigate("/", { replace: true });
   };
-
-
   return (
-    <div
-      className="
-        flex
-        min-h-screen
-        flex-col
-
-        bg-[#fffaf5]
-        text-slate-900
-      "
-    >
+    <div className="flex min-h-screen flex-col bg-[#faf9f6] text-slate-900">
+      {settings.announcementEnabled && settings.announcement && (
+        <div className="bg-slate-950 px-4 py-2.5 text-center text-sm font-medium text-white">
+          {settings.announcement}
+        </div>
+      )}
+      {settings.maintenanceMode && (
+        <div className="bg-amber-100 px-4 py-3 text-center text-sm text-amber-900">
+          {settings.maintenanceMessage}
+        </div>
+      )}
       <PublicNavbar
-        user={
-          isAuthenticated
-            ? user
-            : null
-        }
-
-        cartCount={
-          cartCount
-        }
-
+        user={isAuthenticated ? user : null}
+        cartCount={cartCount}
         locationLabel="Choose delivery location"
-
-        onLogout={
-          handleLogout
-        }
+        onLogout={handleLogout}
       />
-
-
-      <main
-        className="
-          min-w-0
-          flex-1
-        "
-      >
+      <main className="min-w-0 flex-1">
+        {isAuthenticated && (
+          <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+            <EmailVerification
+              key={user?.id || user?.email}
+              kind="user"
+              accountEmail={user?.email}
+              onVerified={() => dispatch(bootstrapUserAuth())}
+            />
+          </div>
+        )}
         <Outlet />
       </main>
-
-
       <PublicFooter />
     </div>
   );
-};
-
-
-export default PublicLayout;
+}

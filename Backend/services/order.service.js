@@ -1,5 +1,11 @@
 import pool from "../config/database.js";
-import { findAndOfferDeliveryAgentService } from "./delivery.service.js";
+import {
+  getSiteSettingsService,
+  calculateCouponDiscount,
+  priceRestaurantGroups,
+} from "./setting.service.js";
+import { queueOrderEmail } from "./notification.service.js";
+// import { findAndOfferDeliveryAgentService } from "./delivery.service.js";
 import {
   generateCheckoutNumber,
   generateOrderNumber,
@@ -9,11 +15,50 @@ export const placeOrderService = async ({
   userId,
   addressId,
   paymentMethod,
+  latitude,
+  longitude,
+  couponCode,
+  requestKey,
+  expectedTotal,
 }) => {
   const client = await pool.connect();
 
   try {
     await client.query("BEGIN");
+    if (requestKey) {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
+        `checkout:${userId}:${requestKey}`,
+      ]);
+      const previous = await client.query(
+        `SELECT checkout_number AS "checkoutNumber",payment_method AS "paymentMethod",payment_status AS "paymentStatus",grand_total AS "grandTotal" FROM order_groups WHERE user_id=$1 AND request_key=$2`,
+        [userId, requestKey]
+      );
+      if (previous.rows[0]) {
+        const orders = await client.query(
+          `SELECT o.order_number AS "orderNumber",o.status,o.total_amount AS "totalAmount",r.restaurant_name AS "restaurantName" FROM orders o JOIN restaurants r ON r.id=o.restaurant_id JOIN order_groups og ON og.id=o.order_group_id WHERE og.user_id=$1 AND og.request_key=$2`,
+          [userId, requestKey]
+        );
+        await client.query("COMMIT");
+        return {
+          ...previous.rows[0],
+          orders: orders.rows,
+          totalRestaurantOrders: orders.rows.length,
+          replayed: true,
+        };
+      }
+    }
+    const settings = await getSiteSettingsService(client);
+    if (settings.maintenanceMode)
+      throw Object.assign(new Error(settings.maintenanceMessage), {
+        statusCode: 503,
+      });
+    if (
+      (paymentMethod === "COD" && !settings.codEnabled) ||
+      (paymentMethod === "ONLINE" && !settings.onlineEnabled)
+    )
+      throw Object.assign(new Error("Selected payment method is disabled"), {
+        statusCode: 400,
+      });
 
     /*
      * 1. Delivery address + user
@@ -46,7 +91,7 @@ export const placeOrderService = async ({
 
           LIMIT 1
         `,
-      [addressId, userId],
+      [addressId, userId]
     );
 
     if (addressResult.rows.length === 0) {
@@ -57,10 +102,32 @@ export const placeOrderService = async ({
     }
 
     const address = addressResult.rows[0];
+    const hasBrowserLocation = latitude != null || longitude != null;
+    const lat = Number(hasBrowserLocation ? latitude : address.latitude);
+    const lng = Number(hasBrowserLocation ? longitude : address.longitude);
+    if (
+      (hasBrowserLocation &&
+        (latitude == null ||
+          longitude == null ||
+          String(latitude).trim() === "" ||
+          String(longitude).trim() === "")) ||
+      (!hasBrowserLocation &&
+        (address.latitude == null || address.longitude == null)) ||
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      Math.abs(lat) > 90 ||
+      Math.abs(lng) > 180
+    ) {
+      throw Object.assign(new Error("A valid delivery location is required"), {
+        statusCode: 400,
+      });
+    }
+    address.latitude = lat;
+    address.longitude = lng;
 
     if (!address.phone) {
       const error = new Error(
-        "Please add your phone number before placing an order",
+        "Please add your phone number before placing an order"
       );
 
       error.statusCode = 400;
@@ -83,7 +150,7 @@ export const placeOrderService = async ({
 
           FOR UPDATE
         `,
-      [userId],
+      [userId]
     );
 
     if (cartResult.rows.length === 0) {
@@ -156,7 +223,7 @@ export const placeOrderService = async ({
             f.restaurant_id ASC,
             ci.created_at ASC
         `,
-      [cart.id],
+      [cart.id]
     );
 
     if (cartItemsResult.rows.length === 0) {
@@ -182,7 +249,7 @@ export const placeOrderService = async ({
 
       if (!item.categoryIsActive) {
         const error = new Error(
-          `${item.foodName} category is currently unavailable`,
+          `${item.foodName} category is currently unavailable`
         );
 
         error.statusCode = 409;
@@ -191,7 +258,7 @@ export const placeOrderService = async ({
 
       if (item.restaurantApprovalStatus !== "APPROVED") {
         const error = new Error(
-          `${item.restaurantName} is currently unavailable`,
+          `${item.restaurantName} is currently unavailable`
         );
 
         error.statusCode = 409;
@@ -200,7 +267,7 @@ export const placeOrderService = async ({
 
       if (item.restaurantIsBlocked) {
         const error = new Error(
-          `${item.restaurantName} is currently unavailable`,
+          `${item.restaurantName} is currently unavailable`
         );
 
         error.statusCode = 409;
@@ -268,6 +335,41 @@ export const placeOrderService = async ({
     }
 
     grandTotal = Number(grandTotal.toFixed(2));
+    if (grandTotal < Number(settings.minimumOrder))
+      throw Object.assign(
+        new Error(`Minimum order is ₹${settings.minimumOrder}`),
+        { statusCode: 400 }
+      );
+    if (couponCode && !settings.couponsEnabled)
+      throw Object.assign(new Error("Coupons are disabled"), {
+        statusCode: 400,
+      });
+    const { discount, coupon } = await calculateCouponDiscount(
+      client,
+      couponCode,
+      userId,
+      grandTotal,
+      true
+    );
+    const pricing = priceRestaurantGroups(
+      [...restaurantGroups.values()],
+      settings,
+      discount
+    );
+    grandTotal = pricing.grandTotal;
+    if (
+      expectedTotal != null &&
+      (!Number.isFinite(Number(expectedTotal)) ||
+        Math.round(Number(expectedTotal) * 100) !==
+          Math.round(grandTotal * 100))
+    ) {
+      throw Object.assign(
+        new Error(
+          "Checkout total changed. Review the updated total and try again."
+        ),
+        { statusCode: 409 }
+      );
+    }
 
     /*
      * Abhi delivery fee + tax = 0.
@@ -338,10 +440,19 @@ export const placeOrderService = async ({
         paymentMethod === "COD" ? "PENDING" : "PENDING",
 
         grandTotal,
-      ],
+      ]
     );
 
     const orderGroupId = orderGroupResult.rows[0].id;
+    await client.query(
+      "UPDATE order_groups SET discount_amount=$1,coupon_code=$2,request_key=$3 WHERE id=$4",
+      [discount, coupon?.code || null, requestKey || null, orderGroupId]
+    );
+    if (coupon)
+      await client.query(
+        "INSERT INTO coupon_redemptions(coupon_id,user_id,order_group_id,discount_amount) VALUES($1,$2,$3,$4)",
+        [coupon.id, userId, orderGroupId, discount]
+      );
 
     /*
      * 7. Har restaurant ka
@@ -350,14 +461,19 @@ export const placeOrderService = async ({
 
     const createdOrders = [];
 
-    for (const group of restaurantGroups.values()) {
+    for (const group of pricing.groups) {
       const orderNumber = generateOrderNumber();
 
-      const deliveryFee = 0;
-      const taxAmount = 0;
+      const deliveryFee = group.deliveryFee;
+      const taxAmount = group.taxAmount;
 
       const totalAmount = Number(
-        (group.subtotal + deliveryFee + taxAmount).toFixed(2),
+        (
+          group.subtotal -
+          group.discountAmount +
+          deliveryFee +
+          taxAmount
+        ).toFixed(2)
       );
 
       const orderResult = await client.query(
@@ -392,10 +508,18 @@ export const placeOrderService = async ({
           deliveryFee,
           taxAmount,
           totalAmount,
-        ],
+        ]
       );
 
       const orderId = orderResult.rows[0].id;
+      await client.query(
+        "UPDATE orders SET discount_amount=$1,status=$2 WHERE id=$3",
+        [
+          group.discountAmount,
+          paymentMethod === "ONLINE" ? "PAYMENT_PENDING" : "PLACED",
+          orderId,
+        ]
+      );
 
       /*
        * 8. Us restaurant ke
@@ -435,20 +559,25 @@ export const placeOrderService = async ({
             item.unitPrice,
             item.quantity,
             item.itemTotal,
-          ],
+          ]
         );
       }
 
       createdOrders.push({
+        // Internal use only.
+        // Socket.IO me correct restaurant room identify karne ke liye.
+        // Controller API response se isko remove karega.
+        restaurantId: group.restaurantId,
+
         orderNumber,
 
         restaurant: {
           name: group.restaurantName,
-
           slug: group.restaurantSlug,
         },
 
-        status: "PLACED",
+        status: paymentMethod === "ONLINE" ? "PAYMENT_PENDING" : "PLACED",
+        discountAmount: group.discountAmount,
 
         subtotal: group.subtotal,
 
@@ -460,15 +589,10 @@ export const placeOrderService = async ({
 
         items: group.items.map((item) => ({
           name: item.foodName,
-
           slug: item.foodSlug,
-
           image: item.foodImage,
-
           unitPrice: item.unitPrice,
-
           quantity: item.quantity,
-
           itemTotal: item.itemTotal,
         })),
       });
@@ -487,7 +611,7 @@ export const placeOrderService = async ({
           id = $1
           AND user_id = $2
       `,
-      [cart.id, userId],
+      [cart.id, userId]
     );
 
     /*
@@ -496,6 +620,8 @@ export const placeOrderService = async ({
       se automatically delete.
     */
 
+    if (paymentMethod === "COD" && settings.orderEmailsEnabled)
+      await queueOrderEmail(client, orderGroupId);
     await client.query("COMMIT");
 
     return {
@@ -506,6 +632,8 @@ export const placeOrderService = async ({
       paymentStatus: "PENDING",
 
       grandTotal,
+      discountAmount: discount,
+      couponCode: coupon?.code || null,
 
       totalRestaurantOrders: createdOrders.length,
 
@@ -521,13 +649,29 @@ export const placeOrderService = async ({
 };
 
 // get user order service
+export const getUserOrdersService = async ({
+  userId,
+  page = 1,
+  limit = 10,
+}) => {
+  // =========================
+  // PAGINATION
+  // =========================
 
-export const getUserOrdersService = async ({ userId, page, limit }) => {
-  const offset = (page - 1) * limit;
+  const currentPage = Math.max(Number(page) || 1, 1);
+
+  const currentLimit = Math.min(Math.max(Number(limit) || 10, 1), 50);
+
+  const offset = (currentPage - 1) * currentLimit;
+
+  // =========================
+  // TOTAL ORDERS
+  // =========================
 
   const countResult = await pool.query(
     `
-      SELECT COUNT(*)::int AS total
+      SELECT
+        COUNT(*)::int AS total
 
       FROM orders o
 
@@ -535,67 +679,262 @@ export const getUserOrdersService = async ({ userId, page, limit }) => {
         ON og.id = o.order_group_id
 
       WHERE og.user_id = $1
-    `,
-    [userId],
+      `,
+    [userId]
   );
+
+  // =========================
+  // GET COMPLETE ORDERS
+  // =========================
 
   const result = await pool.query(
     `
       SELECT
-        o.order_number AS "orderNumber",
+        -- =====================
+        -- ORDER
+        -- =====================
+
+        o.order_number
+          AS "orderNumber",
+
         o.status,
+        (
+  SELECT json_build_object(
+    'publicId', d.public_id,
+    'name', d.name,
+    'phone', d.phone,
+    'latitude', d.latitude,
+    'longitude', d.longitude,
+    'locationUpdatedAt', d.location_updated_at
+  )
+  FROM delivery_agents d
+  WHERE d.id = o.assigned_delivery_agent_id
+    AND o.status IN (
+      'DELIVERY_ASSIGNED',
+      'PICKED_UP',
+      'OUT_FOR_DELIVERY'
+    )
+  LIMIT 1
+) AS "deliveryAgent",
 
         o.subtotal,
-        o.delivery_fee AS "deliveryFee",
-        o.tax_amount AS "taxAmount",
-        o.total_amount AS "totalAmount",
+        o.discount_amount AS "discountAmount",
 
-        o.created_at AS "createdAt",
-        o.updated_at AS "updatedAt",
+        o.delivery_fee
+          AS "deliveryFee",
 
-        og.checkout_number AS "checkoutNumber",
-        og.payment_method AS "paymentMethod",
-        og.payment_status AS "paymentStatus",
+        o.tax_amount
+          AS "taxAmount",
 
-        r.restaurant_name AS "restaurantName",
-        r.slug AS "restaurantSlug",
-        r.logo AS "restaurantLogo"
+        o.total_amount
+          AS "totalAmount",
+
+
+        -- =====================
+        -- REJECTION / CANCEL
+        -- =====================
+
+        o.rejection_reason
+          AS "rejectionReason",
+
+        o.cancelled_reason
+          AS "cancelledReason",
+
+
+        -- =====================
+        -- STATUS TIMESTAMPS
+        -- =====================
+
+        o.confirmed_at
+          AS "confirmedAt",
+
+        o.preparing_at
+          AS "preparingAt",
+
+        o.ready_at
+          AS "readyAt",
+
+        o.picked_up_at
+          AS "pickedUpAt",
+
+        o.delivered_at
+          AS "deliveredAt",
+
+        o.cancelled_at
+          AS "cancelledAt",
+
+        o.created_at
+          AS "createdAt",
+
+        o.updated_at
+          AS "updatedAt",
+
+
+        -- =====================
+        -- CHECKOUT
+        -- =====================
+
+        og.checkout_number
+          AS "checkoutNumber",
+
+        og.payment_method
+          AS "paymentMethod",
+
+        og.payment_status
+          AS "paymentStatus",
+
+
+        -- =====================
+        -- CUSTOMER
+        -- =====================
+
+        og.delivery_name
+          AS "deliveryName",
+
+        og.delivery_phone
+          AS "deliveryPhone",
+
+
+        -- =====================
+        -- DELIVERY ADDRESS
+        -- =====================
+
+        og.address_line
+          AS "addressLine",
+
+        og.landmark,
+
+        og.city,
+
+        og.state,
+
+        og.pincode,
+
+        og.latitude,
+
+        og.longitude,
+
+
+        -- =====================
+        -- RESTAURANT
+        -- =====================
+
+        r.restaurant_name
+          AS "restaurantName",
+
+        r.slug
+          AS "restaurantSlug",
+
+        r.logo
+          AS "restaurantLogo",
+
+
+        -- =====================
+        -- TOTAL FOOD ITEMS
+        -- =====================
+
+        (
+          SELECT
+            COALESCE(
+              SUM(oi.quantity),
+              0
+            )::int
+
+          FROM order_items oi
+
+          WHERE
+            oi.order_id = o.id
+
+        ) AS "totalItems",
+
+
+        -- =====================
+        -- ORDER ITEMS
+        -- =====================
+
+        COALESCE(
+          (
+            SELECT
+              json_agg(
+                json_build_object(
+                  'name',
+                    oi.food_name,
+
+                  'slug',
+                    oi.food_slug,
+
+                  'image',
+                    oi.food_image,
+
+                  'unitPrice',
+                    oi.unit_price,
+
+                  'quantity',
+                    oi.quantity,
+
+                  'itemTotal',
+                    oi.item_total
+                )
+
+                ORDER BY
+                  oi.id ASC
+              )
+
+            FROM order_items oi
+
+            WHERE
+              oi.order_id = o.id
+          ),
+
+          '[]'::json
+        ) AS items
+
 
       FROM orders o
 
+
       INNER JOIN order_groups og
-        ON og.id = o.order_group_id
+        ON og.id =
+          o.order_group_id
+
 
       INNER JOIN restaurants r
-        ON r.id = o.restaurant_id
+        ON r.id =
+          o.restaurant_id
 
-      WHERE og.user_id = $1
 
-      ORDER BY o.created_at DESC
+      WHERE
+        og.user_id = $1
+
+
+      ORDER BY
+        o.created_at DESC
+
 
       LIMIT $2
       OFFSET $3
-    `,
-    [userId, limit, offset],
+      `,
+    [userId, currentLimit, offset]
   );
 
-  const total = countResult.rows[0].total;
+  const total = countResult.rows[0]?.total || 0;
 
   return {
     orders: result.rows,
 
     pagination: {
-      page,
-      limit,
+      page: currentPage,
+
+      limit: currentLimit,
+
       total,
 
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / currentLimit),
     },
   };
 };
 
 // get single order service
-
 export const getUserOrderByNumberService = async ({ userId, orderNumber }) => {
   const orderResult = await pool.query(
     `
@@ -603,8 +942,26 @@ export const getUserOrderByNumberService = async ({ userId, orderNumber }) => {
           o.id,
           o.order_number AS "orderNumber",
           o.status,
-
+        (
+  SELECT json_build_object(
+    'publicId', d.public_id,
+    'name', d.name,
+    'phone', d.phone,
+    'latitude', d.latitude,
+    'longitude', d.longitude,
+    'locationUpdatedAt', d.location_updated_at
+  )
+  FROM delivery_agents d
+  WHERE d.id = o.assigned_delivery_agent_id
+    AND o.status IN (
+      'DELIVERY_ASSIGNED',
+      'PICKED_UP',
+      'OUT_FOR_DELIVERY'
+    )
+  LIMIT 1
+) AS "deliveryAgent",
           o.subtotal,
+          o.discount_amount AS "discountAmount",
           o.delivery_fee AS "deliveryFee",
           o.tax_amount AS "taxAmount",
           o.total_amount AS "totalAmount",
@@ -657,7 +1014,7 @@ export const getUserOrderByNumberService = async ({ userId, orderNumber }) => {
 
         LIMIT 1
       `,
-    [orderNumber, userId],
+    [orderNumber, userId]
   );
 
   if (orderResult.rows.length === 0) {
@@ -686,7 +1043,7 @@ export const getUserOrderByNumberService = async ({ userId, orderNumber }) => {
 
         ORDER BY id ASC
       `,
-    [order.id],
+    [order.id]
   );
 
   /*
@@ -708,7 +1065,14 @@ export const getRestaurantOrdersService = async ({
   page,
   limit,
   status,
+  search = "",
+  paymentMethod,
+  paymentStatus,
 }) => {
+  status = String(status || "ALL")
+    .trim()
+    .toUpperCase();
+  if (status === "ALL") status = null;
   const offset = (page - 1) * limit;
 
   const allowedStatuses = [
@@ -733,14 +1097,43 @@ export const getRestaurantOrdersService = async ({
 
   const values = [restaurantId];
 
-  let statusCondition = "";
+  let statusCondition = "AND o.status <> 'PAYMENT_PENDING'";
 
   if (status) {
     values.push(status);
 
-    statusCondition = `
+    statusCondition += `
       AND o.status = $${values.length}
     `;
+  }
+
+  if (String(search).trim()) {
+    values.push(
+      `%${String(search)
+        .trim()
+        .slice(0, 150)
+        .replace(/[\\%_]/g, "\\$&")}%`
+    );
+    statusCondition += ` AND concat_ws(' ',o.order_number,og.checkout_number,og.delivery_name,og.delivery_phone) ILIKE $${values.length}`;
+  }
+
+  for (const [key, raw, column, allowed] of [
+    ["payment method", paymentMethod, "og.payment_method", ["COD", "ONLINE"]],
+    [
+      "payment status",
+      paymentStatus,
+      "og.payment_status",
+      ["PENDING", "PAID", "FAILED", "REFUNDED"],
+    ],
+  ]) {
+    const value = String(raw || "ALL")
+      .trim()
+      .toUpperCase();
+    if (value === "ALL") continue;
+    if (!allowed.includes(value))
+      throw Object.assign(new Error(`Invalid ${key}`), { statusCode: 400 });
+    values.push(value);
+    statusCondition += ` AND ${column}=$${values.length}`;
   }
 
   const countResult = await pool.query(
@@ -748,12 +1141,12 @@ export const getRestaurantOrdersService = async ({
       SELECT COUNT(*)::int AS total
 
       FROM orders o
-
+      INNER JOIN order_groups og ON og.id=o.order_group_id
       WHERE
         o.restaurant_id = $1
         ${statusCondition}
     `,
-    values,
+    values
   );
 
   const queryValues = [...values];
@@ -775,6 +1168,7 @@ export const getRestaurantOrdersService = async ({
         o.status,
 
         o.subtotal,
+        o.discount_amount AS "discountAmount",
 
         o.delivery_fee
           AS "deliveryFee",
@@ -816,12 +1210,12 @@ export const getRestaurantOrdersService = async ({
         ${statusCondition}
 
       ORDER BY
-        o.created_at DESC
+        o.created_at DESC, o.id DESC
 
       LIMIT $${limitPosition}
       OFFSET $${offsetPosition}
     `,
-    queryValues,
+    queryValues
   );
 
   const total = countResult.rows[0].total;
@@ -856,6 +1250,7 @@ export const getRestaurantOrderByNumberService = async ({
           o.status,
 
           o.subtotal,
+          o.discount_amount AS "discountAmount",
 
           o.delivery_fee
             AS "deliveryFee",
@@ -927,7 +1322,7 @@ export const getRestaurantOrderByNumberService = async ({
 
         LIMIT 1
       `,
-    [orderNumber, restaurantId],
+    [orderNumber, restaurantId]
   );
 
   if (orderResult.rows.length === 0) {
@@ -966,15 +1361,52 @@ export const getRestaurantOrderByNumberService = async ({
 
         ORDER BY id ASC
       `,
-    [order.id],
+    [order.id]
+  );
+
+  const deliveryOfferResult = await pool.query(
+    `
+    SELECT
+      da.id AS "assignmentId",
+      da.offered_at AS "offeredAt",
+      da.expires_at AS "expiresAt",
+
+     CASE
+  WHEN da.status = 'OFFERED'
+    AND COALESCE(
+      da.expires_at,
+      da.offered_at + INTERVAL '2 minutes'
+    ) <= CURRENT_TIMESTAMP
+  THEN 'EXPIRED'
+  ELSE da.status
+END AS status,
+
+      json_build_object(
+        'publicId', d.public_id,
+        'name', d.name,
+        'image', d.image,
+        'vehicleType', d.vehicle_type,
+        'vehicleNumber', d.vehicle_number
+      ) AS "deliveryAgent"
+
+    FROM delivery_assignments da
+    INNER JOIN delivery_agents d
+      ON d.id = da.delivery_agent_id
+
+    WHERE da.order_id = $1
+
+    ORDER BY da.offered_at DESC, da.id DESC
+    LIMIT 1
+  `,
+    [order.id]
   );
 
   delete order.id;
 
   return {
     ...order,
-
     items: itemsResult.rows,
+    deliveryOffer: deliveryOfferResult.rows[0] || null,
   };
 };
 
@@ -1008,7 +1440,7 @@ export const acceptRestaurantOrderService = async ({
         confirmed_at
           AS "confirmedAt"
     `,
-    [orderNumber, restaurantId],
+    [orderNumber, restaurantId]
   );
 
   if (result.rows.length === 0) {
@@ -1024,7 +1456,7 @@ export const acceptRestaurantOrderService = async ({
 
           LIMIT 1
         `,
-      [orderNumber, restaurantId],
+      [orderNumber, restaurantId]
     );
 
     if (existing.rows.length === 0) {
@@ -1036,7 +1468,7 @@ export const acceptRestaurantOrderService = async ({
     }
 
     const error = new Error(
-      `Order cannot be accepted from ${existing.rows[0].status} status`,
+      `Order cannot be accepted from ${existing.rows[0].status} status`
     );
 
     error.statusCode = 409;
@@ -1082,7 +1514,7 @@ export const rejectRestaurantOrderService = async ({
           updated_at
             AS "updatedAt"
       `,
-    [reason, orderNumber, restaurantId],
+    [reason, orderNumber, restaurantId]
   );
 
   if (result.rows.length === 0) {
@@ -1098,7 +1530,7 @@ export const rejectRestaurantOrderService = async ({
 
           LIMIT 1
         `,
-      [orderNumber, restaurantId],
+      [orderNumber, restaurantId]
     );
 
     if (existing.rows.length === 0) {
@@ -1110,7 +1542,7 @@ export const rejectRestaurantOrderService = async ({
     }
 
     const error = new Error(
-      `Order cannot be rejected from ${existing.rows[0].status} status`,
+      `Order cannot be rejected from ${existing.rows[0].status} status`
     );
 
     error.statusCode = 409;
@@ -1153,7 +1585,7 @@ export const markOrderPreparingService = async ({
           preparing_at
             AS "preparingAt"
       `,
-    [orderNumber, restaurantId],
+    [orderNumber, restaurantId]
   );
 
   if (result.rows.length === 0) {
@@ -1198,7 +1630,7 @@ export const markOrderReadyService = async ({ restaurantId, orderNumber }) => {
           ready_at
             AS "readyAt"
       `,
-    [orderNumber, restaurantId],
+    [orderNumber, restaurantId]
   );
 
   if (result.rows.length === 0) {

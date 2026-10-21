@@ -4,11 +4,18 @@
   "description": "",
   "main": "app.js",
   "scripts": {
+    "check:integrations": "node scripts/checkIntegrations.js",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:payments": "node --test tests/payment.test.js",
     "start": "node server.js",
     "dev": "nodemon server.js",
     "db:migrate": "node database/migrate.js",
-    "create:admin": "node scripts/createAdmin.js"
+    "db:setup-site": "node database/migrate.js 017_site_settings_payments.sql",
+    "create:admin": "node scripts/createAdmin.js",
+    "test:partners": "node --test tests/partners.test.js",
+    "db:seed": "node database/seed.js",
+    "db:setup-email": "node database/migrate.js 018_email_verification.sql",
+    "test:email": "node --test tests/emailVerification.test.js"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +36,7 @@
     "multer": "^2.4.0",
     "nodemailer": "^10.0.10",
     "pg": "^8.23.0",
+    "redis": "^6.3.0",
     "socket.io": "^4.8.3",
     "zod": "^4.6.5"
   },

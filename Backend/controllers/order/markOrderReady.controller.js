@@ -1,5 +1,5 @@
 import { markOrderReadyService } from "../../services/order.service.js";
-
+import { emitOrderStatusUpdate } from "../../socket/order.socket.js";
 export const markOrderReady = async (req, res, next) => {
   try {
     const restaurantId = req.restaurant.restaurantId;
@@ -10,6 +10,15 @@ export const markOrderReady = async (req, res, next) => {
       restaurantId,
       orderNumber,
     });
+
+    try {
+      emitOrderStatusUpdate({
+        orderNumber: order.orderNumber,
+        status: order.status,
+      });
+    } catch (error) {
+      console.error("Order status socket error:", error.message);
+    }
 
     return res.status(200).json({
       success: true,

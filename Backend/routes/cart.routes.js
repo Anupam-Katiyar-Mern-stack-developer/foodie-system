@@ -14,15 +14,15 @@ const router = express.Router();
 router.post("/items", authMiddleware, addToCart);
 
 //get cart items
-router.get("/cart", authMiddleware, getCart);
+router.get("/", authMiddleware, getCart);
 
 // update cart item
-router.patch("/cart/items/:foodSlug", authMiddleware, updateCartItem);
+router.patch("/items/:foodSlug", authMiddleware, updateCartItem);
 
 // remove cart item
-router.delete("/cart/items/:foodSlug", authMiddleware, removeCartItem);
+router.delete("/items/:foodSlug", authMiddleware, removeCartItem);
 
 // clear cart route
-router.delete("/cart", authMiddleware, clearCart);
+router.delete("/", authMiddleware, clearCart);
 
 export default router;

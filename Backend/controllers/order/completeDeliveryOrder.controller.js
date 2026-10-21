@@ -1,4 +1,5 @@
 import { completeDeliveryOrderService } from "../../services/delivery.service.js";
+import { emitOrderStatusUpdate } from "../../socket/order.socket.js";
 
 export const completeDeliveryOrder = async (req, res, next) => {
   try {
@@ -6,7 +7,7 @@ export const completeDeliveryOrder = async (req, res, next) => {
 
     const { orderNumber } = req.params;
 
-    const { otp } = req.body;
+    const { otp, cashCollected } = req.body;
 
     if (!otp || !/^\d{6}$/.test(String(otp))) {
       return res.status(400).json({
@@ -19,7 +20,16 @@ export const completeDeliveryOrder = async (req, res, next) => {
       deliveryAgentId,
       orderNumber,
       otp: String(otp),
+      cashCollected: cashCollected === true,
     });
+    try {
+      emitOrderStatusUpdate({
+        orderNumber: order.orderNumber,
+        status: order.status,
+      });
+    } catch (socketError) {
+      console.error("Delivery status socket error:", socketError.message);
+    }
 
     return res.status(200).json({
       success: true,

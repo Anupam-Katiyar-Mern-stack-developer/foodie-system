@@ -1,4 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
+import adminReducer from "./slices/admin/admin.slice";
+import settingReducer from "./slices/public/setting.slice";
 
 import publicCategoryReducer from "./slices/public/category.slice";
 import publicRestaurantReducer from "./slices/public/restaurant.slice";
@@ -8,9 +10,24 @@ import publicAddressReducer from "./slices/public/address.slice";
 import publicProfileReducer from "./slices/public/profile.slice";
 import publicOrderReducer from "./slices/public/order.slice";
 import publicAuthReducer from "./slices/public/auth.slice";
+import restaurantAuthReducer from "./slices/restaurant/restaurantAuth.slice";
+import restaurantProfileReducer from "./slices/restaurant/restaurantProfile.slice";
+import restaurantFoodReducer from "./slices/restaurant/restaurantFood.slice";
+import restaurantOrderReducer from "./slices/restaurant/restaurantOrder.slice";
+import restaurantDashboardReducer from "./slices/restaurant/restaurantDashboard.slice";
+import restaurantLocationReducer from "./slices/restaurant/restaurantLocation.slice";
 
+import deliveryAuthReducer from "./slices/deliveryAgent/deliveryAuth.slice";
+import deliveryDashboardReducer from "./slices/deliveryAgent/deliveryDashboard.slice";
+import deliveryOfferReducer from "./slices/deliveryAgent/deliveryOffer.slice";
+import deliveryProfileReducer from "./slices/deliveryAgent/deliveryProfile.slice";
+import deliveryHistoryReducer from "./slices/deliveryAgent/deliveryHistory.slice";
+import deliveryLocationReducer from "./slices/deliveryAgent/deliveryLocation.slice";
+import deliveryActiveOrderReducer from "./slices/deliveryAgent/deliveryActiveOrders.slice";
 const store = configureStore({
   reducer: {
+    admin: adminReducer,
+    siteSettings: settingReducer,
     publicCategory: publicCategoryReducer,
 
     publicRestaurant: publicRestaurantReducer,
@@ -24,8 +41,24 @@ const store = configureStore({
     publicProfile: publicProfileReducer,
 
     publicOrder: publicOrderReducer,
-    
+
     publicAuth: publicAuthReducer,
+
+    restaurantAuth: restaurantAuthReducer,
+
+    restaurantProfile: restaurantProfileReducer,
+    restaurantFood: restaurantFoodReducer,
+    restaurantOrder: restaurantOrderReducer,
+    restaurantDashboard: restaurantDashboardReducer,
+    restaurantLocation: restaurantLocationReducer,
+
+    deliveryAuth: deliveryAuthReducer,
+    deliveryDashboard: deliveryDashboardReducer,
+    deliveryOffer: deliveryOfferReducer,
+    deliveryProfile: deliveryProfileReducer,
+    deliveryHistory: deliveryHistoryReducer,
+    deliveryLocation: deliveryLocationReducer,
+    deliveryActiveOrder: deliveryActiveOrderReducer,
   },
 });
 

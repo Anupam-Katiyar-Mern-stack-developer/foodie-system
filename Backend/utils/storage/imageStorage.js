@@ -1,15 +1,18 @@
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import { fileURLToPath } from "url";
 
-const IMAGE_ROOT = path.resolve(process.cwd(), "images");
+export const IMAGE_ROOT = path.resolve(
+  fileURLToPath(new URL("../../images/", import.meta.url))
+);
 
 const extensionByMimeType = {
   "image/jpeg": ".jpg",
   "image/png": ".png",
   "image/webp": ".webp",
 };
-// save image function 
+// save image function
 export const saveImage = async ({ file, folder }) => {
   if (!file) {
     throw new Error("Image file is required");
@@ -39,7 +42,6 @@ export const saveImage = async ({ file, folder }) => {
   return publicPath;
 };
 
-
 // delete image function
 export const deleteImage = async (imagePath) => {
   if (!imagePath) {
@@ -51,7 +53,7 @@ export const deleteImage = async (imagePath) => {
       ? imagePath.substring(1)
       : imagePath;
 
-    const absolutePath = path.resolve(process.cwd(), cleanPath);
+    const absolutePath = path.resolve(IMAGE_ROOT, "..", cleanPath);
 
     // Security:
     // images folder ke bahar kuch delete na ho

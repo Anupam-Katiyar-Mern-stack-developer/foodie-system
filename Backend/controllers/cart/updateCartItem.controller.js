@@ -2,7 +2,7 @@ import { updateCartItemService } from "../../services/cart.service.js";
 
 export const updateCartItem = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.auth.userId;
 
     const { foodSlug } = req.params;
 

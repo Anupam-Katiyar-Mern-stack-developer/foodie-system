@@ -78,6 +78,41 @@ const Addresses = () => {
     // LOCAL UI STATE
     // =========================
 
+
+
+    const captureAddressLocation = () => {
+        if (!navigator.geolocation) {
+            setGpsError("This device does not support location.");
+            return;
+        }
+
+        setGpsLoading(true);
+        setGpsError("");
+
+        navigator.geolocation.getCurrentPosition(
+            ({ coords }) => {
+                setAddressPoint(
+                    address.latitude != null && address.longitude != null
+                        ? {
+                            latitude: Number(address.latitude),
+                            longitude: Number(address.longitude),
+                        }
+                        : null,
+                );
+                setGpsError("");
+            },
+            (error) => {
+                setGpsError(error.message || "Enable location permission.");
+                setGpsLoading(false);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0,
+            },
+        );
+    };
+
     const [
         formOpen,
         setFormOpen,
@@ -105,8 +140,6 @@ const Addresses = () => {
 
         setFormOpen(true);
     };
-
-
     // =========================
     // EDIT
     // =========================
@@ -128,7 +161,6 @@ const Addresses = () => {
 
     const closeForm = () => {
         setFormOpen(false);
-
         setEditingAddress(null);
     };
 
@@ -137,39 +169,25 @@ const Addresses = () => {
     // SUBMIT
     // =========================
 
-    const handleSubmit =
-        async (values) => {
-            console.log(
-                "ADDRESS PAYLOAD:",
-                values
-            );
-
-            try {
-                if (editingAddress) {
-                    await dispatch(
-                        updateAddress({
-                            addressId:
-                                editingAddress.id,
-
-                            payload: values,
-                        })
-                    ).unwrap();
-                } else {
-                    await dispatch(
-                        createAddress(
-                            values
-                        )
-                    ).unwrap();
-                }
-
-                closeForm();
-            } catch (error) {
-                console.error(
-                    "ADDRESS SUBMIT ERROR:",
-                    error
-                );
+    const handleSubmit = async (values) => {
+        try {
+            if (editingAddress) {
+                await dispatch(
+                    updateAddress({
+                        addressId: editingAddress.id,
+                        payload: values,
+                    }),
+                ).unwrap();
+            } else {
+                await dispatch(createAddress(values)).unwrap();
             }
-        };
+
+            await dispatch(getAddresses()).unwrap();
+            closeForm();
+        } catch (error) {
+            console.error("ADDRESS SUBMIT ERROR:", error);
+        }
+    };
 
 
     // =========================
@@ -585,6 +603,7 @@ const Addresses = () => {
                         : "Enter the address where you want your order delivered."
                 }
             >
+
                 <CommonForm
                     key={
                         editingAddress?.id ||

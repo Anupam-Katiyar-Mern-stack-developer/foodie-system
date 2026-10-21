@@ -1,4 +1,5 @@
 import { createAddressService } from "../../services/address.service.js";
+import { geocodeAddress } from "../../utils/geocodeAddress.js";
 
 export const createAddress = async (req, res, next) => {
   try {
@@ -16,32 +17,27 @@ export const createAddress = async (req, res, next) => {
       isDefault,
     } = req.body;
 
-    if (
-      !label ||
-      !addressLine ||
-      !city ||
-      !state ||
-      !pincode
-    ) {
+    if (!label || !addressLine || !city || !state || !pincode) {
       return res.status(400).json({
         success: false,
         message: "Required address fields are missing",
       });
     }
 
-    const address =
-      await createAddressService({
-        userId,
-        label,
-        addressLine,
-        landmark,
-        city,
-        state,
-        pincode,
-        latitude,
-        longitude,
-        isDefault,
-      });
+   
+
+    const address = await createAddressService({
+      userId,
+      label,
+      addressLine,
+      landmark,
+      city,
+      state,
+      pincode,
+      latitude,
+      longitude,
+      isDefault,
+    });
 
     return res.status(201).json({
       success: true,

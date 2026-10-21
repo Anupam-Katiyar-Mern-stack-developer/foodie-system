@@ -1,82 +1,88 @@
-import {
-  Route,
-  Routes,
-} from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
+import DeliveryLayout from "../layouts/DeliveryLayout";
 
-const Screen = ({
-  title,
-}) => {
-  return (
-    <div className="p-8">
-      <h1
-        className="
-          text-2xl
-          font-bold
-          text-gray-900
-        "
-      >
-        {title}
-      </h1>
-    </div>
-  );
-};
+import DeliveryDashboard from "../pages/deliveryAgent/Dashboard/DeliveryDashboard";
+import DeliveryOffers from "../pages/deliveryAgent/Offers/DeliveryOffers";
+import DeliveryActive from "../pages/deliveryAgent/Active/DeliveryActive";
+import DeliveryHistory from "../pages/deliveryAgent/History/DeliveryHistory";
+import DeliveryProfile from "../pages/deliveryAgent/Profile/DeliveryProfile";
+import DeliveryLogin from "../pages/deliveryAgent/Auth/DeliveryLogin";
+import DeliveryRegister from "../pages/deliveryAgent/Auth/DeliveryRegister";
+import DeliveryEarnings from "../pages/deliveryAgent/Earnings/DeliveryEarnings";
 
+import DeliveryProtectedRoute from "../protectedRoutes/DeliveryProtectedRoute";
 
 const DeliveryAgentRoutes = () => {
   return (
     <Routes>
-      <Route
-        path="login"
-        element={
-          <Screen title="Delivery Agent Login" />
-        }
-      />
+      {/* =================================
+          PUBLIC AUTH ROUTES
+      ================================= */}
+
+      <Route path="login" element={<DeliveryLogin />} />
+      <Route path="register" element={<DeliveryRegister />} />
+
+      {/* =================================
+          PROTECTED DELIVERY ROUTES
+      ================================= */}
+
+      <Route element={<DeliveryProtectedRoute />}>
+        <Route element={<DeliveryLayout />}>
+          {/* DEFAULT */}
+          <Route
+            index
+            element={<Navigate to="dashboard" replace />}
+          />
+
+          {/* DASHBOARD */}
+          <Route
+            path="dashboard"
+            element={<DeliveryDashboard />}
+          />
+
+          {/* PROFILE */}
+          <Route
+            path="profile"
+            element={<DeliveryProfile />}
+          />
+
+          {/* EARNINGS */}
+          <Route
+            path="earnings"
+            element={<DeliveryEarnings />}
+          />
+
+          {/* DELIVERY OFFERS */}
+          <Route
+            path="offers"
+            element={<DeliveryOffers />}
+          />
+
+          {/* ACTIVE DELIVERY */}
+          <Route
+            path="active"
+            element={<DeliveryActive />}
+          />
+
+          {/* DELIVERY HISTORY */}
+          <Route
+            path="history"
+            element={<DeliveryHistory />}
+          />
+        </Route>
+      </Route>
+
+      {/* =================================
+          UNKNOWN ROUTE
+      ================================= */}
 
       <Route
-        path="register"
-        element={
-          <Screen title="Delivery Agent Register" />
-        }
-      />
-
-      <Route
-        path="dashboard"
-        element={
-          <Screen title="Delivery Dashboard" />
-        }
-      />
-
-      <Route
-        path="profile"
-        element={
-          <Screen title="Delivery Profile" />
-        }
-      />
-
-      <Route
-        path="offers"
-        element={
-          <Screen title="Delivery Offers" />
-        }
-      />
-
-      <Route
-        path="active"
-        element={
-          <Screen title="Active Delivery" />
-        }
-      />
-
-      <Route
-        path="history"
-        element={
-          <Screen title="Delivery History" />
-        }
+        path="*"
+        element={<Navigate to="dashboard" replace />}
       />
     </Routes>
   );
 };
-
 
 export default DeliveryAgentRoutes;

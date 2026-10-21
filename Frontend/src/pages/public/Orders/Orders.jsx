@@ -1,751 +1,212 @@
-import {
-    useMemo,
-    useState,
-} from "react";
-
-import {
-    useSelector,
-} from "react-redux";
-
-import {
-    FaBoxOpen,
-    FaSearch,
-    FaShoppingBag,
-    FaTimes,
-} from "react-icons/fa";
-
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { ChevronRight, Package, Store } from "lucide-react";
 import Container from "../../../components/common/Container/Container";
 import EmptyState from "../../../components/common/EmptyState/EmptyState";
 import ErrorState from "../../../components/common/ErrorState/ErrorState";
 import Skeleton from "../../../components/common/Skeleton/Skeleton";
-
-import OrderCard from "../../../components/public/OrderCard/OrderCard";
-
-import {
-    ACTIVE_ORDER_STATUSES,
-    ORDER_STATUS,
-} from "../../../constants/orderStatus";
-
-
-const Orders = () => {
-    // =========================
-    // REDUX
-    // =========================
-
-    const {
-        orders,
-        fetchLoading,
-        error,
-    } = useSelector(
-        (state) =>
-            state.publicOrder
-    );
-
-
-    // =========================
-    // UI STATE
-    // =========================
-
-    const [
-        activeFilter,
-        setActiveFilter,
-    ] = useState("all");
-
-
-    const [
-        searchTerm,
-        setSearchTerm,
-    ] = useState("");
-
-
-    // =========================
-    // FILTER
-    // =========================
-
-    const filteredOrders =
-        useMemo(() => {
-            const search =
-                searchTerm
-                    .trim()
-                    .toLowerCase();
-
-
-            return orders.filter(
-                (order) => {
-                    const matchesSearch =
-                        !search ||
-                        order.orderNumber
-                            ?.toLowerCase()
-                            .includes(search) ||
-                        order.restaurantName
-                            ?.toLowerCase()
-                            .includes(search);
-
-
-                    let matchesStatus =
-                        true;
-
-
-                    if (
-                        activeFilter ===
-                        "active"
-                    ) {
-                        matchesStatus =
-                            ACTIVE_ORDER_STATUSES.includes(
-                                order.status
-                            );
-                    }
-
-
-                    if (
-                        activeFilter ===
-                        "delivered"
-                    ) {
-                        matchesStatus =
-                            order.status ===
-                            ORDER_STATUS.DELIVERED;
-                    }
-
-
-                    if (
-                        activeFilter ===
-                        "cancelled"
-                    ) {
-                        matchesStatus =
-                            order.status ===
-                            ORDER_STATUS.CANCELLED;
-                    }
-
-
-                    return (
-                        matchesSearch &&
-                        matchesStatus
-                    );
-                }
-            );
-        }, [
-            orders,
-            searchTerm,
-            activeFilter,
-        ]);
-
-
-    const activeCount =
-        orders.filter(
-            (order) =>
-                ACTIVE_ORDER_STATUSES.includes(
-                    order.status
-                )
-        ).length;
-
-
-    const deliveredCount =
-        orders.filter(
-            (order) =>
-                order.status ===
-                ORDER_STATUS.DELIVERED
-        ).length;
-
-
-    const cancelledCount =
-        orders.filter(
-            (order) =>
-                order.status ===
-                ORDER_STATUS.CANCELLED
-        ).length;
-
-
-    const clearFilters = () => {
-        setSearchTerm("");
-
-        setActiveFilter(
-            "all"
-        );
-    };
-
-
-    const hasFilters =
-        Boolean(
-            searchTerm.trim()
-        ) ||
-        activeFilter !==
-        "all";
-
-
-    return (
-        <div
-            className="
-        min-h-screen
-        bg-[#fffaf5]
-      "
-        >
-            {/* =========================
-          HEADER
-      ========================== */}
-
-            <section
-                className="
-          relative
-          overflow-hidden
-
-          border-b
-          border-orange-100
-
-          bg-white
-        "
-            >
-                <div
-                    className="
-            pointer-events-none
-
-            absolute
-            -left-28
-            top-0
-
-            h-64
-            w-64
-
-            rounded-full
-
-            bg-orange-300/15
-
-            blur-[90px]
-          "
-                />
-
-
-                <Container>
-                    <div
-                        className="
-              relative
-              z-10
-
-              py-10
-
-              sm:py-12
-
-              lg:py-14
-            "
-                    >
-                        <div
-                            className="
-                inline-flex
-                items-center
-                gap-2
-
-                rounded-full
-
-                border
-                border-orange-200
-
-                bg-orange-50
-
-                px-3
-                py-1.5
-
-                text-xs
-                font-black
-                uppercase
-                tracking-[0.14em]
-                text-orange-600
-              "
-                        >
-                            <FaShoppingBag />
-
-                            Order history
-                        </div>
-
-
-                        <h1
-                            className="
-                mt-4
-
-                text-3xl
-                font-black
-                tracking-tight
-                text-slate-950
-
-                sm:text-4xl
-              "
-                        >
-                            My
-                            <span
-                                className="
-                  text-orange-500
-                "
-                            >
-                                {" "}
-                                Orders
-                            </span>
-                        </h1>
-
-
-                        <p
-                            className="
-                mt-2
-
-                max-w-xl
-
-                text-sm
-                leading-6
-                text-slate-500
-
-                sm:text-base
-              "
-                        >
-                            Track active orders and
-                            view your previous Foodie
-                            orders.
-                        </p>
-                    </div>
-                </Container>
-            </section>
-
-
-            {/* =========================
-          CONTENT
-      ========================== */}
-
-            <section
-                className="
-          py-8
-
-          sm:py-10
-
-          lg:py-12
-        "
-            >
-                <Container>
-                    {/* =====================
-              FILTER BOX
-          ====================== */}
-
-                    <div
-                        className="
-              mb-7
-
-              rounded-[1.5rem]
-
-              border
-              border-slate-200
-
-              bg-white
-
-              p-3
-
-              shadow-sm
-            "
-                    >
-                        {/* SEARCH */}
-
-                        <div
-                            className="
-                relative
-              "
-                        >
-                            <FaSearch
-                                className="
-                  pointer-events-none
-
-                  absolute
-                  left-4
-                  top-1/2
-
-                  -translate-y-1/2
-
-                  text-sm
-                  text-orange-500
-                "
-                            />
-
-
-                            <input
-                                type="search"
-
-                                value={
-                                    searchTerm
-                                }
-
-                                onChange={(
-                                    event
-                                ) =>
-                                    setSearchTerm(
-                                        event.target.value
-                                    )
-                                }
-
-                                placeholder="Search by order number or restaurant..."
-
-                                className="
-                  min-h-11
-                  w-full
-
-                  rounded-xl
-
-                  border
-                  border-slate-200
-
-                  bg-slate-50
-
-                  pl-10
-                  pr-10
-
-                  text-sm
-
-                  outline-none
-
-                  transition
-
-                  focus:border-orange-300
-                  focus:bg-white
-                  focus:ring-4
-                  focus:ring-orange-100
-                "
-                            />
-
-
-                            {searchTerm && (
-                                <button
-                                    type="button"
-
-                                    onClick={() =>
-                                        setSearchTerm("")
-                                    }
-
-                                    className="
-                    absolute
-                    right-2
-                    top-1/2
-
-                    flex
-                    h-8
-                    w-8
-
-                    -translate-y-1/2
-
-                    items-center
-                    justify-center
-
-                    rounded-lg
-
-                    text-slate-400
-
-                    hover:bg-slate-100
-                  "
-                                >
-                                    <FaTimes
-                                        className="
-                      h-3
-                      w-3
-                    "
-                                    />
-                                </button>
-                            )}
-                        </div>
-
-
-                        {/* STATUS TABS */}
-
-                        <div
-                            className="
-                mt-3
-
-                flex
-                gap-2
-
-                overflow-x-auto
-
-                border-t
-                border-slate-100
-
-                pt-3
-
-                [scrollbar-width:none]
-                [&::-webkit-scrollbar]:hidden
-              "
-                        >
-                            {[
-                                {
-                                    value: "all",
-
-                                    label: "All",
-
-                                    count:
-                                        orders.length,
-                                },
-
-                                {
-                                    value:
-                                        "active",
-
-                                    label:
-                                        "Active",
-
-                                    count:
-                                        activeCount,
-                                },
-
-                                {
-                                    value:
-                                        "delivered",
-
-                                    label:
-                                        "Delivered",
-
-                                    count:
-                                        deliveredCount,
-                                },
-
-                                {
-                                    value:
-                                        "cancelled",
-
-                                    label:
-                                        "Cancelled",
-
-                                    count:
-                                        cancelledCount,
-                                },
-                            ].map(
-                                (filter) => (
-                                    <button
-                                        key={
-                                            filter.value
-                                        }
-
-                                        type="button"
-
-                                        onClick={() =>
-                                            setActiveFilter(
-                                                filter.value
-                                            )
-                                        }
-
-                                        className={`
-                      min-h-10
-                      shrink-0
-
-                      rounded-xl
-
-                      px-4
-
-                      text-xs
-                      font-black
-
-                      transition
-
-                      ${activeFilter ===
-                                                filter.value
-                                                ? `
-                            bg-slate-950
-                            text-white
-                          `
-                                                : `
-                            bg-slate-50
-                            text-slate-500
-
-                            hover:bg-orange-50
-                            hover:text-orange-600
-                          `
-                                            }
-                    `}
-                                    >
-                                        {
-                                            filter.label
-                                        }
-
-                                        <span
-                                            className="
-                        ml-1.5
-                        opacity-60
-                      "
-                                        >
-                                            {
-                                                filter.count
-                                            }
-                                        </span>
-                                    </button>
-                                )
-                            )}
-                        </div>
-                    </div>
-
-
-                    {/* =====================
-              LOADING
-          ====================== */}
-
-                    {fetchLoading && (
-                        <div
-                            className="
-                grid
-                gap-5
-
-                lg:grid-cols-2
-              "
-                        >
-                            {Array.from({
-                                length: 4,
-                            }).map(
-                                (_, index) => (
-                                    <Skeleton
-                                        key={index}
-
-                                        width="w-full"
-                                        height="h-[330px]"
-                                        rounded="rounded-[1.75rem]"
-                                    />
-                                )
-                            )}
-                        </div>
-                    )}
-
-
-                    {/* =====================
-              ERROR
-          ====================== */}
-
-                    {!fetchLoading &&
-                        error && (
-                            <ErrorState
-                                title="Unable to load orders"
-
-                                description={
-                                    typeof error ===
-                                        "string"
-                                        ? error
-                                        : "Something went wrong while loading your orders."
-                                }
-                            />
-                        )}
-
-
-                    {/* =====================
-              EMPTY
-          ====================== */}
-
-                    {!fetchLoading &&
-                        !error &&
-                        filteredOrders.length ===
-                        0 && (
-                            <EmptyState
-                                icon={
-                                    FaBoxOpen
-                                }
-
-                                title={
-                                    hasFilters
-                                        ? "No matching orders"
-                                        : "No orders yet"
-                                }
-
-                                description={
-                                    hasFilters
-                                        ? "Try another order number, restaurant or status."
-                                        : "Your Foodie orders will appear here after you place your first order."
-                                }
-
-                                action={
-                                    hasFilters ? (
-                                        <button
-                                            type="button"
-
-                                            onClick={
-                                                clearFilters
-                                            }
-
-                                            className="
-                        min-h-11
-
-                        rounded-xl
-
-                        bg-orange-500
-
-                        px-5
-
-                        text-sm
-                        font-bold
-                        text-white
-                      "
-                                        >
-                                            Clear Filters
-                                        </button>
-                                    ) : null
-                                }
-                            />
-                        )}
-
-
-                    {/* =====================
-              ORDER GRID
-          ====================== */}
-
-                    {!fetchLoading &&
-                        !error &&
-                        filteredOrders.length >
-                        0 && (
-                            <>
-                                <div
-                                    className="
-                    mb-4
-
-                    text-sm
-                    text-slate-500
-                  "
-                                >
-                                    Showing{" "}
-
-                                    <span
-                                        className="
-                      font-black
-                      text-slate-900
-                    "
-                                    >
-                                        {
-                                            filteredOrders.length
-                                        }
-                                    </span>
-
-                                    {" "}
-                                    order
-                                    {
-                                        filteredOrders.length !==
-                                            1
-                                            ? "s"
-                                            : ""
-                                    }
-                                </div>
-
-
-                                <div
-                                    className="
-                    grid
-                    gap-5
-
-                    lg:grid-cols-2
-                  "
-                                >
-                                    {filteredOrders.map(
-                                        (order) => (
-                                            <OrderCard
-                                                key={
-                                                    order.orderNumber
-                                                }
-
-                                                order={
-                                                    order
-                                                }
-                                            />
-                                        )
-                                    )}
-                                </div>
-                            </>
-                        )}
-                </Container>
-            </section>
-        </div>
-    );
+import StatusBadge from "../../../components/common/StatusBadge/StatusBadge";
+import { getMyOrders } from "../../../redux/thunks/public/order.thunk";
+import getImageUrl from "../../../utils/getImageUrl";
+
+const statusConfig = {
+  PAYMENT_PENDING: { label: "Awaiting payment", variant: "warning" },
+  PLACED: { label: "Placed", variant: "warning" },
+  CONFIRMED: { label: "Confirmed", variant: "info" },
+  PREPARING: { label: "Preparing", variant: "purple" },
+  READY_FOR_PICKUP: { label: "Ready", variant: "success" },
+  DELIVERY_ASSIGNED: { label: "Delivery Assigned", variant: "info" },
+  PICKED_UP: { label: "Picked Up", variant: "info" },
+  OUT_FOR_DELIVERY: { label: "Out For Delivery", variant: "warning" },
+  DELIVERED: { label: "Delivered", variant: "success" },
+  REJECTED: { label: "Rejected", variant: "danger" },
+  CANCELLED: { label: "Cancelled", variant: "danger" },
 };
 
+const formatPrice = (value) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0));
+
+const formatDate = (value) => {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+};
+
+const OrderCard = ({ order, onClick }) => {
+  const status = statusConfig[order.status] || {
+    label: order.status || "-",
+    variant: "neutral",
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group w-full rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-md"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-orange-50 text-orange-500">
+            {getImageUrl(order.restaurantLogo) ? (
+              <img
+                src={getImageUrl(order.restaurantLogo)}
+                alt={order.restaurantName || "Restaurant"}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <Store className="h-6 w-6" />
+            )}
+          </div>
+
+          <div className="min-w-0">
+            <h3 className="truncate text-base font-black text-slate-950">
+              {order.restaurantName || "Restaurant"}
+            </h3>
+
+            <p className="mt-1 text-xs font-semibold text-slate-400">
+              #{order.orderNumber}
+            </p>
+
+            <p className="mt-1 text-xs text-slate-500">
+              {formatDate(order.createdAt)}
+            </p>
+          </div>
+        </div>
+
+        <ChevronRight className="mt-2 h-5 w-5 shrink-0 text-slate-300 transition group-hover:translate-x-1 group-hover:text-orange-500" />
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <StatusBadge variant={status.variant} size="sm" dot>
+            {status.label}
+          </StatusBadge>
+
+          {order.totalItems !== undefined && (
+            <span className="text-xs font-semibold text-slate-500">
+              {order.totalItems} item{Number(order.totalItems) === 1 ? "" : "s"}
+            </span>
+          )}
+
+          {order.paymentMethod && (
+            <span className="text-xs font-semibold text-slate-400">
+              {order.paymentMethod}
+            </span>
+          )}
+        </div>
+
+        <p className="text-lg font-black text-slate-950">
+          {formatPrice(order.totalAmount)}
+        </p>
+      </div>
+    </button>
+  );
+};
+
+const OrdersSkeleton = () => (
+  <div className="space-y-4">
+    {[1, 2, 3].map((item) => (
+      <Skeleton key={item} width="w-full" height="h-40" rounded="rounded-2xl" />
+    ))}
+  </div>
+);
+
+const Orders = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const {
+    orders = [],
+    fetchLoading,
+    error,
+  } = useSelector((state) => state.publicOrder) || {};
+
+  useEffect(() => {
+    dispatch(getMyOrders());
+  }, [dispatch]);
+
+  const handleOrderClick = (orderNumber) => {
+    navigate(`/orders/${orderNumber}`);
+  };
+
+  const handleRetry = () => {
+    dispatch(getMyOrders());
+  };
+
+  return (
+    <main className="min-h-screen bg-[#fffaf5] py-8 sm:py-10 lg:py-12">
+      <Container>
+        <div className="mb-8">
+          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-orange-500">
+            <Package className="h-4 w-4" />
+            My Orders
+          </div>
+
+          <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+            Your orders
+          </h1>
+
+          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
+            View all your food orders and open any order to check its complete
+            details and live status.
+          </p>
+        </div>
+
+        {fetchLoading && orders.length === 0 ? (
+          <OrdersSkeleton />
+        ) : error && orders.length === 0 ? (
+          <ErrorState
+            title="Unable to load orders"
+            description={
+              typeof error === "string"
+                ? error
+                : "Something went wrong while loading your orders."
+            }
+            onRetry={handleRetry}
+          />
+        ) : orders.length === 0 ? (
+          <EmptyState
+            icon={Package}
+            title="No orders yet"
+            description="Your food orders will appear here after you place your first order."
+          />
+        ) : (
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-black text-slate-950">
+                  Order history
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {orders.length} order{orders.length === 1 ? "" : "s"} found
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4">
+              {orders.map((order) => (
+                <OrderCard
+                  key={order.orderNumber}
+                  order={order}
+                  onClick={() => handleOrderClick(order.orderNumber)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+      </Container>
+    </main>
+  );
+};
 
 export default Orders;

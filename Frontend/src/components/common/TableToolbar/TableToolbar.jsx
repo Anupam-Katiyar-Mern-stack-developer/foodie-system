@@ -1,11 +1,8 @@
-import {
-  FilterX,
-} from "lucide-react";
+import { FilterX } from "lucide-react";
 
 import SearchInput from "../SearchInput/SearchInput";
 import Select from "../select/Select";
 import Button from "../Button/Button";
-
 
 const TableToolbar = ({
   // =========================
@@ -19,7 +16,6 @@ const TableToolbar = ({
 
   searchLoading = false,
 
-
   // =========================
   // FILTERS
   // =========================
@@ -29,14 +25,12 @@ const TableToolbar = ({
 
   onClearFilters,
 
-
   // =========================
   // SELECTION / BULK
   // =========================
   selectedCount = 0,
 
   bulkActions = null,
-
 
   // =========================
   // GENERAL
@@ -45,7 +39,6 @@ const TableToolbar = ({
 
   className = "",
 }) => {
-
   /*
     Search ya kisi filter me
     value hai ya nahi.
@@ -53,36 +46,24 @@ const TableToolbar = ({
   const hasActiveFilters =
     Boolean(searchValue?.trim()) ||
     filters.some((filter) => {
-      const value =
-        filter.value;
+      const value = filter.value;
 
       return (
-        value !== "" &&
-        value !== null &&
-        value !== undefined
+        value !== "" && value !== "ALL" && value !== null && value !== undefined
       );
     });
 
-
-  const handleFilterChange = (
-    key,
-    value
-  ) => {
+  const handleFilterChange = (key, value) => {
     if (disabled) return;
 
-    onFilterChange?.(
-      key,
-      value
-    );
+    onFilterChange?.(key, value);
   };
-
 
   const handleClearFilters = () => {
     if (disabled) return;
 
     onClearFilters?.();
   };
-
 
   return (
     <div
@@ -115,27 +96,13 @@ const TableToolbar = ({
         >
           <SearchInput
             value={searchValue}
-
-            onChange={
-              onSearchChange
-            }
-
-            onClear={
-              onSearchClear
-            }
-
-            placeholder={
-              searchPlaceholder
-            }
-
-            loading={
-              searchLoading
-            }
-
+            onChange={onSearchChange}
+            onClear={onSearchClear}
+            placeholder={searchPlaceholder}
+            loading={searchLoading}
             disabled={disabled}
           />
         </div>
-
 
         {/* Filters */}
         {filters.length > 0 && (
@@ -154,115 +121,74 @@ const TableToolbar = ({
               lg:flex-wrap
             "
           >
-            {filters.map(
-              (filter) => {
-                const {
-                  key,
-                  label,
+            {filters.map((filter) => {
+              const {
+                key,
+                label,
 
-                  value = "",
+                value = "",
 
-                  options = [],
+                options = [],
 
-                  placeholder =
-                    "Select",
+                placeholder = "Select",
 
-                  loading = false,
+                loading = false,
 
-                  disabled:
-                    filterDisabled =
-                      false,
+                disabled: filterDisabled = false,
 
-                  className:
-                    filterClassName =
-                      "",
-                } = filter;
+                className: filterClassName = "",
+              } = filter;
 
-
-                return (
-                  <div
-                    key={key}
-
-                    className={`
+              return (
+                <div
+                  key={key}
+                  className={`
                       w-full
                       lg:w-48
 
                       ${filterClassName}
                     `}
-                  >
-                    <Select
-                      label={label}
-
-                      value={value}
-
-                      options={options}
-
-                      placeholder={
-                        placeholder
-                      }
-
-                      loading={
-                        loading
-                      }
-
-                      disabled={
-                        disabled ||
-                        filterDisabled
-                      }
-
-                      onChange={(
-                        event
-                      ) =>
-                        handleFilterChange(
-                          key,
-                          event.target
-                            .value
-                        )
-                      }
-                    />
-                  </div>
-                );
-              }
-            )}
-
+                >
+                  <Select
+                    label={label}
+                    value={value}
+                    options={options}
+                    placeholder={placeholder}
+                    loading={loading}
+                    disabled={disabled || filterDisabled}
+                    onChange={(event) =>
+                      handleFilterChange(key, event.target.value)
+                    }
+                  />
+                </div>
+              );
+            })}
 
             {/* Clear Filters */}
-            {hasActiveFilters &&
-              onClearFilters && (
-                <div
-                  className="
+            {hasActiveFilters && onClearFilters && (
+              <div
+                className="
                     flex
                     items-end
                   "
-                >
-                  <Button
-                    variant="ghost"
-
-                    leftIcon={
-                      FilterX
-                    }
-
-                    onClick={
-                      handleClearFilters
-                    }
-
-                    disabled={
-                      disabled
-                    }
-
-                    className="
+              >
+                <Button
+                  variant="ghost"
+                  leftIcon={FilterX}
+                  onClick={handleClearFilters}
+                  disabled={disabled}
+                  className="
                       w-full
                       sm:w-auto
                     "
-                  >
-                    Clear Filters
-                  </Button>
-                </div>
-              )}
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
-
 
       {/* ========================
           BULK ACTION BAR
@@ -297,11 +223,7 @@ const TableToolbar = ({
                 text-gray-900
               "
             >
-              {selectedCount}{" "}
-              {selectedCount === 1
-                ? "item"
-                : "items"}{" "}
-              selected
+              {selectedCount} {selectedCount === 1 ? "item" : "items"} selected
             </p>
 
             <p
@@ -311,11 +233,9 @@ const TableToolbar = ({
                 text-gray-500
               "
             >
-              Choose an action for
-              the selected items.
+              Choose an action for the selected items.
             </p>
           </div>
-
 
           {/* Bulk Actions */}
           {bulkActions && (
@@ -334,6 +254,5 @@ const TableToolbar = ({
     </div>
   );
 };
-
 
 export default TableToolbar;

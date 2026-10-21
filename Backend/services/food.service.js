@@ -1,4 +1,5 @@
 import pool from "../config/database.js";
+import { categoryImageSql } from "./category.service.js";
 
 import { generateFoodSlug } from "../utils/generateFoodSlug.js";
 
@@ -41,7 +42,7 @@ export const createFoodService = async ({
 
         LIMIT 1
       `,
-    [restaurantId],
+    [restaurantId]
   );
 
   if (restaurantResult.rows.length === 0) {
@@ -84,7 +85,7 @@ export const createFoodService = async ({
 
         LIMIT 1
       `,
-    [categorySlug.trim()],
+    [categorySlug.trim()]
   );
 
   if (categoryResult.rows.length === 0) {
@@ -111,7 +112,7 @@ export const createFoodService = async ({
 
         LIMIT 1
       `,
-    [restaurantId, normalizedName],
+    [restaurantId, normalizedName]
   );
 
   if (duplicateFood.rows.length > 0) {
@@ -135,7 +136,7 @@ export const createFoodService = async ({
     (numericDiscountPrice <= 0 || numericDiscountPrice >= numericPrice)
   ) {
     const error = new Error(
-      "Discount price must be greater than 0 and less than regular price",
+      "Discount price must be greater than 0 and less than regular price"
     );
 
     error.statusCode = 400;
@@ -203,7 +204,7 @@ export const createFoodService = async ({
         isVeg !== undefined ? isVeg === true || isVeg === "true" : true,
 
         preparationTime ? Number(preparationTime) : null,
-      ],
+      ]
     );
 
     const food = result.rows[0];
@@ -254,7 +255,7 @@ export const getRestaurantFoodsService = async ({
       FROM foods
       WHERE restaurant_id = $1
     `,
-    [restaurantId],
+    [restaurantId]
   );
 
   const result = await pool.query(
@@ -288,7 +289,7 @@ export const getRestaurantFoodsService = async ({
       LIMIT $2
       OFFSET $3
     `,
-    [restaurantId, limit, offset],
+    [restaurantId, limit, offset]
   );
 
   const total = countResult.rows[0].total;
@@ -340,7 +341,7 @@ export const getRestaurantFoodBySlugService = async ({
 
       LIMIT 1
     `,
-    [foodSlug, restaurantId],
+    [foodSlug, restaurantId]
   );
 
   if (result.rows.length === 0) {
@@ -395,7 +396,7 @@ export const updateFoodService = async ({
 
         LIMIT 1
       `,
-    [foodSlug, restaurantId],
+    [foodSlug, restaurantId]
   );
 
   if (existingResult.rows.length === 0) {
@@ -438,7 +439,7 @@ export const updateFoodService = async ({
 
           LIMIT 1
         `,
-      [restaurantId, finalName, existingFood.id],
+      [restaurantId, finalName, existingFood.id]
     );
 
     if (duplicateResult.rows.length > 0) {
@@ -468,7 +469,7 @@ export const updateFoodService = async ({
 
           LIMIT 1
         `,
-      [categorySlug.trim()],
+      [categorySlug.trim()]
     );
 
     if (categoryResult.rows.length === 0) {
@@ -518,7 +519,7 @@ export const updateFoodService = async ({
       finalDiscountPrice >= finalPrice)
   ) {
     const error = new Error(
-      "Discount price must be greater than 0 and less than regular price",
+      "Discount price must be greater than 0 and less than regular price"
     );
 
     error.statusCode = 400;
@@ -647,7 +648,7 @@ export const updateFoodService = async ({
 
         existingFood.id,
         restaurantId,
-      ],
+      ]
     );
 
     if (newImage && existingFood.image) {
@@ -687,7 +688,7 @@ export const deleteFoodService = async ({ restaurantId, foodSlug }) => {
         slug,
         image
     `,
-    [foodSlug, restaurantId],
+    [foodSlug, restaurantId]
   );
 
   if (result.rows.length === 0) {
@@ -721,7 +722,7 @@ export const getAdminFoodsService = async ({ page, limit }) => {
     `
         SELECT COUNT(*)::int AS total
         FROM foods
-      `,
+      `
   );
 
   const result = await pool.query(
@@ -771,7 +772,7 @@ export const getAdminFoodsService = async ({ page, limit }) => {
         LIMIT $1
         OFFSET $2
       `,
-    [limit, offset],
+    [limit, offset]
   );
 
   const total = countResult.rows[0].total;
@@ -840,7 +841,7 @@ export const getAdminFoodBySlugService = async ({ foodSlug }) => {
 
         LIMIT 1
       `,
-    [foodSlug],
+    [foodSlug]
   );
 
   if (result.rows.length === 0) {
@@ -854,7 +855,6 @@ export const getAdminFoodBySlugService = async ({ foodSlug }) => {
 };
 
 // get food by category service
-
 export const getFoodsByCategoryService = async ({
   categorySlug,
   page,
@@ -869,7 +869,7 @@ export const getFoodsByCategoryService = async ({
         id,
         name,
         slug,
-        image,
+        ${categoryImageSql},
         description
 
       FROM categories
@@ -880,7 +880,7 @@ export const getFoodsByCategoryService = async ({
 
       LIMIT 1
     `,
-    [categorySlug],
+    [categorySlug]
   );
 
   if (categoryResult.rows.length === 0) {
@@ -908,7 +908,7 @@ export const getFoodsByCategoryService = async ({
         AND r.approval_status = 'APPROVED'
         AND r.is_blocked = FALSE
     `,
-    [category.id],
+    [category.id]
   );
 
   // Actual foods
@@ -965,7 +965,7 @@ export const getFoodsByCategoryService = async ({
       LIMIT $2
       OFFSET $3
     `,
-    [category.id, limit, offset],
+    [category.id, limit, offset]
   );
 
   const total = countResult.rows[0].total;
@@ -1020,7 +1020,7 @@ export const getFoodsByRestaurantService = async ({
 
         LIMIT 1
       `,
-    [restaurantSlug],
+    [restaurantSlug]
   );
 
   if (restaurantResult.rows.length === 0) {
@@ -1046,7 +1046,7 @@ export const getFoodsByRestaurantService = async ({
           AND f.is_available = TRUE
           AND c.is_active = TRUE
       `,
-    [restaurant.id],
+    [restaurant.id]
   );
 
   const foodResult = await pool.query(
@@ -1095,7 +1095,7 @@ export const getFoodsByRestaurantService = async ({
         LIMIT $2
         OFFSET $3
       `,
-    [restaurant.id, limit, offset],
+    [restaurant.id, limit, offset]
   );
 
   const total = countResult.rows[0].total;
@@ -1121,4 +1121,255 @@ export const getFoodsByRestaurantService = async ({
       totalPages: Math.ceil(total / limit),
     },
   };
+};
+
+// get food service
+export const getFoodsService = async ({ page = 1, limit = 20 }) => {
+  const currentPage = Math.max(Number(page) || 1, 1);
+
+  const currentLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
+
+  const offset = (currentPage - 1) * currentLimit;
+
+  // =========================
+  // GET FOODS
+  // =========================
+
+  const foodsResult = await pool.query(
+    `
+      SELECT
+        f.name,
+        f.slug,
+        f.description,
+        f.price,
+        f.discount_price AS "discountPrice",
+        f.image,
+        f.preparation_time AS "preparationTime",
+        f.is_veg AS "isVeg",
+        f.is_available AS "isAvailable",
+
+        c.name AS "categoryName",
+        c.slug AS "categorySlug",
+
+        r.restaurant_name AS "restaurantName",
+        r.slug AS "restaurantSlug"
+
+      FROM foods f
+
+      JOIN restaurants r
+        ON r.id = f.restaurant_id
+
+      LEFT JOIN categories c
+        ON c.id = f.category_id
+
+      WHERE
+        f.is_available = true
+
+        AND r.approval_status = 'APPROVED'
+
+        AND r.is_blocked = false
+
+      ORDER BY
+        f.created_at DESC
+
+      LIMIT $1
+      OFFSET $2
+      `,
+    [currentLimit, offset]
+  );
+
+  // =========================
+  // TOTAL COUNT
+  // =========================
+
+  const countResult = await pool.query(
+    `
+      SELECT
+        COUNT(*)::int AS total
+
+      FROM foods f
+
+      JOIN restaurants r
+        ON r.id = f.restaurant_id
+
+      WHERE
+        f.is_available = true
+
+        AND r.approval_status = 'approved'
+
+        AND r.is_blocked = false
+      `
+  );
+
+  const total = countResult.rows[0].total;
+
+  return {
+    foods: foodsResult.rows,
+
+    pagination: {
+      page: currentPage,
+
+      limit: currentLimit,
+
+      total,
+
+      totalPages: Math.ceil(total / currentLimit),
+    },
+  };
+};
+
+// get food by slug in publoc
+export const getFoodBySlugService = async ({ foodSlug }) => {
+  const result = await pool.query(
+    `
+      SELECT
+        f.id,
+
+        f.name,
+        f.slug,
+        f.description,
+        f.image,
+
+        f.price,
+
+        f.discount_price
+          AS "discountPrice",
+
+        f.preparation_time
+          AS "preparationTime",
+
+        f.is_veg
+          AS "isVeg",
+
+        f.is_available
+          AS "isAvailable",
+
+        f.created_at
+          AS "createdAt",
+
+        -- =========================
+        -- CATEGORY
+        -- =========================
+
+        c.name
+          AS "categoryName",
+
+        c.slug
+          AS "categorySlug",
+
+        c.is_active
+          AS "categoryIsActive",
+
+        -- =========================
+        -- RESTAURANT
+        -- =========================
+
+        r.restaurant_name
+          AS "restaurantName",
+
+        r.slug
+          AS "restaurantSlug",
+
+        r.logo
+          AS "restaurantLogo",
+
+        r.banner
+          AS "restaurantBanner",
+
+        r.city
+          AS "restaurantCity",
+
+        r.state
+          AS "restaurantState",
+
+        r.is_open
+          AS "restaurantIsOpen",
+
+        r.approval_status
+          AS "restaurantApprovalStatus",
+
+        r.is_blocked
+          AS "restaurantIsBlocked"
+
+
+      FROM foods f
+
+
+      INNER JOIN categories c
+        ON c.id = f.category_id
+
+
+      INNER JOIN restaurants r
+        ON r.id = f.restaurant_id
+
+
+      WHERE
+        f.slug = $1
+
+      LIMIT 1
+    `,
+    [foodSlug]
+  );
+
+  // =========================
+  // FOOD NOT FOUND
+  // =========================
+
+  if (result.rows.length === 0) {
+    const error = new Error("Food not found");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  const food = result.rows[0];
+
+  // =========================
+  // RESTAURANT VALIDATION
+  // =========================
+
+  if (food.restaurantApprovalStatus !== "APPROVED") {
+    const error = new Error("Restaurant is currently unavailable");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  if (food.restaurantIsBlocked) {
+    const error = new Error("Restaurant is currently unavailable");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  // =========================
+  // CATEGORY VALIDATION
+  // =========================
+
+  if (!food.categoryIsActive) {
+    const error = new Error("Food category is currently unavailable");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  // Internal database id
+  // public frontend ko nahi bhejna.
+
+  delete food.id;
+
+  // Ye internal validation fields bhi
+  // frontend ko zarurat nahi.
+
+  delete food.categoryIsActive;
+
+  delete food.restaurantApprovalStatus;
+
+  delete food.restaurantIsBlocked;
+
+  return food;
 };

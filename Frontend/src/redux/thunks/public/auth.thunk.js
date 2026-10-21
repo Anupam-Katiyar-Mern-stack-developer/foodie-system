@@ -7,19 +7,8 @@ import {
 } from "../../../services/public/auth.service";
 
 import { STORAGE_KEYS } from "../../../constants/storageKeys";
-
-// =============================
-// ERROR HELPER
-// =============================
-
-const getErrorMessage = (error) => {
-  return (
-    error?.response?.data?.message ||
-    error?.response?.data?.error ||
-    error?.message ||
-    "Something went wrong"
-  );
-};
+import { getErrorMessage } from "../../../utils/getErrorMessage";
+import { showErrorToast, showSuccessToast } from "../../../utils/toast";
 
 // =============================
 // REGISTER
@@ -27,14 +16,19 @@ const getErrorMessage = (error) => {
 
 export const registerUser = createAsyncThunk(
   "publicAuth/registerUser",
-
   async (payload, { rejectWithValue }) => {
     try {
-      console.log(payload);
-      
-      return await registerUserService(payload);
+      const data = await registerUserService(payload);
+
+      showSuccessToast(data?.message || "Registration successful");
+
+      return data;
     } catch (error) {
-      return rejectWithValue(getErrorMessage(error));
+      const message = getErrorMessage(error, "Registration failed");
+
+      showErrorToast(message);
+
+      return rejectWithValue(message);
     }
   },
 );
@@ -45,44 +39,42 @@ export const registerUser = createAsyncThunk(
 
 export const loginUser = createAsyncThunk(
   "publicAuth/loginUser",
-
   async (payload, { rejectWithValue }) => {
     try {
-      const data = await loginUserService(payload);
+      const response = await loginUserService(payload);
 
-      /*
-          ApiResponse shape support:
+      // API response direct ho ya data ke andar,
+      // dono cases handle karega.
+      const data = response?.data || response;
 
-          data = {
-            token,
-            user
-          }
-
-          OR
-
-          data = {
-            accessToken,
-            user
-          }
-        */
-
-      const token = data?.token || data?.accessToken;
+      const token = data?.token || data?.accessToken || data?.userToken;
 
       if (!token) {
-        return rejectWithValue(
-          "Login succeeded but token was not returned by the server.",
-        );
+        const message =
+          "Login succeeded but token was not returned by the server.";
+
+        showErrorToast(message);
+
+        return rejectWithValue(message);
       }
 
+      // TOKEN SAVE
       localStorage.setItem(STORAGE_KEYS.USER_TOKEN, token);
+
+      showSuccessToast(
+        response?.message || data?.message || "Login successful",
+      );
 
       return {
         token,
-
         user: data?.user || null,
       };
     } catch (error) {
-      return rejectWithValue(getErrorMessage(error));
+      const message = getErrorMessage(error, "Login failed");
+
+      showErrorToast(message);
+
+      return rejectWithValue(message);
     }
   },
 );
@@ -93,41 +85,35 @@ export const loginUser = createAsyncThunk(
 
 export const bootstrapUserAuth = createAsyncThunk(
   "publicAuth/bootstrapUserAuth",
-
   async (_, { rejectWithValue }) => {
     const token = localStorage.getItem(STORAGE_KEYS.USER_TOKEN);
 
     if (!token) {
       return {
         token: null,
-
         user: null,
-
         isAuthenticated: false,
       };
     }
 
     try {
-      const data = await getUserProfileService();
+      const response = await getUserProfileService();
+
+      const data = response?.data || response;
 
       const user = data?.user || data;
 
       return {
         token,
-
         user,
-
         isAuthenticated: true,
       };
     } catch (error) {
-      /*
-          Stored JWT invalid /
-          expired hua to remove.
-        */
-
       localStorage.removeItem(STORAGE_KEYS.USER_TOKEN);
 
-      return rejectWithValue(getErrorMessage(error));
+      const message = getErrorMessage(error, "Unable to restore user session");
+
+      return rejectWithValue(message);
     }
   },
 );
@@ -138,7 +124,6 @@ export const bootstrapUserAuth = createAsyncThunk(
 
 export const logoutUser = createAsyncThunk(
   "publicAuth/logoutUser",
-
   async () => {
     localStorage.removeItem(STORAGE_KEYS.USER_TOKEN);
 

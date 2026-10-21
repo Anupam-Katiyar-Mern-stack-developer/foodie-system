@@ -30,3 +30,6 @@ WHERE slug IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS
 idx_restaurants_slug
 ON restaurants(slug);
+
+ALTER TABLE restaurants
+ADD COLUMN IF NOT EXISTS location_updated_at TIMESTAMPTZ;

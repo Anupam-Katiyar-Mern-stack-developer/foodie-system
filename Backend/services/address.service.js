@@ -1,4 +1,5 @@
 import pool from "../config/database.js";
+import { geocodeAddress } from "../utils/geocodeAddress.js";
 
 export const createAddressService = async ({
   userId,
@@ -98,8 +99,8 @@ export const createAddressService = async ({
 
 export const getAddressesService = async (userId) => {
   const result = await pool.query(
-    ` 
-        SELECT 
+    `
+      SELECT
         id,
         user_id AS "userId",
         label,
@@ -113,14 +114,101 @@ export const getAddressesService = async (userId) => {
         is_default AS "isDefault",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
-        FROM addresses 
-        WHERE user_id = $1
-        ORDER BY is_default DESC, created_at DESC
-        `,
+      FROM addresses
+      WHERE user_id = $1
+      ORDER BY is_default DESC, created_at DESC
+    `,
     [userId],
   );
 
-  return result.rows;
+  const addresses = result.rows;
+
+  const validCoordinates = (address) => {
+    if (
+      address.latitude == null ||
+      address.longitude == null ||
+      String(address.latitude).trim() === "" ||
+      String(address.longitude).trim() === ""
+    ) {
+      return false;
+    }
+
+    const lat = Number(address.latitude);
+    const lng = Number(address.longitude);
+
+    return (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      Math.abs(lat) <= 90 &&
+      Math.abs(lng) <= 180
+    );
+  };
+
+  for (const address of addresses) {
+    // Already saved valid coordinates: no API call.
+    if (validCoordinates(address)) continue;
+
+    try {
+      const coordinates = await geocodeAddress({
+        addressLine: address.addressLine,
+        landmark: address.landmark,
+        city: address.city,
+        state: address.state,
+        pincode: address.pincode,
+      });
+
+      const updated = await pool.query(
+        `
+          UPDATE addresses
+          SET
+            latitude = $1,
+            longitude = $2,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = $3
+            AND user_id = $4
+            AND address_line IS NOT DISTINCT FROM $5
+            AND city IS NOT DISTINCT FROM $6
+            AND state IS NOT DISTINCT FROM $7
+            AND pincode IS NOT DISTINCT FROM $8
+            AND latitude IS NOT DISTINCT FROM $9
+            AND longitude IS NOT DISTINCT FROM $10
+          RETURNING
+            latitude,
+            longitude,
+            updated_at AS "updatedAt"
+        `,
+        [
+          coordinates.latitude,
+          coordinates.longitude,
+          address.id,
+          userId,
+          address.addressLine,
+          address.city,
+          address.state,
+          address.pincode,
+          address.latitude,
+          address.longitude,
+        ],
+      );
+
+      if (updated.rows[0]) {
+        Object.assign(address, updated.rows[0]);
+      } else {
+        address.coordinateError =
+          "Address changed during lookup. Refresh and try again.";
+      }
+    } catch (error) {
+      // One failed lookup should not hide all saved addresses.
+      address.coordinateError = error.message;
+
+      console.error(
+        `Address coordinates failed, id=${address.id}:`,
+        error.message,
+      );
+    }
+  }
+
+  return addresses;
 };
 
 export const updateAddressService = async ({
@@ -215,6 +303,7 @@ export const updateAddressService = async ({
     );
 
     await client.query("COMMIT");
+    return result.rows[0];
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -280,10 +369,7 @@ export const deleteAddressService = async ({ userId, addressId }) => {
   }
 };
 
-export const setDefaultAddressService = async ({
-  userId,
-  addressId,
-}) => {
+export const setDefaultAddressService = async ({ userId, addressId }) => {
   const client = await pool.connect();
 
   try {
@@ -298,7 +384,7 @@ export const setDefaultAddressService = async ({
         AND user_id = $2
         LIMIT 1
       `,
-      [addressId, userId]
+      [addressId, userId],
     );
 
     if (addressCheck.rows.length === 0) {
@@ -316,7 +402,7 @@ export const setDefaultAddressService = async ({
           updated_at = CURRENT_TIMESTAMP
         WHERE user_id = $1
       `,
-      [userId]
+      [userId],
     );
 
     // Selected address default
@@ -344,7 +430,7 @@ export const setDefaultAddressService = async ({
           created_at AS "createdAt",
           updated_at AS "updatedAt"
       `,
-      [addressId, userId]
+      [addressId, userId],
     );
 
     await client.query("COMMIT");

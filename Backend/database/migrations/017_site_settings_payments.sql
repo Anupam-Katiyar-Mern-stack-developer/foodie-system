@@ -1,0 +1,79 @@
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS site_settings (
+  id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  config JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_by BIGINT REFERENCES admins(id),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+INSERT INTO site_settings(id) VALUES(1) ON CONFLICT DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS coupons (
+  id BIGSERIAL PRIMARY KEY,
+  code VARCHAR(40) NOT NULL UNIQUE,
+  title VARCHAR(120) NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  discount_type VARCHAR(10) NOT NULL CHECK(discount_type IN ('PERCENT','FIXED')),
+  discount_value NUMERIC(12,2) NOT NULL CHECK(discount_value > 0),
+  min_order NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK(min_order >= 0),
+  max_discount NUMERIC(12,2) CHECK(max_discount > 0),
+  starts_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ,
+  usage_limit INTEGER CHECK(usage_limit > 0),
+  per_user_limit INTEGER NOT NULL DEFAULT 1 CHECK(per_user_limit > 0),
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CHECK(discount_type <> 'PERCENT' OR discount_value <= 100),
+  CHECK(expires_at IS NULL OR starts_at IS NULL OR expires_at > starts_at)
+);
+
+ALTER TABLE order_groups ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(12,2) NOT NULL DEFAULT 0;
+ALTER TABLE order_groups ADD COLUMN IF NOT EXISTS coupon_code VARCHAR(40);
+ALTER TABLE order_groups ADD COLUMN IF NOT EXISTS request_key VARCHAR(100);
+CREATE UNIQUE INDEX IF NOT EXISTS order_group_request_key ON order_groups(user_id,request_key) WHERE request_key IS NOT NULL;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(12,2) NOT NULL DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS cash_collected_at TIMESTAMPTZ;
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS check_order_status;
+ALTER TABLE orders ADD CONSTRAINT check_order_status CHECK(status IN (
+  'PAYMENT_PENDING','PLACED','CONFIRMED','PREPARING','READY_FOR_PICKUP','DELIVERY_ASSIGNED',
+  'PICKED_UP','OUT_FOR_DELIVERY','DELIVERED','REJECTED','CANCELLED'
+));
+
+CREATE TABLE IF NOT EXISTS coupon_redemptions (
+  id BIGSERIAL PRIMARY KEY,
+  coupon_id BIGINT NOT NULL REFERENCES coupons(id),
+  user_id BIGINT NOT NULL REFERENCES users(id),
+  order_group_id BIGINT NOT NULL UNIQUE REFERENCES order_groups(id),
+  discount_amount NUMERIC(12,2) NOT NULL CHECK(discount_amount > 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS payments (
+  id BIGSERIAL PRIMARY KEY,
+  order_group_id BIGINT NOT NULL UNIQUE REFERENCES order_groups(id),
+  razorpay_order_id VARCHAR(100) UNIQUE,
+  razorpay_payment_id VARCHAR(100) UNIQUE,
+  amount_paise BIGINT NOT NULL CHECK(amount_paise > 0),
+  currency VARCHAR(3) NOT NULL DEFAULT 'INR',
+  status VARCHAR(20) NOT NULL DEFAULT 'CREATED' CHECK(status IN ('CREATED','AUTHORIZED','CAPTURED','FAILED','REFUNDED')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS payment_webhook_events (
+  event_id VARCHAR(150) PRIMARY KEY,
+  event_type VARCHAR(100) NOT NULL,
+  processed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS order_email_outbox (
+  order_group_id BIGINT PRIMARY KEY REFERENCES order_groups(id),
+  status VARCHAR(15) NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING','PROCESSING','SENT')),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  available_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_error TEXT,
+  sent_at TIMESTAMPTZ
+);
+
+COMMIT;

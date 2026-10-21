@@ -22,8 +22,17 @@ import { getRestaurantFoodBySlug } from "../controllers/food/getRestaurantFoodBy
 
 import { updateFood } from "../controllers/food/updateFood.controller.js";
 
-import {deleteFood} from "../controllers/food/deleteFood.controller.js";
+import { deleteFood } from "../controllers/food/deleteFood.controller.js";
 
+import { getRestaurants } from "../controllers/restaurant/getRestaurants.controller.js";
+
+import { getRestaurantDashboardController } from "../controllers/restaurant/dashboard.controller.js";
+
+import { getAvailableDeliveryAgents } from "../controllers/restaurant/getAvailableDeliveryAgents.controller.js";
+
+import { createDeliveryOffer } from "../controllers/restaurant/createDeliveryOffer.controller.js";
+
+import { updateRestaurantLocation } from "../controllers/restaurant/updateRestaurantLocation.controller.js";
 
 const router = express.Router();
 
@@ -33,7 +42,12 @@ router.post("/login", loginRestaurant);
 
 router.get("/profile", restaurantAuthMiddleware, getRestaurantProfile);
 
-router.patch("/profile", restaurantAuthMiddleware, updateRestaurantProfile);
+router.patch(
+  "/profile",
+  restaurantAuthMiddleware,
+  uploadImage("logo", "logo"),
+  updateRestaurantProfile,
+);
 
 router.patch("/status", restaurantAuthMiddleware, updateRestaurantStatus);
 
@@ -56,6 +70,9 @@ router.get(
   getRestaurantFoodBySlug,
 );
 
+// get restaurant
+router.get("/", getRestaurants);
+
 // update food router
 router.patch(
   "/foods/:foodSlug",
@@ -63,11 +80,28 @@ router.patch(
   uploadImage("foods", "image"),
   updateFood,
 );
-
-// delete food 
-router.delete(
-  "/foods/:foodSlug",
+router.get(
+  "/dashboard",
   restaurantAuthMiddleware,
-  deleteFood
+  getRestaurantDashboardController,
 );
+
+// delete food
+router.delete("/foods/:foodSlug", restaurantAuthMiddleware, deleteFood);
+
+router.get(
+  "/orders/:orderNumber/delivery-agents",
+  restaurantAuthMiddleware,
+  getAvailableDeliveryAgents,
+);
+
+router.post(
+  "/orders/:orderNumber/delivery-offer",
+  restaurantAuthMiddleware,
+  createDeliveryOffer,
+);
+
+// loaction update
+router.patch("/location", restaurantAuthMiddleware, updateRestaurantLocation);
+
 export default router;

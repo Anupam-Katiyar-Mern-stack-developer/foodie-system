@@ -1,0 +1,48 @@
+import { createAsyncThunk } from "@reduxjs/toolkit";
+
+import {
+  getDeliveryDashboardService,
+  getDeliveryEarningsService,
+} from "../../../services/deliveryAgent/deliveryDashboard.service";
+
+import { getErrorMessage } from "../../../utils/getErrorMessage";
+
+import { showErrorToast, showSuccessToast } from "../../../utils/toast";
+
+// =========================================
+// GET DASHBOARD
+// =========================================
+
+export const getDeliveryDashboard = createAsyncThunk(
+  "deliveryDashboard/getDeliveryDashboard",
+
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await getDeliveryDashboardService();
+
+      return response?.data || response;
+    } catch (error) {
+      const message = getErrorMessage(
+        error,
+        "Unable to load delivery dashboard"
+      );
+
+      showErrorToast(message);
+
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const getDeliveryEarnings = createAsyncThunk(
+  "deliveryDashboard/earnings",
+  async (params, api) => {
+    try {
+      return await getDeliveryEarningsService(params, api.signal);
+    } catch (error) {
+      return api.rejectWithValue(
+        getErrorMessage(error, "Unable to load earnings")
+      );
+    }
+  }
+);

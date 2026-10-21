@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { saveImage, deleteImage } from "../utils/storage/imageStorage.js";
 import pool from "../config/database.js";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../utils/sendEmail.js";
@@ -29,7 +30,7 @@ export const registerRestaurantService = async ({
         FROM restaurants WHERE email =$1
             LIMIT 1
         `,
-    [normalizedEmail],
+    [normalizedEmail]
   );
 
   if (emailCheck.rows.length > 0) {
@@ -45,7 +46,7 @@ export const registerRestaurantService = async ({
         WHERE phone = $1
         LIMIT 1
         `,
-    [normalizedPhone],
+    [normalizedPhone]
   );
 
   if (phoneCheck.rows.length > 0) {
@@ -115,7 +116,7 @@ export const registerRestaurantService = async ({
       pincode.trim(),
       latitude ?? null,
       longitude ?? null,
-    ],
+    ]
   );
 
   const restaurant = result.rows[0];
@@ -173,7 +174,7 @@ export const loginRestaurantService = async ({ email, password }) => {
           WHERE email = $1
           LIMIT 1
         `,
-    [normalizedEmail],
+    [normalizedEmail]
   );
 
   if (result.rows.length === 0) {
@@ -234,7 +235,7 @@ export const loginRestaurantService = async ({ email, password }) => {
     process.env.JWT_SECRET,
     {
       expiresIn: "7d",
-    },
+    }
   );
 
   delete restaurant.password;
@@ -279,7 +280,7 @@ export const getRestaurantProfileService = async ({ restaurantId }) => {
       WHERE id = $1
       LIMIT 1
     `,
-    [restaurantId],
+    [restaurantId]
   );
 
   if (result.rows.length === 0) {
@@ -296,55 +297,34 @@ export const getRestaurantProfileService = async ({ restaurantId }) => {
 //update profile  service
 export const updateRestaurantProfileService = async ({
   restaurantId,
-  data,
+
+  ownerName,
+  restaurantName,
+  phone,
+  description,
+
+  addressLine,
+  city,
+  state,
+  pincode,
+
+  latitude,
+  longitude,
+
+  openingTime,
+  closingTime,
+
+  logoFile,
+  logoFolder,
 }) => {
-  const allowedFields = {
-    ownerName: "owner_name",
-    restaurantName: "restaurant_name",
-    description: "description",
-    addressLine: "address_line",
-    city: "city",
-    state: "state",
-    pincode: "pincode",
-    latitude: "latitude",
-    longitude: "longitude",
-    openingTime: "opening_time",
-    closingTime: "closing_time",
-  };
+  // =========================
+  // CURRENT RESTAURANT
+  // =========================
 
-  const updates = [];
-  const values = [];
-
-  for (const [key, column] of Object.entries(allowedFields)) {
-    if (data[key] !== undefined) {
-      values.push(data[key]);
-
-      updates.push(`${column} = $${values.length}`);
-    }
-  }
-
-  if (updates.length === 0) {
-    const error = new Error("No valid profile fields provided");
-
-    error.statusCode = 400;
-    throw error;
-  }
-
-  values.push(restaurantId);
-
-  const restaurantIdPosition = values.length;
-
-  const result = await pool.query(
+  const existingResult = await pool.query(
     `
-      UPDATE restaurants
-
-      SET
-        ${updates.join(", ")},
-        updated_at = CURRENT_TIMESTAMP
-
-      WHERE id = $${restaurantIdPosition}
-
-      RETURNING
+      SELECT
+        id,
         owner_name AS "ownerName",
         restaurant_name AS "restaurantName",
         slug,
@@ -353,31 +333,276 @@ export const updateRestaurantProfileService = async ({
         description,
         logo,
         banner,
+
         address_line AS "addressLine",
         city,
         state,
         pincode,
+
         latitude,
         longitude,
+
         opening_time AS "openingTime",
         closing_time AS "closingTime",
+
         is_open AS "isOpen",
         approval_status AS "approvalStatus",
         email_verified AS "emailVerified",
-        is_blocked AS "isBlocked",
-        updated_at AS "updatedAt"
+        is_blocked AS "isBlocked"
+
+      FROM restaurants
+
+      WHERE id = $1
+
+      LIMIT 1
     `,
-    values,
+    [restaurantId]
   );
 
-  if (result.rows.length === 0) {
+  if (existingResult.rows.length === 0) {
     const error = new Error("Restaurant not found");
-
     error.statusCode = 404;
     throw error;
   }
 
-  return result.rows[0];
+  const existingRestaurant = existingResult.rows[0];
+
+  // =========================
+  // ACCOUNT CHECK
+  // =========================
+
+  if (existingRestaurant.isBlocked) {
+    const error = new Error("Your restaurant account has been blocked");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // =========================
+  // FINAL TEXT VALUES
+  // =========================
+
+  const finalOwnerName =
+    ownerName !== undefined ? ownerName.trim() : existingRestaurant.ownerName;
+
+  if (!finalOwnerName) {
+    const error = new Error("Owner name is required");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const finalRestaurantName =
+    restaurantName !== undefined
+      ? restaurantName.trim()
+      : existingRestaurant.restaurantName;
+
+  if (!finalRestaurantName) {
+    const error = new Error("Restaurant name is required");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const finalPhone =
+    phone !== undefined ? phone.trim() : existingRestaurant.phone;
+
+  const finalDescription =
+    description !== undefined
+      ? description.trim() || null
+      : existingRestaurant.description;
+
+  const finalAddressLine =
+    addressLine !== undefined
+      ? addressLine.trim() || null
+      : existingRestaurant.addressLine;
+
+  const finalCity =
+    city !== undefined ? city.trim() || null : existingRestaurant.city;
+
+  const finalState =
+    state !== undefined ? state.trim() || null : existingRestaurant.state;
+
+  // =========================
+  // NUMERIC VALUES
+  // =========================
+
+  const normalizeNumber = (value, existingValue, fieldName) => {
+    if (value === undefined) {
+      return existingValue;
+    }
+
+    if (value === null || value === "" || String(value).trim() === "") {
+      return existingValue;
+    }
+
+    const number = Number(value);
+
+    if (!Number.isFinite(number)) {
+      const error = new Error(`${fieldName} must be a valid number`);
+      error.statusCode = 400;
+      throw error;
+    }
+
+    return number;
+  };
+
+  const finalPincode = normalizeNumber(
+    pincode,
+    existingRestaurant.pincode,
+    "Pincode"
+  );
+
+  const finalLatitude = normalizeNumber(
+    latitude,
+    existingRestaurant.latitude,
+    "Latitude"
+  );
+
+  const finalLongitude = normalizeNumber(
+    longitude,
+    existingRestaurant.longitude,
+    "Longitude"
+  );
+
+  // =========================
+  // TIME VALUES
+  // =========================
+
+  const finalOpeningTime =
+    openingTime !== undefined && openingTime !== ""
+      ? openingTime
+      : existingRestaurant.openingTime;
+
+  const finalClosingTime =
+    closingTime !== undefined && closingTime !== ""
+      ? closingTime
+      : existingRestaurant.closingTime;
+
+  // =========================
+  // NEW LOGO
+  // =========================
+
+  let newLogo = null;
+
+  if (logoFile) {
+    newLogo = await saveImage({
+      file: logoFile,
+      folder: logoFolder,
+    });
+  }
+
+  // =========================
+  // UPDATE
+  // =========================
+
+  try {
+    const result = await pool.query(
+      `
+        UPDATE restaurants
+
+        SET
+          owner_name = $1,
+          restaurant_name = $2,
+          phone = $3,
+          description = $4,
+
+          address_line = $5,
+          city = $6,
+          state = $7,
+          pincode = $8,
+
+          latitude = $9,
+          longitude = $10,
+
+          opening_time = $11,
+          closing_time = $12,
+
+          logo = $13,
+
+          updated_at = CURRENT_TIMESTAMP
+
+        WHERE id = $14
+
+        RETURNING
+          owner_name AS "ownerName",
+          restaurant_name AS "restaurantName",
+          slug,
+          email,
+          phone,
+          description,
+
+          logo,
+          banner,
+
+          address_line AS "addressLine",
+          city,
+          state,
+          pincode,
+
+          latitude,
+          longitude,
+
+          opening_time AS "openingTime",
+          closing_time AS "closingTime",
+
+          is_open AS "isOpen",
+          approval_status AS "approvalStatus",
+          email_verified AS "emailVerified",
+          is_blocked AS "isBlocked",
+
+          updated_at AS "updatedAt"
+      `,
+      [
+        finalOwnerName,
+        finalRestaurantName,
+        finalPhone,
+        finalDescription,
+
+        finalAddressLine,
+        finalCity,
+        finalState,
+        finalPincode,
+
+        finalLatitude,
+        finalLongitude,
+
+        finalOpeningTime,
+        finalClosingTime,
+
+        newLogo || existingRestaurant.logo,
+
+        restaurantId,
+      ]
+    );
+
+    const updatedRestaurant = result.rows[0];
+
+    // =========================
+    // DELETE OLD LOGO
+    // =========================
+
+    if (newLogo && existingRestaurant.logo) {
+      try {
+        await deleteImage(existingRestaurant.logo);
+      } catch (error) {
+        console.error("Old restaurant logo delete failed:", error.message);
+      }
+    }
+
+    return updatedRestaurant;
+  } catch (error) {
+    // DB update fail hua to newly uploaded logo remove
+    if (newLogo) {
+      try {
+        await deleteImage(newLogo);
+      } catch (deleteError) {
+        console.error(
+          "New restaurant logo cleanup failed:",
+          deleteError.message
+        );
+      }
+    }
+
+    throw error;
+  }
 };
 
 //update restaurant status service
@@ -404,12 +629,12 @@ export const updateRestaurantStatusService = async ({
         approval_status AS "approvalStatus",
         updated_at AS "updatedAt"
     `,
-    [isOpen, restaurantId],
+    [isOpen, restaurantId]
   );
 
   if (result.rows.length === 0) {
     const error = new Error(
-      "Approved restaurant not found or restaurant is blocked",
+      "Approved restaurant not found or restaurant is blocked"
     );
 
     error.statusCode = 403;
@@ -433,7 +658,7 @@ export const getRestaurantFoodService = async ({
       FROM foods
       WHERE restaurant_id = $1
     `,
-    [restaurantId],
+    [restaurantId]
   );
 
   const result = await pool.query(
@@ -467,7 +692,7 @@ export const getRestaurantFoodService = async ({
         OFFSET $3
 
     `,
-    [restaurantId, limit, offset],
+    [restaurantId, limit, offset]
   );
 
   const total = countResult.rows[0].total;
@@ -523,7 +748,7 @@ export const getRestaurantFoodBySlugService = async ({
       LIMIT 1
 
     `,
-    [foodSlug, restaurantId],
+    [foodSlug, restaurantId]
   );
 
   if (result.rows.length === 0) {
@@ -578,7 +803,7 @@ export const updateFoodService = async ({
 
         LIMIT 1
       `,
-    [foodSlug, restaurantId],
+    [foodSlug, restaurantId]
   );
 
   if (existingResult.rows.length === 0) {
@@ -621,7 +846,7 @@ export const updateFoodService = async ({
 
           LIMIT 1
         `,
-      [restaurantId, finalName, existingFood.id],
+      [restaurantId, finalName, existingFood.id]
     );
 
     if (duplicateResult.rows.length > 0) {
@@ -651,7 +876,7 @@ export const updateFoodService = async ({
 
           LIMIT 1
         `,
-      [categorySlug.trim()],
+      [categorySlug.trim()]
     );
 
     if (categoryResult.rows.length === 0) {
@@ -701,7 +926,7 @@ export const updateFoodService = async ({
       finalDiscountPrice >= finalPrice)
   ) {
     const error = new Error(
-      "Discount price must be greater than 0 and less than regular price",
+      "Discount price must be greater than 0 and less than regular price"
     );
 
     error.statusCode = 400;
@@ -830,7 +1055,7 @@ export const updateFoodService = async ({
 
         existingFood.id,
         restaurantId,
-      ],
+      ]
     );
 
     if (newImage && existingFood.image) {
@@ -870,7 +1095,7 @@ export const deleteFoodService = async ({ restaurantId, foodSlug }) => {
         slug,
         image
     `,
-    [foodSlug, restaurantId],
+    [foodSlug, restaurantId]
   );
 
   if (result.rows.length === 0) {
@@ -929,12 +1154,428 @@ export const getPublicRestaurantBySlugService = async ({ restaurantSlug }) => {
 
       LIMIT 1
     `,
-    [restaurantSlug],
+    [restaurantSlug]
   );
 
   if (result.rows.length === 0) {
     const error = new Error("Restaurant not found");
 
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return result.rows[0];
+};
+
+// get rstaurants
+
+export const getRestaurantsService = async ({ page = 1, limit = 20 }) => {
+  // =========================
+  // PAGINATION
+  // =========================
+
+  const currentPage = Math.max(Number(page) || 1, 1);
+
+  const currentLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
+
+  const offset = (currentPage - 1) * currentLimit;
+
+  // =========================
+  // GET RESTAURANTS
+  // =========================
+
+  const restaurantsResult = await pool.query(
+    `
+      SELECT
+        restaurant_name AS "restaurantName",
+
+        slug,
+
+        description,
+
+        logo,
+        banner,
+
+        address_line AS "addressLine",
+
+        city,
+
+        state,
+
+        pincode,
+
+        is_open AS "isOpen"
+
+      FROM restaurants
+
+      WHERE
+        approval_status = 'APPROVED'
+
+        AND is_blocked = false
+
+      ORDER BY
+        created_at DESC
+
+      LIMIT $1
+      OFFSET $2
+      `,
+    [currentLimit, offset]
+  );
+
+  // =========================
+  // TOTAL RESTAURANTS
+  // =========================
+
+  const countResult = await pool.query(
+    `
+      SELECT
+        COUNT(*)::int AS total
+
+      FROM restaurants
+
+      WHERE
+        approval_status = 'APPROVED'
+
+        AND is_blocked = false
+      `
+  );
+
+  const total = countResult.rows[0]?.total || 0;
+
+  return {
+    restaurants: restaurantsResult.rows,
+
+    pagination: {
+      page: currentPage,
+
+      limit: currentLimit,
+
+      total,
+
+      totalPages: Math.ceil(total / currentLimit),
+    },
+  };
+};
+
+// get restaurants dashboard
+export const getRestaurantDashboardService = async ({ restaurantId }) => {
+  // =========================================
+  // RESTAURANT
+  // =========================================
+
+  const restaurantResult = await pool.query(
+    `
+          SELECT
+            restaurant_name
+              AS "restaurantName",
+
+            is_open
+              AS "isOpen"
+
+          FROM restaurants
+
+          WHERE id = $1
+
+          LIMIT 1
+        `,
+    [restaurantId]
+  );
+
+  if (restaurantResult.rows.length === 0) {
+    const error = new Error("Restaurant not found");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  // =========================================
+  // ORDER STATS
+  // =========================================
+
+  const orderStatsResult = await pool.query(
+    `
+          SELECT
+
+            -- TODAY ORDERS
+            (
+              COUNT(*)
+              FILTER (
+                WHERE
+                  created_at >=
+                    CURRENT_DATE
+
+                AND
+                  created_at <
+                    CURRENT_DATE
+                    + INTERVAL '1 day'
+              )
+            )::int
+              AS "todayOrders",
+
+
+            -- TODAY NEW / PLACED
+            (
+              COUNT(*)
+              FILTER (
+                WHERE
+                  status = 'PLACED'
+
+                AND
+                  created_at >=
+                    CURRENT_DATE
+
+                AND
+                  created_at <
+                    CURRENT_DATE
+                    + INTERVAL '1 day'
+              )
+            )::int
+              AS "todayNewOrders",
+
+
+            -- ACTIVE ORDERS
+            (
+              COUNT(*)
+              FILTER (
+                WHERE status IN (
+                  'PLACED',
+                  'CONFIRMED',
+                  'PREPARING',
+                  'READY_FOR_PICKUP',
+                  'DELIVERY_ASSIGNED',
+                  'PICKED_UP',
+                  'OUT_FOR_DELIVERY'
+                )
+              )
+            )::int
+              AS "activeOrders",
+
+
+            -- PIPELINE
+            (
+              COUNT(*)
+              FILTER (
+                WHERE status = 'PLACED'
+              )
+            )::int
+              AS "placed",
+
+
+            (
+              COUNT(*)
+              FILTER (
+                WHERE status = 'CONFIRMED'
+              )
+            )::int
+              AS "confirmed",
+
+
+            (
+              COUNT(*)
+              FILTER (
+                WHERE status = 'PREPARING'
+              )
+            )::int
+              AS "preparing",
+
+
+            (
+              COUNT(*)
+              FILTER (
+                WHERE
+                  status =
+                    'READY_FOR_PICKUP'
+              )
+            )::int
+              AS "readyForPickup"
+
+          FROM orders
+
+          WHERE
+            restaurant_id = $1 AND status <> 'PAYMENT_PENDING'
+        `,
+    [restaurantId]
+  );
+
+  // =========================================
+  // FOOD STATS
+  // =========================================
+
+  const foodStatsResult = await pool.query(
+    `
+          SELECT
+
+            COUNT(*)::int
+              AS "totalFoods",
+
+            (
+              COUNT(*)
+              FILTER (
+                WHERE
+                  is_available = true
+              )
+            )::int
+              AS "activeFoods"
+
+          FROM foods
+
+          WHERE
+            restaurant_id = $1
+        `,
+    [restaurantId]
+  );
+
+  // =========================================
+  // RECENT ORDERS
+  // =========================================
+
+  const recentOrdersResult = await pool.query(
+    `
+          SELECT
+
+            o.order_number
+              AS "orderNumber",
+
+            o.status,
+
+            o.total_amount
+              AS "totalAmount",
+
+            o.created_at
+              AS "createdAt",
+
+            og.delivery_name
+              AS "customerName"
+
+          FROM orders o
+
+          INNER JOIN order_groups og
+            ON
+              og.id =
+              o.order_group_id
+
+          WHERE
+            o.restaurant_id = $1 AND o.status <> 'PAYMENT_PENDING'
+
+          ORDER BY
+            o.created_at DESC
+
+          LIMIT 5
+        `,
+    [restaurantId]
+  );
+
+  const orderStats = orderStatsResult.rows[0];
+
+  const foodStats = foodStatsResult.rows[0];
+
+  // =========================================
+  // FINAL RESPONSE
+  // =========================================
+
+  return {
+    restaurant: restaurantResult.rows[0],
+
+    stats: {
+      todayOrders: orderStats.todayOrders,
+
+      todayNewOrders: orderStats.todayNewOrders,
+
+      activeOrders: orderStats.activeOrders,
+
+      activeFoods: foodStats.activeFoods,
+
+      totalFoods: foodStats.totalFoods,
+
+      /*
+       * Payment module abhi ready
+       * nahi hai.
+       *
+       * Fake revenue nahi bhejna.
+       */
+      revenue: null,
+
+      revenueAvailable: false,
+    },
+
+    pipeline: {
+      placed: orderStats.placed,
+
+      confirmed: orderStats.confirmed,
+
+      preparing: orderStats.preparing,
+
+      readyForPickup: orderStats.readyForPickup,
+    },
+
+    recentOrders: recentOrdersResult.rows,
+  };
+};
+
+// update restaurant current location
+
+export const updateRestaurantLocationService = async ({
+  restaurantId,
+  latitude,
+  longitude,
+}) => {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+  // ==========================================
+  // 1. Location validation
+  // ==========================================
+
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    lat < -90 ||
+    lat > 90 ||
+    lng < -180 ||
+    lng > 180
+  ) {
+    const error = new Error("Invalid restaurant location");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // ==========================================
+  // 2. Update restaurant location
+  // ==========================================
+
+  const result = await pool.query(
+    `
+      UPDATE restaurants
+
+      SET
+        latitude = $1,
+        longitude = $2,
+        location_updated_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+
+      WHERE id = $3
+
+      RETURNING
+        id,
+        latitude,
+        longitude,
+
+        location_updated_at
+          AS "locationUpdatedAt",
+
+        updated_at
+          AS "updatedAt"
+    `,
+    [lat, lng, restaurantId]
+  );
+
+  // ==========================================
+  // 3. Restaurant not found
+  // ==========================================
+
+  if (result.rows.length === 0) {
+    const error = new Error("Restaurant not found");
     error.statusCode = 404;
     throw error;
   }

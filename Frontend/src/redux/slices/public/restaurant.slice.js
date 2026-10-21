@@ -1,78 +1,229 @@
-import { createSlice } from "@reduxjs/toolkit";
+import {
+  createSlice,
+} from "@reduxjs/toolkit";
+
+import {
+  getRestaurants,
+  getRestaurantBySlug,
+} from "../../thunks/public/restaurant.thunk";
+
 
 const initialState = {
-  restaurants: [
-    {
-      slug: "spice-garden",
-      restaurantName: "Spice Garden",
+  // =========================
+  // RESTAURANT LIST
+  // =========================
 
-      description:
-        "Authentic Indian flavours prepared fresh with rich spices and traditional recipes.",
-
-      image:
-        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=80",
-
-      addressLine: "Civil Lines",
-
-      city: "Kanpur",
-
-      state: "Uttar Pradesh",
-
-      isOpen: true,
-    },
-
-    {
-      slug: "urban-bites",
-
-      restaurantName: "Urban Bites",
-
-      description:
-        "Modern comfort food, quick bites and delicious meals for every craving.",
-
-      image:
-        "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=900&q=80",
-
-      addressLine: "Swaroop Nagar",
-
-      city: "Kanpur",
-
-      state: "Uttar Pradesh",
-
-      isOpen: true,
-    },
-
-    {
-      slug: "royal-kitchen",
-
-      restaurantName: "Royal Kitchen",
-
-      description:
-        "A premium dining experience with classic dishes, fresh ingredients and bold taste.",
-
-      image:
-        "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=900&q=80",
-
-      addressLine: "Kakadeo",
-
-      city: "Kanpur",
-
-      state: "Uttar Pradesh",
-
-      isOpen: false,
-    },
-  ],
+  restaurants: [],
 
   fetchLoading: false,
 
   error: null,
+
+  pagination: null,
+
+
+  // =========================
+  // RESTAURANT DETAIL
+  // =========================
+
+  selectedRestaurant: null,
+
+  detailLoading: false,
+
+  detailError: null,
 };
 
-const restaurantSlice = createSlice({
-  name: "publicRestaurant",
 
-  initialState,
+const restaurantSlice =
+  createSlice({
+    name: "publicRestaurant",
 
-  reducers: {},
-});
+    initialState,
 
-export default restaurantSlice.reducer;
+    reducers: {
+      clearSelectedRestaurant:
+        (state) => {
+          state.selectedRestaurant =
+            null;
+
+          state.detailError =
+            null;
+        },
+
+      clearRestaurantError:
+        (state) => {
+          state.error =
+            null;
+
+          state.detailError =
+            null;
+        },
+    },
+
+
+    extraReducers: (
+      builder
+    ) => {
+
+      // =========================
+      // GET RESTAURANTS
+      // =========================
+
+      builder
+        .addCase(
+          getRestaurants.pending,
+
+          (state) => {
+            state.fetchLoading =
+              true;
+
+            state.error =
+              null;
+          }
+        )
+
+        .addCase(
+          getRestaurants.fulfilled,
+
+          (
+            state,
+            action
+          ) => {
+            state.fetchLoading =
+              false;
+
+
+            /*
+              Handles responses like:
+
+              data: {
+                restaurants: [],
+                pagination: {}
+              }
+
+              OR directly:
+              []
+            */
+
+            state.restaurants =
+              action.payload
+                ?.restaurants ??
+              action.payload
+                ?.items ??
+              (
+                Array.isArray(
+                  action.payload
+                )
+                  ? action.payload
+                  : []
+              );
+
+
+            state.pagination =
+              action.payload
+                ?.pagination ??
+              null;
+          }
+        )
+
+        .addCase(
+          getRestaurants.rejected,
+
+          (
+            state,
+            action
+          ) => {
+            state.fetchLoading =
+              false;
+
+            state.error =
+              action.payload ||
+              "Unable to load restaurants";
+          }
+        );
+
+
+      // =========================
+      // GET RESTAURANT DETAIL
+      // =========================
+
+      builder
+        .addCase(
+          getRestaurantBySlug
+            .pending,
+
+          (state) => {
+            state.detailLoading =
+              true;
+
+            state.detailError =
+              null;
+
+            state.selectedRestaurant =
+              null;
+          }
+        )
+
+        .addCase(
+          getRestaurantBySlug
+            .fulfilled,
+
+          (
+            state,
+            action
+          ) => {
+            state.detailLoading =
+              false;
+
+
+            /*
+              Handles:
+
+              data: {
+                restaurant: {...}
+              }
+
+              OR directly:
+              {...}
+            */
+
+            state.selectedRestaurant =
+              action.payload
+                ?.restaurant ??
+              action.payload ??
+              null;
+          }
+        )
+
+        .addCase(
+          getRestaurantBySlug
+            .rejected,
+
+          (
+            state,
+            action
+          ) => {
+            state.detailLoading =
+              false;
+
+            state.detailError =
+              action.payload ||
+              "Unable to load restaurant";
+
+            state.selectedRestaurant =
+              null;
+          }
+        );
+    },
+  });
+
+
+export const {
+  clearSelectedRestaurant,
+  clearRestaurantError,
+} =
+  restaurantSlice.actions;
+
+
+export default
+restaurantSlice.reducer;

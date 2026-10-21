@@ -2,7 +2,7 @@ import { getUserOrdersService } from "../../services/order.service.js";
 
 export const getUserOrders = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.auth.userId;
 
     const page = Math.max(Number.parseInt(req.query.page) || 1, 1);
 

@@ -1,5 +1,5 @@
 import {
-    useState,
+    useEffect
 } from "react";
 
 import {
@@ -41,55 +41,34 @@ import {
 
 
 const Login = () => {
-    const dispatch =
-        useDispatch();
-    const navigate =
-        useNavigate();
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const location = useLocation();
 
-    const location =
-        useLocation();
-
-
-    const {
-        loginLoading,
-        error,
-    } = useSelector(
-        (state) =>
-            state.publicAuth
+    const { loginLoading, error, isAuthenticated } = useSelector(
+        (state) => state.publicAuth,
     );
 
+    useEffect(() => {
+        if (!isAuthenticated) return;
 
-    // =========================
-    // LOGIN
-    // =========================
+        const from = location.state?.from;
 
-  const handleLogin =
-  async (values) => {
-    try {
-      await dispatch(
-        loginUser(values)
-      ).unwrap();
+        const redirectTo =
+            from && from !== "/login"
+                ? from
+                : "/";
 
+        navigate(redirectTo, { replace: true });
+    }, [isAuthenticated, location.state, navigate]);
 
-      const redirectTo =
-        location.state?.from ||
-        "/";
-
-
-      navigate(
-        redirectTo,
-        {
-          replace: true,
+    const handleLogin = async (values) => {
+        try {
+            await dispatch(loginUser(values)).unwrap();
+        } catch {
+            // Redux/thunk error already handle karega
         }
-      );
-    } catch {
-      /*
-        Error Redux me already
-        store ho chuka hai.
-      */
-    }
-  };
-
+    };
 
     return (
         <div
@@ -657,7 +636,7 @@ const Login = () => {
                     pt-5
                   "
                                 >
-                                    <button
+                                    {/* <button
                                         type="button"
 
                                         className="
@@ -671,7 +650,14 @@ const Login = () => {
                     "
                                     >
                                         Forgot password?
-                                    </button>
+                                    </button> */}
+
+                                    <Link
+                                        to="/forgot-password?type=USER"
+                                        className="text-sm font-bold text-orange-600 transition hover:text-orange-700"
+                                    >
+                                        Forgot password?
+                                    </Link>
                                 </div>
                             </div>
 

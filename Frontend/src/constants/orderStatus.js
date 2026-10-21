@@ -1,4 +1,5 @@
 export const ORDER_STATUS = {
+  PAYMENT_PENDING: "PAYMENT_PENDING",
   PLACED: "PLACED",
 
   CONFIRMED: "CONFIRMED",
@@ -35,6 +36,7 @@ export const ACTIVE_ORDER_STATUSES = [
 ];
 
 export const ORDER_STATUS_CONFIG = {
+  PAYMENT_PENDING: { label: "Awaiting payment", className: "bg-amber-50 text-amber-700 border-amber-200" },
   PLACED: {
     label: "Placed",
 

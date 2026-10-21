@@ -1,1079 +1,305 @@
+import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import {
-    FaArrowRight,
-    FaClock,
-    FaMapMarkerAlt,
-    FaMotorcycle,
-    FaPizzaSlice,
-    FaStar,
-    FaUtensils,
-} from "react-icons/fa";
-
-import {
-    Link,
-} from "react-router-dom";
-
+  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  Pause,
+  Play,
+  TicketPercent,
+  MapPin,
+  ShieldCheck,
+  UtensilsCrossed,
+} from "lucide-react";
 import Container from "../../common/Container/Container";
-
-import homeData from "../../../data/public/home.json";
-
-
-const HeroSection = () => {
-    const {
-        hero,
-    } = homeData;
-
-
-    return (
-        <section
-            className="
-        relative
-        overflow-hidden
-
-        bg-[#fffaf5]
-
-        pb-14
-        pt-8
-
-        sm:pb-16
-        sm:pt-12
-
-        lg:pb-24
-        lg:pt-16
-      "
-        >
-            {/* =========================
-          BACKGROUND DECORATION
-      ========================== */}
-
-            <div
-                className="
-          pointer-events-none
-          absolute
-          -left-32
-          top-16
-
-          h-72
-          w-72
-
-          rounded-full
-
-          bg-orange-300/20
-
-          blur-[90px]
-
-          sm:h-96
-          sm:w-96
-        "
-            />
-
-            <div
-                className="
-          pointer-events-none
-          absolute
-          -right-32
-          bottom-10
-
-          h-72
-          w-72
-
-          rounded-full
-
-          bg-rose-300/20
-
-          blur-[100px]
-
-          sm:h-96
-          sm:w-96
-        "
-            />
-
-
-            {/* subtle dots */}
-
-            <div
-                className="
-          pointer-events-none
-          absolute
-          right-[8%]
-          top-16
-
-          hidden
-          grid-cols-4
-          gap-3
-
-          opacity-30
-
-          lg:grid
-        "
-            >
-                {Array.from({
-                    length: 16,
-                }).map(
-                    (_, index) => (
-                        <span
-                            key={index}
-                            className="
-                h-1.5
-                w-1.5
-
-                rounded-full
-
-                bg-orange-400
-              "
-                        />
-                    )
-                )}
-            </div>
-
-
-            <Container>
-                <div
-                    className="
-            relative
-            z-10
-
-            grid
-            items-center
-            gap-12
-
-            lg:grid-cols-[1.02fr_0.98fr]
-            lg:gap-14
-
-            xl:gap-20
-          "
-                >
-                    {/* =====================
-              LEFT CONTENT
-          ====================== */}
-
-                    <div
-                        className="
-              mx-auto
-              max-w-2xl
-
-              text-center
-
-              lg:mx-0
-              lg:text-left
-            "
-                    >
-                        {/* EYEBROW */}
-
-                        <div
-                            className="
-                inline-flex
-                items-center
-                gap-2
-
-                rounded-full
-
-                border
-                border-orange-200
-
-                bg-white/80
-
-                px-3.5
-                py-2
-
-                text-xs
-                font-bold
-                uppercase
-                tracking-[0.12em]
-                text-orange-600
-
-                shadow-sm
-                backdrop-blur
-
-                sm:text-sm
-              "
-                        >
-                            <span
-                                className="
-                  flex
-                  h-7
-                  w-7
-                  items-center
-                  justify-center
-
-                  rounded-full
-
-                  bg-orange-100
-                "
-                            >
-                                <FaUtensils
-                                    className="
-                    h-3
-                    w-3
-                  "
-                                />
-                            </span>
-
-                            {hero.eyebrow}
-                        </div>
-
-
-                        {/* HEADING */}
-
-                        <h1
-                            className="
-                mt-6
-
-                text-[2.55rem]
-                font-black
-                leading-[1.05]
-                tracking-[-0.045em]
-                text-slate-950
-
-                sm:text-5xl
-
-                md:text-6xl
-
-                lg:text-[4rem]
-
-                xl:text-[4.6rem]
-              "
-                        >
-                            {hero.titleStart}
-
-                            <span
-                                className="
-                  relative
-                  mt-1
-                  block
-
-                  bg-gradient-to-r
-                  from-orange-500
-                  via-rose-500
-                  to-orange-500
-
-                  bg-clip-text
-
-                  text-transparent
-                "
-                            >
-                                {hero.titleHighlight}
-
-                                <span
-                                    className="
-                    absolute
-                    -bottom-2
-                    left-1/2
-
-                    h-2
-                    w-32
-
-                    -translate-x-1/2
-
-                    rounded-full
-
-                    bg-gradient-to-r
-                    from-orange-400/0
-                    via-orange-400/40
-                    to-orange-400/0
-
-                    blur-sm
-
-                    lg:left-0
-                    lg:translate-x-0
-                  "
-                                />
-                            </span>
-                        </h1>
-
-
-                        {/* DESCRIPTION */}
-
-                        <p
-                            className="
-                mx-auto
-                mt-6
-                max-w-xl
-
-                text-base
-                leading-7
-                text-slate-600
-
-                sm:text-lg
-                sm:leading-8
-
-                lg:mx-0
-              "
-                        >
-                            {hero.description}
-                        </p>
-
-
-                        {/* CTA */}
-
-                        <div
-                            className="
-                mt-8
-
-                flex
-                flex-col
-                gap-3
-
-                sm:flex-row
-                sm:justify-center
-
-                lg:justify-start
-              "
-                        >
-                            <Link
-                                to="/restaurants"
-
-                                className="
-                  inline-flex
-                  min-h-12
-                  items-center
-                  justify-center
-                  gap-2
-
-                  rounded-2xl
-
-                  bg-gradient-to-r
-                  from-orange-500
-                  to-rose-500
-
-                  px-6
-
-                  text-sm
-                  font-bold
-                  text-white
-
-                  shadow-lg
-                  shadow-orange-500/20
-
-                  transition
-                  duration-200
-
-                  hover:-translate-y-0.5
-                  hover:shadow-xl
-
-                  active:translate-y-0
-                "
-                            >
-                                {hero.primaryButton}
-
-                                <FaArrowRight
-                                    className="
-                    h-3.5
-                    w-3.5
-                  "
-                                />
-                            </Link>
-
-
-                            <Link
-                                to="/restaurant/register"
-
-                                className="
-                  inline-flex
-                  min-h-12
-                  items-center
-                  justify-center
-                  gap-2
-
-                  rounded-2xl
-
-                  border
-                  border-slate-200
-
-                  bg-white
-
-                  px-6
-
-                  text-sm
-                  font-bold
-                  text-slate-800
-
-                  shadow-sm
-
-                  transition
-                  duration-200
-
-                  hover:-translate-y-0.5
-                  hover:border-orange-200
-                  hover:text-orange-600
-                  hover:shadow-md
-                "
-                            >
-                                {hero.secondaryButton}
-                            </Link>
-                        </div>
-
-
-                        {/* QUICK TRUST INFO */}
-
-                        <div
-                            className="
-                mt-8
-
-                grid
-                grid-cols-3
-
-                divide-x
-                divide-slate-200
-
-                rounded-2xl
-
-                border
-                border-slate-200/70
-
-                bg-white/70
-
-                px-2
-                py-4
-
-                shadow-sm
-                backdrop-blur
-
-                sm:max-w-xl
-                sm:px-4
-
-                lg:mx-0
-              "
-                        >
-                            <div
-                                className="
-                  flex
-                  flex-col
-                  items-center
-
-                  px-2
-
-                  lg:items-start
-                  lg:px-3
-                "
-                            >
-                                <div
-                                    className="
-                    flex
-                    items-center
-                    gap-1.5
-
-                    text-sm
-                    font-black
-                    text-slate-900
-
-                    sm:text-base
-                  "
-                                >
-                                    <FaClock
-                                        className="
-                      text-orange-500
-                    "
-                                    />
-
-                                    {hero.deliveryTime}
-                                </div>
-
-                                <span
-                                    className="
-                    mt-1
-
-                    text-[10px]
-                    font-medium
-                    text-slate-400
-
-                    sm:text-xs
-                  "
-                                >
-                                    Avg. delivery
-                                </span>
-                            </div>
-
-
-                            <div
-                                className="
-                  flex
-                  flex-col
-                  items-center
-
-                  px-2
-
-                  lg:items-start
-                  lg:px-3
-                "
-                            >
-                                <div
-                                    className="
-                    flex
-                    items-center
-                    gap-1.5
-
-                    text-sm
-                    font-black
-                    text-slate-900
-
-                    sm:text-base
-                  "
-                                >
-                                    <FaStar
-                                        className="
-                      text-amber-400
-                    "
-                                    />
-
-                                    {hero.rating}
-                                </div>
-
-                                <span
-                                    className="
-                    mt-1
-
-                    text-[10px]
-                    font-medium
-                    text-slate-400
-
-                    sm:text-xs
-                  "
-                                >
-                                    Loved experience
-                                </span>
-                            </div>
-
-
-                            <div
-                                className="
-                  flex
-                  flex-col
-                  items-center
-
-                  px-2
-
-                  lg:items-start
-                  lg:px-3
-                "
-                            >
-                                <div
-                                    className="
-                    flex
-                    items-center
-                    gap-1.5
-
-                    text-sm
-                    font-black
-                    text-slate-900
-
-                    sm:text-base
-                  "
-                                >
-                                    <FaMapMarkerAlt
-                                        className="
-                      text-rose-500
-                    "
-                                    />
-
-                                    Live
-                                </div>
-
-                                <span
-                                    className="
-                    mt-1
-
-                    text-[10px]
-                    font-medium
-                    text-slate-400
-
-                    sm:text-xs
-                  "
-                                >
-                                    {hero.tracking}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    {/* =====================
-              RIGHT VISUAL
-          ====================== */}
-
-                    <div
-                        className="
-              relative
-
-              mx-auto
-              w-full
-              max-w-[520px]
-
-              lg:mx-0
-              lg:max-w-none
-            "
-                    >
-                        {/* MAIN VISUAL */}
-
-                        <div
-                            className="
-                relative
-
-                mx-auto
-
-                aspect-square
-
-                w-[88%]
-                max-w-[480px]
-
-                sm:w-[82%]
-
-                lg:w-full
-              "
-                        >
-                            {/* OUTER CIRCLE */}
-
-                            <div
-                                className="
-                  absolute
-                  inset-[4%]
-
-                  rounded-full
-
-                  border
-                  border-orange-200/70
-
-                  bg-gradient-to-br
-                  from-orange-100
-                  via-white
-                  to-rose-100
-
-                  shadow-[0_30px_100px_rgba(249,115,22,0.15)]
-                "
-                            />
-
-
-                            {/* ROTATING-LIKE DASHED RING */}
-
-                            <div
-                                className="
-                  absolute
-                  inset-[10%]
-
-                  rounded-full
-
-                  border-2
-                  border-dashed
-                  border-orange-300/50
-                "
-                            />
-
-
-                            {/* CENTRAL FOOD PLATE */}
-
-                            <div
-                                className="
-                  absolute
-                  left-1/2
-                  top-1/2
-
-                  flex
-                  h-[56%]
-                  w-[56%]
-
-                  -translate-x-1/2
-                  -translate-y-1/2
-
-                  items-center
-                  justify-center
-
-                  rounded-full
-
-                  border-[10px]
-                  border-white
-
-                  bg-gradient-to-br
-                  from-orange-500
-                  to-rose-500
-
-                  shadow-2xl
-                  shadow-orange-500/25
-
-                  sm:border-[14px]
-                "
-                            >
-                                <div
-                                    className="
-                    flex
-                    h-[75%]
-                    w-[75%]
-                    items-center
-                    justify-center
-
-                    rounded-full
-
-                    bg-white/95
-
-                    shadow-inner
-                  "
-                                >
-                                    <FaPizzaSlice
-                                        className="
-                      h-[46%]
-                      w-[46%]
-
-                      -rotate-12
-
-                      text-orange-500
-
-                      drop-shadow-lg
-                    "
-                                    />
-                                </div>
-                            </div>
-
-
-                            {/* FLOATING FOOD ICON */}
-
-                            <div
-                                className="
-                  absolute
-                  right-[8%]
-                  top-[15%]
-
-                  flex
-                  h-14
-                  w-14
-                  items-center
-                  justify-center
-
-                  rounded-2xl
-
-                  border
-                  border-orange-100
-
-                  bg-white
-
-                  text-orange-500
-
-                  shadow-xl
-                  shadow-slate-900/10
-
-                  sm:h-16
-                  sm:w-16
-                "
-                            >
-                                <FaUtensils
-                                    className="
-                    h-5
-                    w-5
-
-                    sm:h-6
-                    sm:w-6
-                  "
-                                />
-                            </div>
-
-
-                            {/* DELIVERY CARD */}
-
-                            <div
-                                className="
-                  absolute
-                  bottom-[10%]
-                  left-0
-
-                  w-[72%]
-
-                  rounded-2xl
-
-                  border
-                  border-white/80
-
-                  bg-white/95
-
-                  p-3
-
-                  shadow-2xl
-                  shadow-slate-900/10
-
-                  backdrop-blur
-
-                  sm:w-[66%]
-                  sm:p-4
-                "
-                            >
-                                <div
-                                    className="
-                    flex
-                    items-center
-                    gap-3
-                  "
-                                >
-                                    <span
-                                        className="
-                      flex
-                      h-11
-                      w-11
-                      shrink-0
-                      items-center
-                      justify-center
-
-                      rounded-xl
-
-                      bg-gradient-to-br
-                      from-orange-500
-                      to-rose-500
-
-                      text-white
-
-                      shadow-md
-                    "
-                                    >
-                                        <FaMotorcycle
-                                            className="
-                        h-5
-                        w-5
-                      "
-                                        />
-                                    </span>
-
-
-                                    <div
-                                        className="
-                      min-w-0
-                      flex-1
-                    "
-                                    >
-                                        <div
-                                            className="
-                        flex
-                        items-center
-                        justify-between
-                        gap-2
-                      "
-                                        >
-                                            <p
-                                                className="
-                          truncate
-
-                          text-xs
-                          font-bold
-                          text-slate-900
-
-                          sm:text-sm
-                        "
-                                            >
-                                                {hero.orderTitle}
-                                            </p>
-
-                                            <span
-                                                className="
-                          h-2
-                          w-2
-                          shrink-0
-
-                          rounded-full
-
-                          bg-green-500
-
-                          ring-4
-                          ring-green-100
-                        "
-                                            />
-                                        </div>
-
-                                        <p
-                                            className="
-                        mt-1
-
-                        line-clamp-1
-
-                        text-[10px]
-                        text-slate-500
-
-                        sm:text-xs
-                      "
-                                        >
-                                            {hero.orderDescription}
-                                        </p>
-                                    </div>
-                                </div>
-
-
-                                {/* PROGRESS */}
-
-                                <div
-                                    className="
-                    mt-3
-
-                    flex
-                    items-center
-                    gap-2
-                  "
-                                >
-                                    <span
-                                        className="
-                      h-1.5
-                      flex-1
-
-                      rounded-full
-
-                      bg-orange-500
-                    "
-                                    />
-
-                                    <span
-                                        className="
-                      h-1.5
-                      flex-1
-
-                      rounded-full
-
-                      bg-orange-500
-                    "
-                                    />
-
-                                    <span
-                                        className="
-                      h-1.5
-                      flex-1
-
-                      rounded-full
-
-                      bg-orange-200
-                    "
-                                    />
-
-                                    <span
-                                        className="
-                      h-1.5
-                      flex-1
-
-                      rounded-full
-
-                      bg-slate-100
-                    "
-                                    />
-                                </div>
-                            </div>
-
-
-                            {/* TIME CARD */}
-
-                            <div
-                                className="
-                  absolute
-                  left-[5%]
-                  top-[18%]
-
-                  rounded-2xl
-
-                  border
-                  border-white
-
-                  bg-white/95
-
-                  px-3
-                  py-2.5
-
-                  shadow-xl
-                  shadow-slate-900/10
-
-                  sm:px-4
-                  sm:py-3
-                "
-                            >
-                                <div
-                                    className="
-                    flex
-                    items-center
-                    gap-2
-                  "
-                                >
-                                    <span
-                                        className="
-                      flex
-                      h-8
-                      w-8
-                      items-center
-                      justify-center
-
-                      rounded-lg
-
-                      bg-amber-100
-
-                      text-amber-600
-                    "
-                                    >
-                                        <FaClock
-                                            className="
-                        h-3.5
-                        w-3.5
-                      "
-                                        />
-                                    </span>
-
-                                    <div>
-                                        <p
-                                            className="
-                        text-[10px]
-                        font-medium
-                        text-slate-400
-
-                        sm:text-xs
-                      "
-                                        >
-                                            Arriving in
-                                        </p>
-
-                                        <p
-                                            className="
-                        text-xs
-                        font-black
-                        text-slate-900
-
-                        sm:text-sm
-                      "
-                                        >
-                                            12 min
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-
-                            {/* LOCATION PIN */}
-
-                            <div
-                                className="
-                  absolute
-                  bottom-[27%]
-                  right-[3%]
-
-                  flex
-                  h-11
-                  w-11
-                  items-center
-                  justify-center
-
-                  rounded-2xl
-
-                  bg-slate-950
-
-                  text-white
-
-                  shadow-xl
-
-                  sm:h-12
-                  sm:w-12
-                "
-                            >
-                                <FaMapMarkerAlt
-                                    className="
-                    h-4
-                    w-4
-
-                    text-orange-400
-                  "
-                                />
-                            </div>
-                        </div>
-                    </div>
+import Button from "../../common/Button/Button";
+import OptimizedImage from "../../common/OptimizedImage/OptimizedImage";
+import heroImage from "../../../assets/hero.png";
+
+export default function HeroSection({ foods = [] }) {
+  const { settings, offers = [] } = useSelector((state) => state.siteSettings);
+  const navigate = useNavigate();
+  const [index, setIndex] = useState(0),
+    [paused, setPaused] = useState(false),
+    [hovered, setHovered] = useState(false),
+    [copied, setCopied] = useState("");
+  const [now,setNow]=useState(()=>Date.now());
+  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),30000);return ()=>clearInterval(timer);},[]);
+  const liveOffers = settings.couponsEnabled
+    ? offers
+        .filter(
+          (offer) =>
+            offer.isActive !== false &&
+            (!offer.startsAt || new Date(offer.startsAt).getTime() <= now) &&
+            (!offer.expiresAt || new Date(offer.expiresAt).getTime() > now)
+        )
+        .slice(0, 4)
+    : [];
+  const slides = [
+    {
+      id: "welcome",
+      eyebrow: settings.heroEyebrow,
+      title: settings.heroTitle,
+      highlight: settings.heroHighlight,
+      description: settings.heroDescription,
+      image: settings.heroImage || heroImage,
+      cta: settings.heroButtonText,
+      path: "/restaurants",
+      kind: "brand",
+    },
+    ...liveOffers.map((offer) => ({
+      id: `offer-${offer.id}`,
+      eyebrow: "A little treat, on us",
+      title:
+        offer.discountType === "PERCENT"
+          ? `${Number(offer.discountValue)}% off`
+          : `?${Number(offer.discountValue)} off`,
+      highlight: offer.title,
+      description:
+        offer.description ||
+        "Something delicious tastes even better with a little saving. Apply this code at checkout.",
+      image: settings.heroImage || heroImage,
+      cta: "Find your favourites",
+      path: "/search",
+      offer,
+      kind: "offer",
+    })),
+    ...foods
+      .filter((food) => food.image && food.isAvailable !== false)
+      .slice(0, 2)
+      .map((food) => ({
+        id: food.slug,
+        eyebrow: "On the menu today",
+        title: food.name,
+        highlight: food.restaurantName || "Made for your cravings.",
+        description:
+          food.description ||
+          "Discover a new favourite, freshly prepared by a local kitchen.",
+        image: food.image,
+        cta: "Take a closer look",
+        path: `/foods/${food.slug}`,
+        kind: "food",
+      })),
+  ];
+  const current = index % slides.length,
+    slide = slides[current];
+  const move = (step) => {
+    setIndex((value) => (value + step + slides.length) % slides.length);
+    setCopied("");
+  };
+  useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (paused || hovered || slides.length < 2 || reduced.matches) return;
+    const timer = setInterval(() => {
+      if (!document.hidden) setIndex((value) => (value + 1) % slides.length);
+    }, 6500);
+    const stop = () => {
+      if (reduced.matches) clearInterval(timer);
+    };
+    reduced.addEventListener("change", stop);
+    return () => {
+      clearInterval(timer);
+      reduced.removeEventListener("change", stop);
+    };
+  }, [paused, hovered, slides.length]);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(slide.offer.code);
+      setCopied(slide.offer.code);
+    } catch {
+      setCopied(`Use ${slide.offer.code} at checkout`);
+    }
+  };
+  return (
+    <section
+      className="bg-[#f8f5ef] pb-6 pt-5 sm:pb-10 sm:pt-8"
+      aria-label="Featured food and offers"
+      aria-roledescription="carousel"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocusCapture={() => setHovered(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget))
+          setHovered(false);
+      }}
+    >
+      <Container>
+        <div className="relative isolate overflow-hidden rounded-[2rem] border border-[#e5dfd2] bg-[#eee9dc] sm:rounded-[2.75rem]">
+          <div
+            className="pointer-events-none absolute -right-32 -top-32 h-[650px] w-[650px] rounded-full border-[80px] border-white/25"
+            aria-hidden="true"
+          />
+          <div
+            key={slide.id}
+            className="hero-slide relative grid min-h-[540px] items-center gap-4 p-6 pb-24 sm:p-10 sm:pb-24 lg:grid-cols-[1.05fr_1fr] lg:gap-10 lg:p-14 lg:pb-24"
+            role="group"
+            aria-roledescription="slide"
+            aria-label={`${current + 1} of ${slides.length}`}
+          >
+            <div className="relative z-10 min-w-0 max-w-xl">
+              <p className="mb-5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.2em] text-[#705b37]">
+                <span className="h-1.5 w-1.5 rounded-full bg-orange-600" />
+                {slide.eyebrow}
+              </p>
+              <h1 className="text-[clamp(2.6rem,5.8vw,5.25rem)] break-words font-black leading-[1.02] tracking-[-.055em] text-[#24251f]">
+                {slide.title}
+                <span className="mt-1 block font-serif font-medium italic text-[#bd481c]">
+                  {slide.highlight}
+                </span>
+              </h1>
+              <p className="mt-6 max-w-md text-base leading-7 text-[#68675d]">
+                {slide.description}
+              </p>
+              {slide.offer && (
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={copy}
+                    className="flex min-h-11 items-center gap-3 rounded-xl border border-dashed border-orange-500 bg-white/65 px-4 py-2 font-bold tracking-wider text-orange-800"
+                  >
+                    <TicketPercent size={18} />
+                    {slide.offer.code}
+                    <span className="text-[10px] font-medium tracking-normal">
+                      Copy code
+                    </span>
+                  </button>
+                  <span className="text-xs text-[#68675d]">
+                    Min. order ?{Number(slide.offer.minOrder || 0)}
+                    {slide.offer.maxDiscount
+                      ? ` ? Up to ?${Number(slide.offer.maxDiscount)}`
+                      : ""}
+                  </span>
+                  <span
+                    role="status"
+                    className="w-full text-xs text-orange-800"
+                  >
+                    {copied === slide.offer.code
+                      ? "Code copied. Apply it at checkout."
+                      : copied}
+                  </span>
                 </div>
-            </Container>
-        </section>
-    );
-};
-
-
-export default HeroSection;
+              )}
+              {liveOffers.length > 0 && slide.kind !== "offer" && (
+                <button
+                  type="button"
+                  onClick={() => setIndex(1)}
+                  className="mt-5 flex min-h-11 items-center gap-2 text-sm font-semibold text-orange-800"
+                >
+                  <TicketPercent size={17} />
+                  {liveOffers[0].title} ? {liveOffers[0].code}
+                  <ChevronRight size={14} />
+                </button>
+              )}
+              <div className="mt-7 flex flex-wrap items-center gap-4">
+                <Button
+                  size="lg"
+                  rightIcon={ArrowUpRight}
+                  className="!rounded-full !bg-[#24251f] px-7 hover:!bg-[#3c4034]"
+                  onClick={() => navigate(slide.path)}
+                >
+                  {slide.cta}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/search")}
+                  className="min-h-11 text-sm font-semibold text-[#494b3e] underline decoration-[#b7b5a8] underline-offset-4"
+                >
+                  Browse the menu
+                </button>
+              </div>
+            </div>
+            <div className="relative mx-auto flex w-full max-w-[480px] items-center justify-center py-5 lg:py-0">
+              <div
+                className="absolute inset-5 rounded-full bg-[#e2d7bb]"
+                aria-hidden="true"
+              />
+              <OptimizedImage
+                src={slide.image}
+                alt={
+                  slide.kind === "food"
+                    ? slide.title
+                    : "Freshly prepared curry, rice and naan"
+                }
+                loading="eager"
+                showLoader={false}
+                objectFit={slide.kind === "food" ? "cover" : "contain"}
+                rounded={
+                  slide.kind === "food" ? "rounded-[2rem]" : "rounded-none"
+                }
+                wrapperClassName="relative w-full bg-transparent"
+                className="h-[270px] w-full sm:h-[360px] lg:h-[405px]"
+              />
+              <span className="absolute bottom-2 left-3 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-xs font-semibold text-[#494b3e] shadow-sm">
+                Good food. Better company.
+              </span>
+            </div>
+          </div>
+          <div className="absolute inset-x-6 bottom-5 flex items-center justify-between border-t border-[#d6cfbd] pt-4 sm:inset-x-10 lg:inset-x-14">
+            <span className="text-[11px] font-bold uppercase tracking-[.16em] text-[#787567]">
+              {String(current + 1).padStart(2, "0")}{" "}
+              <span className="mx-2 text-[#a9a591]">/</span>{" "}
+              {String(slides.length).padStart(2, "0")}
+            </span>
+            <div className="hidden items-center gap-1 sm:flex">
+              {slides.map((item, i) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setIndex(i)}
+                  aria-label={`Show slide ${i + 1}`}
+                  aria-current={current === i ? "true" : undefined}
+                  className="flex h-11 min-w-9 items-center justify-center"
+                >
+                  <span
+                    className={`h-1.5 rounded-full transition-all ${
+                      current === i ? "w-6 bg-[#34382c]" : "w-1.5 bg-[#b2ad9d]"
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1">
+              {[
+                [() => move(-1), ChevronLeft, "Previous slide"],
+                [
+                  () => setPaused((value) => !value),
+                  paused ? Play : Pause,
+                  paused ? "Play slides" : "Pause slides",
+                ],
+                [() => move(1), ChevronRight, "Next slide"],
+              ].map(([action, Icon, label]) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={action}
+                  aria-label={label}
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-[#cfc8b5] text-[#4d5143] transition hover:bg-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
+                >
+                  <Icon size={16} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap justify-center gap-x-10 gap-y-3 px-2 pt-6 text-xs font-medium text-[#77776c] sm:text-sm">
+          {[
+            [UtensilsCrossed, "Local kitchens, lovely food"],
+            [MapPin, "Track every delivery"],
+            [
+              ShieldCheck,
+              settings.onlineEnabled
+                ? "Secure checkout with Razorpay"
+                : "Cash on delivery available",
+            ],
+          ].map(([Icon, label]) => (
+            <span key={label} className="flex items-center gap-2">
+              <Icon size={16} className="text-[#777f5b]" />
+              {label}
+            </span>
+          ))}
+        </div>
+      </Container>
+    </section>
+  );
+}
