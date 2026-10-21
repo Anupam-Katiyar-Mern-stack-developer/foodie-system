@@ -7,19 +7,17 @@ import { showErrorToast, showSuccessToast } from "../../../utils/toast";
 export const getDeliveryHistory = createAsyncThunk(
   "deliveryHistory/getDeliveryHistory",
 
-  async (params = {}, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue, signal }) => {
     try {
-      const response = await getDeliveryHistoryService(params);
-
-    
+      const response = await getDeliveryHistoryService(params, signal);
 
       return response?.data || response;
     } catch (error) {
       const message = getErrorMessage(error, "Unable to load delivery history");
 
-      showErrorToast(message);
+      if (!signal.aborted) showErrorToast(message);
 
       return rejectWithValue(message);
     }
-  },
+  }
 );

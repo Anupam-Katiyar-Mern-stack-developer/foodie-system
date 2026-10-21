@@ -467,11 +467,11 @@ const PublicNavbar = ({
 
           border-b
 
-          border-orange-100/80
+          border-[#e6e4da]
 
 
 
-          bg-[#fffaf5]/95
+          bg-[#faf9f6]/95
 
 
 
@@ -494,11 +494,11 @@ const PublicNavbar = ({
 
 
 
-            from-orange-500
+            from-[#63764b]
 
-            via-rose-500
+            via-[#ad9c75]
 
-            to-amber-400
+            to-[#d6c9ab]
 
           "
         />

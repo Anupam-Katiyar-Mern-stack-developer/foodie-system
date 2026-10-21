@@ -1,11 +1,6 @@
-import {
-  useEffect,
-} from "react";
+import { useEffect } from "react";
 
-import {
-  useDispatch,
-  useSelector,
-} from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 import HeroSection from "../../../components/public/home/HeroSection";
 import CategorySection from "../../../components/public/home/CategorySection";
@@ -13,28 +8,19 @@ import PopularRestaurantsSection from "../../../components/public/home/PopularRe
 import PopularFoodsSection from "../../../components/public/home/PopularFoodsSection";
 import HowItWorksSection from "../../../components/public/home/HowItWorksSection";
 import PartnerCTASection from "../../../components/public/home/PartnerCTASection";
-import LiveTrackingSection from "../../../components/public/home/LiveTrackingSection";
 
-import {
-  addCartItem,
-} from "../../../redux/thunks/public/cart.thunk";
+import { addCartItem } from "../../../redux/thunks/public/cart.thunk";
 
-import {
-  getRestaurants,
-} from "../../../redux/thunks/public/restaurant.thunk";
+import { getRestaurants } from "../../../redux/thunks/public/restaurant.thunk";
 
-import {
-  getFoods,
-} from "../../../redux/thunks/public/food.thunk";
+import { getFoods } from "../../../redux/thunks/public/food.thunk";
 
-import {
-  getCategories,
-} from "../../../redux/thunks/public/category.thunk";
+import { fetchSiteSettings } from "../../../redux/thunks/public/setting.thunk";
+
+import { getCategories } from "../../../redux/thunks/public/category.thunk";
 
 const Home = () => {
-  const dispatch =
-    useDispatch();
-
+  const dispatch = useDispatch();
 
   // =========================
   // CATEGORY STATE
@@ -43,13 +29,8 @@ const Home = () => {
   const {
     categories,
 
-    fetchLoading:
-    categoryLoading,
-  } = useSelector(
-    (state) =>
-      state.publicCategory
-  );
-
+    fetchLoading: categoryLoading,
+  } = useSelector((state) => state.publicCategory);
 
   // =========================
   // RESTAURANT STATE
@@ -58,13 +39,8 @@ const Home = () => {
   const {
     restaurants,
 
-    fetchLoading:
-    restaurantLoading,
-  } = useSelector(
-    (state) =>
-      state.publicRestaurant
-  );
-
+    fetchLoading: restaurantLoading,
+  } = useSelector((state) => state.publicRestaurant);
 
   // =========================
   // FOOD STATE
@@ -73,102 +49,69 @@ const Home = () => {
   const {
     foods,
 
-    fetchLoading:
-    foodLoading,
-  } = useSelector(
-    (state) =>
-      state.publicFood
-  );
-
+    fetchLoading: foodLoading,
+  } = useSelector((state) => state.publicFood);
 
   // =========================
   // FETCH HOME DATA
   // =========================
 
   useEffect(() => {
+    const offersTimer = setInterval(() => {
+      if (!document.hidden) dispatch(fetchSiteSettings());
+    }, 60000);
     dispatch(
       getCategories({
         page: 1,
         limit: 6,
       })
     );
-    dispatch(
-      getRestaurants()
-    );
+    dispatch(getRestaurants());
 
-    dispatch(
-      getFoods()
-    );
+    dispatch(getFoods());
+    return () => clearInterval(offersTimer);
   }, [dispatch]);
-
 
   // =========================
   // ADD TO CART
   // =========================
 
-  const handleAddToCart =
-    async (food) => {
-      try {
-        await dispatch(
-          addCartItem({
-            foodSlug:
-              food.slug,
+  const handleAddToCart = async (food) => {
+    try {
+      await dispatch(
+        addCartItem({
+          foodSlug: food.slug,
 
-            quantity: 1,
-          })
-        ).unwrap();
-
-      } catch (error) {
-        console.error(
-          "ADD CART ERROR:",
-          error
-        );
-      }
-    };
-
+          quantity: 1,
+        })
+      ).unwrap();
+    } catch (error) {
+      console.error("ADD CART ERROR:", error);
+    }
+  };
 
   return (
-    <>
-      <HeroSection />
+    <div className="bg-[#faf9f6]">
+      <HeroSection foods={foods || []} />
 
-      <CategorySection
-        categories={
-          categories
-        }
-        loading={
-          categoryLoading
-        }
+      <CategorySection categories={categories} loading={categoryLoading} />
+
+      <PopularFoodsSection
+        foods={foods}
+        loading={foodLoading}
+        onAddToCart={handleAddToCart}
       />
 
       <PopularRestaurantsSection
-        restaurants={
-          restaurants
-        }
-        loading={
-          restaurantLoading
-        }
-      />
-
-      <PopularFoodsSection
-        foods={
-          foods
-        }
-        loading={
-          foodLoading
-        }
-        onAddToCart={
-          handleAddToCart
-        }
+        restaurants={restaurants}
+        loading={restaurantLoading}
       />
 
       <HowItWorksSection />
 
-      <LiveTrackingSection />
-
       <PartnerCTASection />
-    </>
+    </div>
   );
 };
-
 
 export default Home;

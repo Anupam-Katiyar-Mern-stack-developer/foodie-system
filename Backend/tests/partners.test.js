@@ -417,6 +417,158 @@ test("partner registration, logo upload and delivery assignment use an isolated 
       ).rows[0].assigned_delivery_agent_id,
       riderId
     );
+
+    // Search must cover the full database result, with status/payment filters
+    // and pagination sharing exactly the same predicates.
+    const { getRestaurantOrdersService } = await import(
+      "../services/order.service.js"
+    );
+    const { getAdminListService } = await import(
+      "../services/admin.service.js"
+    );
+    for (let i = 0; i < 24; i++) {
+      const record = (
+        await pool.query(
+          `INSERT INTO orders(order_number,order_group_id,restaurant_id,status,subtotal,delivery_fee,tax_amount,total_amount,assigned_delivery_agent_id) VALUES($1,$2,$3,$4,100,20,0,120,$5) RETURNING id`,
+          [
+            `FILTER-${i}`,
+            group.id,
+            restaurantId,
+            i % 2 ? "CANCELLED" : "DELIVERED",
+            riderId,
+          ]
+        )
+      ).rows[0];
+      await pool.query(
+        "INSERT INTO delivery_assignments(order_id,delivery_agent_id,status) VALUES($1,$2,'ACCEPTED')",
+        [record.id, riderId]
+      );
+    }
+    const filter = {
+      restaurantId,
+      page: 1,
+      limit: 5,
+      status: "ALL",
+      search: "FILTER-23",
+    };
+    const found = await getRestaurantOrdersService(filter);
+    assert.equal(found.pagination.total, 1);
+    assert.equal(found.orders[0].orderNumber, "FILTER-23");
+    assert.equal(
+      (await getRestaurantOrdersService({ ...filter, status: "DELIVERED" }))
+        .pagination.total,
+      0
+    );
+    assert.equal(
+      (await getRestaurantOrdersService({ ...filter, search: "%" })).pagination
+        .total,
+      0
+    );
+    const pageOne = await getRestaurantOrdersService({
+      ...filter,
+      search: "FILTER-",
+      status: "DELIVERED",
+    });
+    const pageTwo = await getRestaurantOrdersService({
+      ...filter,
+      search: "FILTER-",
+      status: "DELIVERED",
+      page: 2,
+    });
+    assert.equal(pageOne.pagination.total, 12);
+    assert.equal(pageOne.pagination.totalPages, 3);
+    assert.ok(
+      pageTwo.orders.every(
+        (row) =>
+          !pageOne.orders.some((first) => first.orderNumber === row.orderNumber)
+      )
+    );
+    const adminFound = await getAdminListService("orders", {
+      search: "FILTER-23",
+      status: "CANCELLED",
+      paymentMethod: "COD",
+      paymentStatus: "PENDING",
+      page: 1,
+      limit: 5,
+    });
+    assert.equal(adminFound.pagination.total, 1);
+    assert.equal(
+      (
+        await getAdminListService("orders", {
+          search: "FILTER-23",
+          paymentMethod: "ONLINE",
+        })
+      ).pagination.total,
+      0
+    );
+    assert.equal(
+      (await getAdminListService("orders", { search: "%" })).pagination.total,
+      0
+    );
+    await assert.rejects(
+      () => getAdminListService("orders", { paymentStatus: "INVALID" }),
+      /Invalid paymentStatus/
+    );
+    const history = await delivery.getDeliveryHistoryService({
+      deliveryAgentId: riderId,
+      status: "ALL",
+      search: "FILTER-23",
+      page: 1,
+      limit: 5,
+    });
+    assert.equal(history.pagination.total, 1);
+    assert.equal(history.deliveries[0].status, "CANCELLED");
+    assert.equal(
+      (
+        await delivery.getDeliveryHistoryService({
+          deliveryAgentId: riderId,
+          status: "DELIVERED",
+          search: "FILTER-",
+          page: 2,
+          limit: 5,
+        })
+      ).deliveries.length,
+      5
+    );
+    assert.equal(
+      (
+        await delivery.getDeliveryHistoryService({
+          deliveryAgentId: riderId,
+          status: "ALL",
+          search: "%",
+          page: 1,
+          limit: 5,
+        })
+      ).pagination.total,
+      0
+    );
+    const httpSearch = await request(
+      "/api/restaurant/orders?search=FILTER-23&status=CANCELLED&page=1&limit=5",
+      undefined,
+      token,
+      "GET"
+    );
+    assert.equal(httpSearch.status, 200);
+    assert.equal(httpSearch.body.pagination.total, 1);
+    const matchingPayments=await request('/api/restaurant/orders?status=CANCELLED&paymentMethod=COD&paymentStatus=PENDING&search=FILTER-23',undefined,token,'GET');
+    assert.equal(matchingPayments.status,200);assert.equal(matchingPayments.body.data.length,1);
+    const noMatches=await request('/api/restaurant/orders?status=CANCELLED&paymentMethod=ONLINE&search=FILTER-23',undefined,token,'GET');
+    assert.equal(noMatches.status,200);assert.deepEqual(noMatches.body.data,[]);assert.equal(noMatches.body.pagination.total,0);
+    const cleared=await request('/api/restaurant/orders?status=ALL&paymentMethod=ALL&paymentStatus=ALL',undefined,token,'GET');
+    assert.equal(cleared.status,200);assert.equal(cleared.body.pagination.total,25);
+    assert.equal((await request('/api/restaurant/orders?paymentMethod=invalid',undefined,token,'GET')).status,400);
+
+    assert.equal(
+      (
+        await request(
+          "/api/admin/payment-gateway/check",
+          undefined,
+          undefined,
+          "GET"
+        )
+      ).status,
+      401
+    );
   } finally {
     clients.forEach((client) => client.disconnect());
     if (io) await new Promise((resolve) => io.close(resolve));

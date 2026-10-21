@@ -24,6 +24,8 @@ import {
 } from "../../../redux/thunks/admin/admin.thunk";
 import { fetchSiteSettings } from "../../../redux/thunks/public/setting.thunk";
 
+import { adminRequest } from "../../../services/admin/admin.service";
+
 const localDate = (value) =>
   value
     ? new Date(
@@ -34,6 +36,19 @@ const localDate = (value) =>
     : "";
 export default function SiteSettings() {
   const dispatch = useDispatch();
+  const [gateway, setGateway] = useState({ loading: false });
+  const checkGateway = async () => {
+    setGateway({ loading: true });
+    try {
+      const response = await adminRequest("get", "payment-gateway/check");
+      setGateway({ loading: false, data: response.data });
+    } catch (error) {
+      setGateway({
+        loading: false,
+        error: error.response?.data?.message || "Unable to reach Razorpay",
+      });
+    }
+  };
   const [tab, setTab] = useState("branding");
   const [editor, setEditor] = useState(null);
   const state = useSelector((s) => s.admin.resources["site-settings"]);
@@ -109,6 +124,7 @@ export default function SiteSettings() {
         })
       ).unwrap();
       toast.success("Coupon saved");
+      dispatch(fetchSiteSettings());
       setEditor(null);
       dispatch(fetchAdminResource({ resource: "coupons" }));
     } catch (error) {
@@ -204,10 +220,32 @@ export default function SiteSettings() {
                   existingPreview={settings[asset]}
                   disabled={busy}
                   onChange={(file) => upload(asset, file)}
-                  onRemove={() => save({[asset]:""})}
+                  onRemove={() => save({ [asset]: "" })}
                   helperText="JPG, PNG or WebP. Upload saves this image immediately."
                 />
               ))}
+            </div>
+          )}
+          {tab === "ordering" && (
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <div>
+                <p className="font-bold text-slate-900">
+                  Razorpay API connection
+                </p>
+                <p role="status" className="mt-2 text-sm text-slate-600">
+                  {gateway.data
+                    ? `Connected to Razorpay (${gateway.data.mode} mode)`
+                    : gateway.error ||
+                      "After adding backend keys, verify the connection here. No payment is created."}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                loading={gateway.loading}
+                onClick={checkGateway}
+              >
+                Test API connection
+              </Button>
             </div>
           )}
           {tab === "ordering" && (

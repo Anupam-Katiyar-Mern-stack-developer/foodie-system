@@ -1,5 +1,6 @@
 import {
   paymentConfigured,
+  razorpayRequest,
   createPaymentService,
   verifyPaymentService,
   processPaymentWebhook,
@@ -92,6 +93,26 @@ export const getPaymentStatus = async (req, res, next) => {
         .status(404)
         .json({ success: false, message: "Checkout not found" });
     res.json({ success: true, data: rows[0] });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Authenticated admin diagnostic: validates keys against Razorpay without creating a charge.
+export const checkPaymentGateway = async (req, res, next) => {
+  try {
+    await razorpayRequest("orders?count=1");
+    res
+      .set("Cache-Control", "no-store")
+      .json({
+        success: true,
+        data: {
+          connected: true,
+          mode: process.env.RAZORPAY_KEY_ID.startsWith("rzp_live_")
+            ? "live"
+            : "test",
+        },
+      });
   } catch (error) {
     next(error);
   }

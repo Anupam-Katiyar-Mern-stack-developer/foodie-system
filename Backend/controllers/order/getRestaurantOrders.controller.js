@@ -3,13 +3,12 @@ import { getRestaurantOrdersService } from "../../services/order.service.js";
 export const getRestaurantOrders = async (req, res, next) => {
   try {
     const restaurantId = req.restaurant.restaurantId;
-    console.log(restaurantId);
 
     const page = Math.max(Number.parseInt(req.query.page) || 1, 1);
 
     const limit = Math.min(
       Math.max(Number.parseInt(req.query.limit) || 10, 1),
-      50,
+      50
     );
 
     const status = req.query.status
@@ -21,8 +20,11 @@ export const getRestaurantOrders = async (req, res, next) => {
       page,
       limit,
       status,
+      search: String(req.query.search || "").trim(),
+      paymentMethod: req.query.paymentMethod,
+      paymentStatus: req.query.paymentStatus,
     });
-   
+
     return res.status(200).json({
       success: true,
 

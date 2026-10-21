@@ -176,7 +176,7 @@ export const getCouponsService = async (publicOnly = false) =>
     await pool.query(
       `SELECT ${couponFields} FROM coupons ${
         publicOnly
-          ? "WHERE is_active=TRUE AND (starts_at IS NULL OR starts_at<=NOW()) AND (expires_at IS NULL OR expires_at>NOW())"
+          ? "WHERE is_active=TRUE AND (starts_at IS NULL OR starts_at<=NOW()) AND (expires_at IS NULL OR expires_at>NOW()) AND (usage_limit IS NULL OR (SELECT COUNT(*) FROM coupon_redemptions cr WHERE cr.coupon_id=coupons.id)<usage_limit)"
           : ""
       } ORDER BY id DESC`
     )

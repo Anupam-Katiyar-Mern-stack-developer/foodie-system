@@ -51,7 +51,7 @@ const updateOrderInState = (state, updatedOrder) => {
 
   // Update order inside list
   const orderIndex = state.orders.findIndex(
-    (order) => order.orderNumber === updatedOrder.orderNumber,
+    (order) => order.orderNumber === updatedOrder.orderNumber
   );
 
   if (orderIndex !== -1) {
@@ -119,16 +119,18 @@ const restaurantOrderSlice = createSlice({
       .addCase(
         getRestaurantOrders.pending,
 
-        (state) => {
+        (state, action) => {
+          state.listRequestId = action.meta.requestId;
           state.fetchLoading = true;
 
           state.error = null;
-        },
+        }
       )
       .addCase(
         getRestaurantOrders.fulfilled,
 
         (state, action) => {
+          if (state.listRequestId !== action.meta.requestId) return;
           state.fetchLoading = false;
 
           state.error = null;
@@ -155,17 +157,22 @@ const restaurantOrderSlice = createSlice({
 
           state.pagination =
             action.payload?.pagination || initialState.pagination;
-        },
+        }
       )
 
       .addCase(
         getRestaurantOrders.rejected,
 
         (state, action) => {
+          if (state.listRequestId !== action.meta.requestId) return;
+          if (action.meta.aborted) {
+            state.fetchLoading = false;
+            return;
+          }
           state.fetchLoading = false;
 
           state.error = action.payload || "Unable to fetch orders";
-        },
+        }
       );
 
     // =====================================
@@ -183,7 +190,7 @@ const restaurantOrderSlice = createSlice({
           state.detailError = null;
 
           state.selectedOrder = null;
-        },
+        }
       )
 
       .addCase(
@@ -197,7 +204,7 @@ const restaurantOrderSlice = createSlice({
           console.log("SINGLE ORDER PAYLOAD:", action.payload);
 
           state.selectedOrder = action.payload;
-        },
+        }
       )
 
       .addCase(
@@ -207,7 +214,7 @@ const restaurantOrderSlice = createSlice({
           state.detailLoading = false;
 
           state.detailError = action.payload || "Unable to fetch order";
-        },
+        }
       );
 
     // =====================================
@@ -225,7 +232,7 @@ const restaurantOrderSlice = createSlice({
           state.actionError = null;
 
           state.actionOrderNumber = action.meta.arg;
-        },
+        }
       )
 
       .addCase(
@@ -241,7 +248,7 @@ const restaurantOrderSlice = createSlice({
           console.log("ACCEPT ORDER:", action.payload);
 
           updateOrderInState(state, action.payload);
-        },
+        }
       )
 
       .addCase(
@@ -253,7 +260,7 @@ const restaurantOrderSlice = createSlice({
           state.actionOrderNumber = null;
 
           state.actionError = action.payload || "Unable to accept order";
-        },
+        }
       );
 
     // =====================================
@@ -271,7 +278,7 @@ const restaurantOrderSlice = createSlice({
           state.actionError = null;
 
           state.actionOrderNumber = action.meta.arg?.orderNumber || null;
-        },
+        }
       )
 
       .addCase(
@@ -287,7 +294,7 @@ const restaurantOrderSlice = createSlice({
           console.log("REJECT ORDER:", action.payload);
 
           updateOrderInState(state, action.payload);
-        },
+        }
       )
 
       .addCase(
@@ -299,7 +306,7 @@ const restaurantOrderSlice = createSlice({
           state.actionOrderNumber = null;
 
           state.actionError = action.payload || "Unable to reject order";
-        },
+        }
       );
 
     // =====================================
@@ -317,7 +324,7 @@ const restaurantOrderSlice = createSlice({
           state.actionError = null;
 
           state.actionOrderNumber = action.meta.arg;
-        },
+        }
       )
 
       .addCase(
@@ -333,7 +340,7 @@ const restaurantOrderSlice = createSlice({
           console.log("PREPARING ORDER:", action.payload);
 
           updateOrderInState(state, action.payload);
-        },
+        }
       )
 
       .addCase(
@@ -346,7 +353,7 @@ const restaurantOrderSlice = createSlice({
 
           state.actionError =
             action.payload || "Unable to move order to preparing";
-        },
+        }
       );
 
     // =====================================
@@ -364,7 +371,7 @@ const restaurantOrderSlice = createSlice({
           state.actionError = null;
 
           state.actionOrderNumber = action.meta.arg;
-        },
+        }
       )
 
       .addCase(
@@ -380,7 +387,7 @@ const restaurantOrderSlice = createSlice({
           console.log("READY ORDER:", action.payload);
 
           updateOrderInState(state, action.payload);
-        },
+        }
       )
 
       .addCase(
@@ -392,7 +399,7 @@ const restaurantOrderSlice = createSlice({
           state.actionOrderNumber = null;
 
           state.actionError = action.payload || "Unable to mark order ready";
-        },
+        }
       );
   },
 });

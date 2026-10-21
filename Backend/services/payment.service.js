@@ -44,7 +44,15 @@ export const razorpayRequest = async (path, method = "GET", body) => {
       503
     );
   }
-  const data = await response.json();
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    throw fail(
+      "Payment gateway returned an invalid response. Please retry.",
+      502
+    );
+  }
   if (!response.ok) {
     console.error(
       "Razorpay request failed:",

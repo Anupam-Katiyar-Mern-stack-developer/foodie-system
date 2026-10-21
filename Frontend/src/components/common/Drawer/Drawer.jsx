@@ -1,481 +1,152 @@
-import {
-    useEffect,
-    useId,
-    useRef,
-} from "react";
+import { useEffect, useId, useRef } from "react";
+import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 
-import {
-    createPortal,
-} from "react-dom";
-
-import {
-    X,
-} from "lucide-react";
-
-
-const Drawer = ({
-    open,
-    onClose,
-
-    title = "",
-    description = "",
-
-    children,
-    footer = null,
-
-    side = "left",
-    size = "md",
-
-    showCloseButton = true,
-    closeOnBackdrop = true,
-    closeOnEscape = true,
-
-    disableClose = false,
-
-    className = "",
-}) => {
-    const drawerRef =
-        useRef(null);
-
-    const previousFocusedElement =
-        useRef(null);
-
-    const generatedId =
-        useId();
-
-    const titleId =
-        `${generatedId}-title`;
-
-    const descriptionId =
-        `${generatedId}-description`;
-
-
-    const sizes = {
-        sm: "w-[280px]",
-        md: "w-[320px]",
-        lg: "w-[380px]",
-        xl: "w-[440px]",
-        full: "w-full",
+export default function Drawer({
+  open,
+  onClose,
+  title = "",
+  description = "",
+  children,
+  footer = null,
+  side = "left",
+  size = "md",
+  showCloseButton = true,
+  closeOnBackdrop = true,
+  closeOnEscape = true,
+  disableClose = false,
+  className = "",
+  bodyClassName = "p-5 sm:p-7",
+}) {
+  const panel = useRef(null),
+    closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  }, [onClose]);
+  const id = useId();
+  const sizes = {
+    sm: "w-[300px]",
+    md: "w-[380px]",
+    lg: "w-[460px]",
+    xl: "w-[560px]",
+    full: "w-full",
+  };
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.activeElement,
+      overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    panel.current?.focus();
+    return () => {
+      document.body.style.overflow = overflow;
+      previous?.focus?.();
     };
-
-
-    const isRight =
-        side === "right";
-
-
-    const handleClose = () => {
-        if (disableClose) {
-            return;
-        }
-
-        onClose?.();
+  }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const handle = (event) => {
+      if (event.key === "Escape" && closeOnEscape && !disableClose)
+        closeRef.current?.();
+      if (event.key !== "Tab") return;
+      const items = [
+        ...panel.current.querySelectorAll(
+          'button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]'
+        ),
+      ].filter((item) => item.getClientRects().length);
+      if (!items.length) {
+        event.preventDefault();
+        return;
+      }
+      const first = items[0],
+        last = items.at(-1);
+      if (
+        event.shiftKey &&
+        (document.activeElement === first ||
+          document.activeElement === panel.current)
+      ) {
+        event.preventDefault();
+        last.focus();
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last ||
+          document.activeElement === panel.current)
+      ) {
+        event.preventDefault();
+        first.focus();
+      }
     };
-
-
-    // =========================
-    // BODY SCROLL + FOCUS
-    // =========================
-
-    useEffect(() => {
-        if (!open) return;
-
-
-        previousFocusedElement.current =
-            document.activeElement;
-
-
-        const previousOverflow =
-            document.body.style.overflow;
-
-
-        document.body.style.overflow =
-            "hidden";
-
-
-        const timer =
-            setTimeout(() => {
-                const drawer =
-                    drawerRef.current;
-
-                if (!drawer) return;
-
-
-                const firstFocusable =
-                    drawer.querySelector(
-                        `
-              button:not([disabled]),
-              a[href],
-              input:not([disabled]),
-              select:not([disabled]),
-              textarea:not([disabled]),
-              [tabindex]:not([tabindex="-1"])
-            `
-                    );
-
-
-                firstFocusable?.focus();
-
-            }, 0);
-
-
-        return () => {
-            clearTimeout(timer);
-
-            document.body.style.overflow =
-                previousOverflow;
-
-
-            previousFocusedElement.current
-                ?.focus?.();
-        };
-
-    }, [open]);
-
-
-    // =========================
-    // ESC + FOCUS TRAP
-    // =========================
-
-    useEffect(() => {
-        if (!open) return;
-
-
-        const handleKeyDown = (
-            event
-        ) => {
-
-            // ESC
-            if (
-                event.key === "Escape" &&
-                closeOnEscape &&
-                !disableClose
-            ) {
-                event.preventDefault();
-
-                onClose?.();
-
-                return;
-            }
-
-
-            // TAB FOCUS TRAP
-            if (event.key !== "Tab") {
-                return;
-            }
-
-
-            const drawer =
-                drawerRef.current;
-
-            if (!drawer) return;
-
-
-            const focusableElements =
-                drawer.querySelectorAll(
-                    `
-            button:not([disabled]),
-            a[href],
-            input:not([disabled]),
-            select:not([disabled]),
-            textarea:not([disabled]),
-            [tabindex]:not([tabindex="-1"])
-          `
-                );
-
-
-            if (
-                focusableElements.length === 0
-            ) {
-                event.preventDefault();
-                return;
-            }
-
-
-            const firstElement =
-                focusableElements[0];
-
-            const lastElement =
-                focusableElements[
-                focusableElements.length - 1
-                ];
-
-
-            if (
-                event.shiftKey &&
-                document.activeElement ===
-                firstElement
-            ) {
-                event.preventDefault();
-
-                lastElement.focus();
-
-            } else if (
-                !event.shiftKey &&
-                document.activeElement ===
-                lastElement
-            ) {
-                event.preventDefault();
-
-                firstElement.focus();
-            }
-        };
-
-
-        document.addEventListener(
-            "keydown",
-            handleKeyDown
-        );
-
-
-        return () => {
-            document.removeEventListener(
-                "keydown",
-                handleKeyDown
-            );
-        };
-
-    }, [
-        open,
-        closeOnEscape,
-        disableClose,
-        onClose,
-    ]);
-
-
-    if (!open) {
-        return null;
-    }
-
-
-    const content = (
-        <div
-            className="
-        fixed
-        inset-0
-        z-[100]
-      "
-        >
-            {/* =====================
-          BACKDROP
-      ===================== */}
-            <div
-                className="
-          absolute
-          inset-0
-          bg-black/50
-          backdrop-blur-[1px]
-        "
-
-                aria-hidden="true"
-
-                onMouseDown={() => {
-                    if (
-                        closeOnBackdrop &&
-                        !disableClose
-                    ) {
-                        onClose?.();
-                    }
-                }}
-            />
-
-
-            {/* =====================
-          DRAWER
-      ===================== */}
-            <div
-                ref={drawerRef}
-
-                role="dialog"
-                aria-modal="true"
-
-                aria-labelledby={
-                    title
-                        ? titleId
-                        : undefined
-                }
-
-                aria-describedby={
-                    description
-                        ? descriptionId
-                        : undefined
-                }
-
-                className={`
-          absolute
-          inset-y-0
-
-          flex
-          max-w-full
-          flex-col
-
-          bg-white
-          shadow-2xl
-
-          ${isRight
-                        ? "right-0"
-                        : "left-0"
-                    }
-
-          ${sizes[size] ||
-                    sizes.md
-                    }
-
-          ${className}
-        `}
-
-                onMouseDown={(
-                    event
-                ) => {
-                    event.stopPropagation();
-                }}
+    document.addEventListener("keydown", handle);
+    return () => document.removeEventListener("keydown", handle);
+  }, [open, closeOnEscape, disableClose]);
+  if (!open || typeof document === "undefined") return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[100]">
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
+        onMouseDown={() => {
+          if (closeOnBackdrop && !disableClose) onClose?.();
+        }}
+      />
+      <aside
+        ref={panel}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? `${id}-title` : undefined}
+        aria-label={!title ? "Details" : undefined}
+        aria-describedby={description ? `${id}-description` : undefined}
+        className={`drawer-panel absolute inset-y-0 flex max-w-[100vw] flex-col bg-[#fbfaf8] shadow-2xl outline-none sm:my-3 sm:max-w-[calc(100vw-24px)] sm:rounded-3xl ${
+          side === "right" ? "right-0 sm:right-3" : "left-0 sm:left-3"
+        } ${sizes[size] || sizes.md} ${className}`}
+        style={{ "--drawer-direction": side === "right" ? "32px" : "-32px" }}
+      >
+        <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200/70 px-5 py-6 sm:px-7">
+          <div className="min-w-0">
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[.22em] text-orange-700">
+              Record overview
+            </p>
+            {title && (
+              <h2
+                id={`${id}-title`}
+                className="text-2xl font-bold tracking-tight text-slate-950"
+              >
+                {title}
+              </h2>
+            )}
+            {description && (
+              <p
+                id={`${id}-description`}
+                className="mt-2 text-sm leading-6 text-slate-500"
+              >
+                {description}
+              </p>
+            )}
+          </div>
+          {showCloseButton && (
+            <button
+              type="button"
+              aria-label="Close drawer"
+              disabled={disableClose}
+              onClick={onClose}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-orange-50 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:opacity-40"
             >
-                {/* =====================
-            HEADER
-        ===================== */}
-                {(title ||
-                    description ||
-                    showCloseButton) && (
-                        <div
-                            className="
-              flex
-              shrink-0
-              items-start
-              justify-between
-              gap-4
-
-              border-b
-              border-gray-100
-
-              px-4
-              py-4
-            "
-                        >
-                            <div className="min-w-0">
-                                {title && (
-                                    <h2
-                                        id={titleId}
-
-                                        className="
-                    text-lg
-                    font-semibold
-                    text-gray-900
-                  "
-                                    >
-                                        {title}
-                                    </h2>
-                                )}
-
-
-                                {description && (
-                                    <p
-                                        id={descriptionId}
-
-                                        className="
-                    mt-1
-                    text-sm
-                    leading-5
-                    text-gray-500
-                  "
-                                    >
-                                        {description}
-                                    </p>
-                                )}
-                            </div>
-
-
-                            {showCloseButton && (
-                                <button
-                                    type="button"
-
-                                    onClick={
-                                        handleClose
-                                    }
-
-                                    disabled={
-                                        disableClose
-                                    }
-
-                                    aria-label="Close drawer"
-
-                                    className="
-                  inline-flex
-                  h-9
-                  w-9
-                  shrink-0
-                  items-center
-                  justify-center
-
-                  rounded-lg
-
-                  text-gray-500
-
-                  transition
-
-                  hover:bg-gray-100
-                  hover:text-gray-900
-
-                  focus-visible:outline-none
-                  focus-visible:ring-2
-                  focus-visible:ring-orange-500/30
-
-                  disabled:cursor-not-allowed
-                  disabled:opacity-40
-                "
-                                >
-                                    <X
-                                        className="h-5 w-5"
-                                        aria-hidden="true"
-                                    />
-                                </button>
-                            )}
-                        </div>
-                    )}
-
-
-                {/* =====================
-            BODY
-        ===================== */}
-                <div
-                    className="
-            min-h-0
-            flex-1
-            overflow-y-auto
-          "
-                >
-                    {children}
-                </div>
-
-
-                {/* =====================
-            FOOTER
-        ===================== */}
-                {footer && (
-                    <div
-                        className="
-              shrink-0
-
-              border-t
-              border-gray-100
-
-              bg-white
-
-              px-4
-              py-4
-            "
-                    >
-                        {footer}
-                    </div>
-                )}
-            </div>
+              <X size={19} />
+            </button>
+          )}
+        </header>
+        <div
+          className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${bodyClassName}`}
+        >
+          {children}
         </div>
-    );
-
-
-    return createPortal(
-        content,
-        document.body
-    );
-};
-
-
-export default Drawer;
+        {footer && (
+          <footer className="shrink-0 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
+            {footer}
+          </footer>
+        )}
+      </aside>
+    </div>,
+    document.body
+  );
+}

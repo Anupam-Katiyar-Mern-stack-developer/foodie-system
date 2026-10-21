@@ -48,9 +48,13 @@ const formatDate = (date) => {
   }).format(new Date(date));
 };
 
+import Pagination from "../../../components/common/Pagination/Pagination";
+import ErrorState from "../../../components/common/ErrorState/ErrorState";
+
 const DeliveryHistory = () => {
   const dispatch = useDispatch();
 
+  const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
@@ -58,6 +62,8 @@ const DeliveryHistory = () => {
     deliveries,
     stats: historyStats,
     loading,
+    pagination,
+    error,
   } = useSelector((state) => state.deliveryHistory);
 
   // =========================
@@ -65,22 +71,23 @@ const DeliveryHistory = () => {
   // =========================
 
   useEffect(() => {
+    let request;
     const timer = setTimeout(() => {
-      dispatch(
+      request = dispatch(
         getDeliveryHistory({
-          page: 1,
-          limit: 50,
+          page,
+          limit: 15,
           search: searchTerm.trim() || undefined,
-          status:
-            statusFilter === "ALL"
-              ? undefined
-              : statusFilter,
-        }),
+          status: statusFilter === "ALL" ? undefined : statusFilter,
+        })
       );
     }, 350);
 
-    return () => clearTimeout(timer);
-  }, [dispatch, searchTerm, statusFilter]);
+    return () => {
+      clearTimeout(timer);
+      request?.abort();
+    };
+  }, [dispatch, searchTerm, statusFilter, page]);
 
   // =========================
   // STATS
@@ -115,15 +122,13 @@ const DeliveryHistory = () => {
       {
         key: "earning",
         title: "Total Earnings",
-        value: `₹${Number(
-          historyStats?.totalEarnings ?? 0,
-        ).toFixed(2)}`,
+        value: `₹${Number(historyStats?.totalEarnings ?? 0).toFixed(2)}`,
         description: "Completed delivery earnings",
         icon: IndianRupee,
         variant: "purple",
       },
     ],
-    [historyStats],
+    [historyStats]
   );
 
   // =========================
@@ -137,9 +142,7 @@ const DeliveryHistory = () => {
         label: "Order",
 
         render: (row) => (
-          <span className="font-black text-slate-900">
-            {row.orderNumber}
-          </span>
+          <span className="font-black text-slate-900">{row.orderNumber}</span>
         ),
       },
       {
@@ -162,9 +165,7 @@ const DeliveryHistory = () => {
 
         render: (row) => (
           <span className="text-sm text-slate-600">
-            {row.distance != null
-              ? `${row.distance} km`
-              : "—"}
+            {row.distance != null ? `${row.distance} km` : "—"}
           </span>
         ),
       },
@@ -183,18 +184,13 @@ const DeliveryHistory = () => {
         label: "Status",
 
         render: (row) => {
-          const config =
-            STATUS_CONFIG[row.status] || {
-              label: row.status,
-              variant: "neutral",
-            };
+          const config = STATUS_CONFIG[row.status] || {
+            label: row.status,
+            variant: "neutral",
+          };
 
           return (
-            <StatusBadge
-              variant={config.variant}
-              size="sm"
-              dot
-            >
+            <StatusBadge variant={config.variant} size="sm" dot>
               {config.label}
             </StatusBadge>
           );
@@ -212,17 +208,16 @@ const DeliveryHistory = () => {
         ),
       },
     ],
-    [],
+    []
   );
 
   const clearFilters = () => {
+    setPage(1);
     setSearchTerm("");
     setStatusFilter("ALL");
   };
 
-  const hasFilters =
-    Boolean(searchTerm.trim()) ||
-    statusFilter !== "ALL";
+  const hasFilters = Boolean(searchTerm.trim()) || statusFilter !== "ALL";
 
   return (
     <div className="space-y-7">
@@ -254,9 +249,9 @@ const DeliveryHistory = () => {
             <input
               type="search"
               value={searchTerm}
-              onChange={(event) =>
-                setSearchTerm(event.target.value)
-              }
+              onChange={(event) => (
+                setSearchTerm(event.target.value), setPage(1)
+              )}
               placeholder="Search order, restaurant or customer..."
               className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
             />
@@ -267,9 +262,7 @@ const DeliveryHistory = () => {
               <button
                 key={item.value}
                 type="button"
-                onClick={() =>
-                  setStatusFilter(item.value)
-                }
+                onClick={() => (setStatusFilter(item.value), setPage(1))}
                 className={`rounded-xl border px-4 py-2 text-xs font-black transition ${
                   statusFilter === item.value
                     ? "border-orange-500 bg-orange-500 text-white"
@@ -281,11 +274,7 @@ const DeliveryHistory = () => {
             ))}
 
             {hasFilters && (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={clearFilters}
-              >
+              <Button type="button" variant="ghost" onClick={clearFilters}>
                 Clear
               </Button>
             )}
@@ -293,6 +282,22 @@ const DeliveryHistory = () => {
         </div>
       </section>
 
+      {error && (
+        <ErrorState
+          title="Unable to load deliveries"
+          description={error}
+          onRetry={() =>
+            dispatch(
+              getDeliveryHistory({
+                page,
+                limit: 15,
+                search: searchTerm,
+                status: statusFilter === "ALL" ? undefined : statusFilter,
+              })
+            )
+          }
+        />
+      )}
       {/* HISTORY TABLE */}
       <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="mb-5">
@@ -316,23 +321,21 @@ const DeliveryHistory = () => {
             }
             action={
               hasFilters ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={clearFilters}
-                >
+                <Button type="button" variant="outline" onClick={clearFilters}>
                   Clear Filters
                 </Button>
               ) : null
             }
           />
         ) : (
-          <CommonTable
-            columns={columns}
-            data={deliveries}
-            loading={loading}
-          />
+          <CommonTable columns={columns} data={deliveries} loading={loading} />
         )}
+        <Pagination
+          currentPage={page}
+          totalPages={pagination?.totalPages}
+          onPageChange={setPage}
+          loading={loading}
+        />
       </section>
     </div>
   );

@@ -1065,7 +1065,14 @@ export const getRestaurantOrdersService = async ({
   page,
   limit,
   status,
+  search = "",
+  paymentMethod,
+  paymentStatus,
 }) => {
+  status = String(status || "ALL")
+    .trim()
+    .toUpperCase();
+  if (status === "ALL") status = null;
   const offset = (page - 1) * limit;
 
   const allowedStatuses = [
@@ -1100,12 +1107,41 @@ export const getRestaurantOrdersService = async ({
     `;
   }
 
+  if (String(search).trim()) {
+    values.push(
+      `%${String(search)
+        .trim()
+        .slice(0, 150)
+        .replace(/[\\%_]/g, "\\$&")}%`
+    );
+    statusCondition += ` AND concat_ws(' ',o.order_number,og.checkout_number,og.delivery_name,og.delivery_phone) ILIKE $${values.length}`;
+  }
+
+  for (const [key, raw, column, allowed] of [
+    ["payment method", paymentMethod, "og.payment_method", ["COD", "ONLINE"]],
+    [
+      "payment status",
+      paymentStatus,
+      "og.payment_status",
+      ["PENDING", "PAID", "FAILED", "REFUNDED"],
+    ],
+  ]) {
+    const value = String(raw || "ALL")
+      .trim()
+      .toUpperCase();
+    if (value === "ALL") continue;
+    if (!allowed.includes(value))
+      throw Object.assign(new Error(`Invalid ${key}`), { statusCode: 400 });
+    values.push(value);
+    statusCondition += ` AND ${column}=$${values.length}`;
+  }
+
   const countResult = await pool.query(
     `
       SELECT COUNT(*)::int AS total
 
       FROM orders o
-
+      INNER JOIN order_groups og ON og.id=o.order_group_id
       WHERE
         o.restaurant_id = $1
         ${statusCondition}
@@ -1174,7 +1210,7 @@ export const getRestaurantOrdersService = async ({
         ${statusCondition}
 
       ORDER BY
-        o.created_at DESC
+        o.created_at DESC, o.id DESC
 
       LIMIT $${limitPosition}
       OFFSET $${offsetPosition}

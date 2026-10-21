@@ -42,7 +42,7 @@ export default function PublicLayout() {
     navigate("/", { replace: true });
   };
   return (
-    <div className="flex min-h-screen flex-col bg-[#fffaf5] text-slate-900">
+    <div className="flex min-h-screen flex-col bg-[#faf9f6] text-slate-900">
       {settings.announcementEnabled && settings.announcement && (
         <div className="bg-slate-950 px-4 py-2.5 text-center text-sm font-medium text-white">
           {settings.announcement}

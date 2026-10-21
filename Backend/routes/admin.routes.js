@@ -36,7 +36,9 @@ import { getPendingDeliveryAgents } from "../controllers/admin/getPendingDeliver
 import { approveDeliveryAgent } from "../controllers/admin/approveDeliveryAgent.controller.js";
 
 import { rejectDeliveryAgent } from "../controllers/admin/rejectDeliveryAgent.controller.js";
+import { checkPaymentGateway } from "../controllers/order/payment.controller.js";
 const router = express.Router();
+router.get("/payment-gateway/check", adminAuthMiddleware, checkPaymentGateway);
 router.get("/site-settings", adminAuthMiddleware, getSiteSettings);
 router.put("/site-settings", adminAuthMiddleware, saveSiteSettings);
 router.post(

@@ -12,6 +12,7 @@ import {
   getCheckoutQuoteService,
   priceRestaurantGroups,
   defaultSiteSettings,
+  getCouponsService,
   saveSiteSettingsService,
   siteSettingsSchema,
 } from "../services/setting.service.js";
@@ -21,6 +22,7 @@ import {
   processPaymentWebhook,
   signaturesMatch,
   paymentConfigured,
+  razorpayRequest,
   reconcilePaymentService,
 } from "../services/payment.service.js";
 
@@ -139,6 +141,9 @@ test("isolated database: coupons, checkout retries, signatures, capture and webh
     await pool.query(
       "INSERT INTO coupons(code,title,discount_type,discount_value,min_order) VALUES('TEST10','Ten percent','PERCENT',10,100)"
     );
+    await pool.query("INSERT INTO coupons(code,title,discount_type,discount_value,starts_at) VALUES('FUTURE','Not started','FIXED',5,NOW()+INTERVAL '1 day')");
+    await pool.query("INSERT INTO coupons(code,title,discount_type,discount_value,expires_at) VALUES('EXPIRED','Expired','FIXED',5,NOW()-INTERVAL '1 day')");
+    assert.deepEqual((await getCouponsService(true)).map(c=>c.code),['TEST10']);
     const refill = async () => {
       const cart = (
         await pool.query("INSERT INTO carts(user_id) VALUES(1) RETURNING id")
@@ -270,6 +275,17 @@ test("isolated database: coupons, checkout retries, signatures, capture and webh
     let amount = 0;
     let gatewayStatus = "authorized";
     globalThis.fetch = async (url, options) => {
+      assert.equal(
+        options.headers.Authorization,
+        `Basic ${Buffer.from("rzp_test_UnitTest123:unit_test_secret").toString(
+          "base64"
+        )}`
+      );
+      if (String(url).endsWith("/orders?count=1"))
+        return {
+          ok: true,
+          json: async () => ({ entity: "collection", items: [] }),
+        };
       if (String(url).endsWith("/orders")) {
         gatewayOrderCalls++;
         amount = JSON.parse(options.body).amount;
@@ -306,6 +322,10 @@ test("isolated database: coupons, checkout retries, signatures, capture and webh
         };
       throw new Error("Unexpected external request in test");
     };
+    assert.equal(
+      (await razorpayRequest("orders?count=1")).entity,
+      "collection"
+    );
     await assert.rejects(
       () => createPaymentService(999, online.checkoutNumber),
       /not found/

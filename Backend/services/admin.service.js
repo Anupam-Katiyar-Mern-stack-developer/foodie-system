@@ -145,10 +145,6 @@ const adminLists = {
     date: "d.created_at",
   },
   orders: {
-
-
-
-
     from: "orders o JOIN restaurants r ON r.id=o.restaurant_id JOIN order_groups og ON og.id=o.order_group_id",
     fields: `o.order_number AS "orderNumber", o.status, o.total_amount AS "totalAmount", o.delivery_fee AS "deliveryFee",
       o.created_at AS "createdAt", r.restaurant_name AS "restaurantName", og.delivery_name AS "customerName",
@@ -177,11 +173,35 @@ export const getAdminListService = async (resource, query) => {
     100,
     Math.max(1, Math.trunc(Number(query.limit) || 15))
   );
-  const values = [`%${String(query.search || "").slice(0, 150)}%`];
+  const values = [
+    `%${String(query.search || "")
+      .trim()
+      .slice(0, 150)
+      .replace(/[\\%_]/g, "\\$&")}%`,
+  ];
   let where = `${config.search} ILIKE $1`;
   if (config.status && query.status && query.status !== "ALL") {
-    values.push(String(query.status));
+    values.push(String(query.status).trim().toUpperCase());
     where += ` AND ${config.status} = $${values.length}`;
+  }
+  if (resource === "orders") {
+    for (const [key, column, allowed] of [
+      [
+        "paymentStatus",
+        "og.payment_status",
+        ["PENDING", "PAID", "FAILED", "REFUNDED"],
+      ],
+      ["paymentMethod", "og.payment_method", ["COD", "ONLINE"]],
+    ]) {
+      const value = String(query[key] || "ALL")
+        .trim()
+        .toUpperCase();
+      if (value === "ALL") continue;
+      if (!allowed.includes(value))
+        throw Object.assign(new Error(`Invalid ${key}`), { statusCode: 400 });
+      values.push(value);
+      where += ` AND ${column}=$${values.length}`;
+    }
   }
   const count = await pool.query(
     `SELECT COUNT(*)::int AS total FROM ${config.from} WHERE ${where}`,

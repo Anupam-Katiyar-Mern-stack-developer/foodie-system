@@ -1,1 +1,38 @@
 @import "tailwindcss";
+@keyframes drawer-enter {
+  from {
+    opacity: 0;
+    transform: translateX(var(--drawer-direction, 32px));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.drawer-panel {
+  animation: drawer-enter 0.25s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .drawer-panel {
+    animation: none;
+  }
+}
+
+@keyframes hero-appear {
+  from {
+    opacity: 0.25;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.hero-slide {
+  animation: hero-appear 0.35s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-slide {
+    animation: none;
+  }
+}

@@ -12,7 +12,7 @@ import { footerSections } from "../../../data/public/footer";
 export default function PublicFooter() {
   const { settings } = useSelector((state) => state.siteSettings);
   return (
-    <footer className="bg-slate-950 text-white">
+    <footer className="bg-[#293123] text-white">
       <Container>
         <div className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1fr]">
           <div>
@@ -36,10 +36,10 @@ export default function PublicFooter() {
               {settings.siteName}
               <span className="text-orange-400">.</span>
             </Link>
-            <p className="mt-5 max-w-xs text-sm leading-7 text-slate-400">
+            <p className="mt-5 max-w-xs text-sm leading-7 text-[#bac2b0]">
               {settings.footerText}
             </p>
-            <p className="mt-3 text-sm text-slate-300">{settings.tagline}</p>
+            <p className="mt-3 text-sm text-[#d1d8c9]">{settings.tagline}</p>
             <div className="mt-5 flex gap-3">
               {[
                 [settings.instagramUrl, "Instagram", Instagram],
@@ -53,7 +53,7 @@ export default function PublicFooter() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={label}
-                    className="rounded-xl border border-slate-700 p-3 text-slate-300 hover:text-orange-300"
+                    className="rounded-xl border border-[#59634f] p-3 text-[#d1d8c9] hover:text-orange-300"
                   >
                     <Icon className="h-5 w-5" />
                   </a>
@@ -71,7 +71,7 @@ export default function PublicFooter() {
                   <li key={link.to}>
                     <Link
                       to={link.to}
-                      className="text-sm text-slate-400 transition-colors hover:text-orange-300"
+                      className="text-sm text-[#bac2b0] transition-colors hover:text-orange-300"
                     >
                       {link.label}
                     </Link>
@@ -82,7 +82,7 @@ export default function PublicFooter() {
           ))}
           <div>
             <h2 className="mb-5 text-sm font-bold">Here to help</h2>
-            <div className="space-y-4 text-sm text-slate-400">
+            <div className="space-y-4 text-sm text-[#bac2b0]">
               {settings.supportEmail && (
                 <a
                   href={`mailto:${settings.supportEmail}`}
@@ -128,7 +128,7 @@ export default function PublicFooter() {
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap justify-between gap-3 border-t border-slate-800 py-6 text-xs text-slate-400">
+        <div className="flex flex-wrap justify-between gap-3 border-t border-[#434e39] py-6 text-xs text-[#bac2b0]">
           <p>
             © {new Date().getFullYear()} {settings.siteName}. All rights
             reserved.

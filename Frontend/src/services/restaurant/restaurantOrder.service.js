@@ -8,6 +8,10 @@ export const getRestaurantOrdersService = async ({
   page = 1,
   limit = 10,
   status,
+  search = "",
+  paymentMethod = "ALL",
+  paymentStatus = "ALL",
+  signal,
 }) => {
   const params = {
     page,
@@ -19,7 +23,8 @@ export const getRestaurantOrdersService = async ({
   }
 
   const response = await apiClient.get("/restaurant/orders", {
-    params,
+    params: { ...params, search, paymentMethod, paymentStatus },
+    signal,
   });
   console.log(response);
 
@@ -42,7 +47,7 @@ export const getRestaurantOrderService = async (orderNumber) => {
 
 export const acceptRestaurantOrderService = async (orderNumber) => {
   const response = await apiClient.patch(
-    `/restaurant/orders/${orderNumber}/accept`,
+    `/restaurant/orders/${orderNumber}/accept`
   );
 
   return response.data;
@@ -57,7 +62,7 @@ export const rejectRestaurantOrderService = async ({ orderNumber, reason }) => {
     `/restaurant/orders/${orderNumber}/reject`,
     {
       reason,
-    },
+    }
   );
 
   return response.data;
@@ -69,7 +74,7 @@ export const rejectRestaurantOrderService = async ({ orderNumber, reason }) => {
 
 export const markOrderPreparingService = async (orderNumber) => {
   const response = await apiClient.patch(
-    `/restaurant/orders/${orderNumber}/preparing`,
+    `/restaurant/orders/${orderNumber}/preparing`
   );
 
   return response.data;
@@ -81,7 +86,7 @@ export const markOrderPreparingService = async (orderNumber) => {
 
 export const markOrderReadyService = async (orderNumber) => {
   const response = await apiClient.patch(
-    `/restaurant/orders/${orderNumber}/ready`,
+    `/restaurant/orders/${orderNumber}/ready`
   );
 
   return response.data;
@@ -93,7 +98,7 @@ export const markOrderReadyService = async (orderNumber) => {
 
 export const getAvailableDeliveryAgentsService = async (orderNumber) => {
   const response = await apiClient.get(
-    `/restaurant/orders/${orderNumber}/delivery-agents`,
+    `/restaurant/orders/${orderNumber}/delivery-agents`
   );
 
   return response.data;
@@ -111,7 +116,7 @@ export const sendRestaurantDeliveryOfferService = async ({
     `/restaurant/orders/${orderNumber}/delivery-offer`,
     {
       deliveryAgentPublicId,
-    },
+    }
   );
 
   return response.data;

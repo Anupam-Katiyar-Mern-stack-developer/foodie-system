@@ -28,15 +28,14 @@ const getErrorMessage = (error) => {
 export const getRestaurantOrders = createAsyncThunk(
   "restaurantOrder/getOrders",
 
-  async (params, { rejectWithValue }) => {
+  async (params, { rejectWithValue, signal }) => {
     try {
-      const response = await getRestaurantOrdersService(params);
-      console.log(response);
-      return response.data;
+      const response = await getRestaurantOrdersService({ ...params, signal });
+      return { orders: response.data, pagination: response.pagination };
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
-  },
+  }
 );
 
 // =========================================
@@ -54,7 +53,7 @@ export const getRestaurantOrder = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
-  },
+  }
 );
 
 // =========================================
@@ -72,7 +71,7 @@ export const acceptRestaurantOrder = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
-  },
+  }
 );
 
 // =========================================
@@ -90,7 +89,7 @@ export const rejectRestaurantOrder = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
-  },
+  }
 );
 
 // =========================================
@@ -108,7 +107,7 @@ export const markRestaurantOrderPreparing = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
-  },
+  }
 );
 
 // =========================================
@@ -126,7 +125,7 @@ export const markRestaurantOrderReady = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
-  },
+  }
 );
 
 // =========================================
@@ -145,10 +144,10 @@ export const getAvailableDeliveryAgents = createAsyncThunk(
       return rejectWithValue(
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to fetch delivery partners",
+          "Failed to fetch delivery partners"
       );
     }
-  },
+  }
 );
 
 // =========================================
@@ -170,8 +169,8 @@ export const sendRestaurantDeliveryOffer = createAsyncThunk(
       return rejectWithValue(
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to send delivery offer",
+          "Failed to send delivery offer"
       );
     }
-  },
+  }
 );

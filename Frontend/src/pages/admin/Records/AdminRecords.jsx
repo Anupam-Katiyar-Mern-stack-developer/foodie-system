@@ -72,6 +72,8 @@ export default function AdminRecords({ resource }) {
   const Icon = view.icon;
   const dispatch = useDispatch();
   const [search, setSearch] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("ALL");
+  const [paymentMethod, setPaymentMethod] = useState("ALL");
   const [status, setStatus] = useState("ALL");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(null);
@@ -82,7 +84,14 @@ export default function AdminRecords({ resource }) {
     dispatch(
       fetchAdminResource({
         resource,
-        params: { search, status, page, limit: 15 },
+        params: {
+          search: search.trim(),
+          status,
+          paymentStatus,
+          paymentMethod,
+          page,
+          limit: 15,
+        },
       })
     );
   useEffect(() => {
@@ -91,7 +100,14 @@ export default function AdminRecords({ resource }) {
       request = dispatch(
         fetchAdminResource({
           resource,
-          params: { search, status, page, limit: 15 },
+          params: {
+            search: search.trim(),
+            status,
+            paymentStatus,
+            paymentMethod,
+            page,
+            limit: 15,
+          },
         })
       );
     }, 250);
@@ -99,7 +115,7 @@ export default function AdminRecords({ resource }) {
       clearTimeout(timer);
       request?.abort();
     };
-  }, [dispatch, resource, search, status, page]);
+  }, [dispatch, resource, search, status, paymentStatus, paymentMethod, page]);
   const columns =
     resource === "orders"
       ? [
@@ -329,16 +345,44 @@ export default function AdminRecords({ resource }) {
                           : value.replaceAll("_", " "),
                     })),
                   },
+                  {
+                    key: "paymentStatus",
+                    label: "Payment status",
+                    value: paymentStatus,
+                    options: [
+                      "ALL",
+                      "PENDING",
+                      "PAID",
+                      "FAILED",
+                      "REFUNDED",
+                    ].map((value) => ({
+                      value,
+                      label: value === "ALL" ? "All payments" : value,
+                    })),
+                  },
+                  {
+                    key: "paymentMethod",
+                    label: "Payment method",
+                    value: paymentMethod,
+                    options: ["ALL", "COD", "ONLINE"].map((value) => ({
+                      value,
+                      label: value === "ALL" ? "All methods" : value,
+                    })),
+                  },
                 ]
               : []
           }
-          onFilterChange={(_, value) => {
-            setStatus(value);
+          onFilterChange={(key, value) => {
+            if (key === "paymentStatus") setPaymentStatus(value);
+            else if (key === "paymentMethod") setPaymentMethod(value);
+            else setStatus(value);
             setPage(1);
           }}
           onClearFilters={() => {
             setSearch("");
             setStatus("ALL");
+            setPaymentStatus("ALL");
+            setPaymentMethod("ALL");
             setPage(1);
           }}
         />
@@ -388,6 +432,17 @@ export default function AdminRecords({ resource }) {
       >
         {selected && (
           <div className="space-y-6">
+            <div className="rounded-2xl bg-slate-950 p-5 text-white">
+              <p className="text-xs uppercase tracking-widest text-orange-300">
+                {view.title}
+              </p>
+              <p className="mt-2 break-words text-xl font-bold">
+                {selected.orderNumber || selected.name}
+              </p>
+              {selected.status && (
+                <div className="mt-3">{badge(selected.status)}</div>
+              )}
+            </div>
             {resource === "foods" && (
               <OptimizedImage
                 src={selected.image}
@@ -395,9 +450,9 @@ export default function AdminRecords({ resource }) {
                 className="h-48 w-full"
               />
             )}
-            <dl className="space-y-5">
+            <dl className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white px-5">
               {detailFields.map(([label, key]) => (
-                <div key={key}>
+                <div key={key} className="py-4">
                   <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     {label}
                   </dt>

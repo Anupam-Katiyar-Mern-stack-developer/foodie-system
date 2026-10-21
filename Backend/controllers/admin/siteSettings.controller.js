@@ -40,7 +40,14 @@ export const saveSiteAsset = async (req, res, next) => {
 };
 export const getCoupons = async (req, res, next) => {
   try {
-    res.json({ success: true, data: await getCouponsService(!req.admin) });
+    const settings = !req.admin ? await getSiteSettingsService() : null;
+    res.json({
+      success: true,
+      data:
+        settings && !settings.couponsEnabled
+          ? []
+          : await getCouponsService(!req.admin),
+    });
   } catch (error) {
     next(error);
   }

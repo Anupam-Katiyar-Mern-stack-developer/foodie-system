@@ -2663,6 +2663,10 @@ export const getDeliveryHistoryService = async ({
   page = 1,
   limit = 20,
 }) => {
+  status =
+    status && String(status).trim().toUpperCase() !== "ALL"
+      ? String(status).trim().toUpperCase()
+      : null;
   const offset = (page - 1) * limit;
   const allowedStatuses = ["DELIVERED", "CANCELLED"];
 
@@ -2686,7 +2690,12 @@ export const getDeliveryHistoryService = async ({
   }
 
   if (search) {
-    values.push(`%${search.trim()}%`);
+    values.push(
+      `%${String(search)
+        .trim()
+        .slice(0, 150)
+        .replace(/[\\%_]/g, "\\$&")}%`
+    );
     const position = values.length;
 
     conditions.push(`

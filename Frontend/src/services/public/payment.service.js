@@ -13,11 +13,22 @@ const loadRazorpay = () => {
       const script = document.createElement("script");
       script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.async = true;
-      script.onload = () =>
-        window.Razorpay
-          ? resolve()
-          : reject(new Error("Payment checkout did not load"));
+      const timeout = setTimeout(() => {
+        checkoutScript = null;
+        script.remove();
+        reject(new Error("Razorpay took too long to load. Please retry."));
+      }, 15000);
+      script.onload = () => {
+        clearTimeout(timeout);
+        if (window.Razorpay) resolve();
+        else {
+          checkoutScript = null;
+          script.remove();
+          reject(new Error("Payment checkout did not load"));
+        }
+      };
       script.onerror = () => {
+        clearTimeout(timeout);
         checkoutScript = null;
         script.remove();
         reject(new Error("Unable to load Razorpay. Please retry."));

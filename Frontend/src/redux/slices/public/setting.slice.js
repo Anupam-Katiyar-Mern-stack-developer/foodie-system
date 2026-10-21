@@ -29,7 +29,7 @@ const settings = {
 };
 const slice = createSlice({
   name: "siteSettings",
-  initialState: { settings, loading: false, error: null },
+  initialState: { settings, offers: [], loading: false, error: null },
   reducers: {},
   extraReducers: (builder) =>
     builder
@@ -37,7 +37,8 @@ const slice = createSlice({
         state.loading = true;
       })
       .addCase(fetchSiteSettings.fulfilled, (state, action) => {
-        state.settings = { ...state.settings, ...action.payload };
+        state.settings = { ...state.settings, ...action.payload.settings };
+        state.offers = action.payload.offers || [];
         state.loading = false;
         state.error = null;
       })

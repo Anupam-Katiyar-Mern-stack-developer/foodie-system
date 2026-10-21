@@ -34,12 +34,14 @@ const deliveryHistorySlice = createSlice({
 
   extraReducers: (builder) => {
     builder
-      .addCase(getDeliveryHistory.pending, (state) => {
+      .addCase(getDeliveryHistory.pending, (state, action) => {
+        state.requestId = action.meta.requestId;
         state.loading = true;
         state.error = null;
       })
 
       .addCase(getDeliveryHistory.fulfilled, (state, action) => {
+        if (state.requestId !== action.meta.requestId) return;
         state.loading = false;
         state.deliveries = action.payload?.deliveries || [];
         state.stats = action.payload?.stats || initialState.stats;
@@ -49,6 +51,11 @@ const deliveryHistorySlice = createSlice({
       })
 
       .addCase(getDeliveryHistory.rejected, (state, action) => {
+        if (state.requestId !== action.meta.requestId) return;
+        if (action.meta.aborted) {
+          state.loading = false;
+          return;
+        }
         state.loading = false;
         state.error = action.payload || "Unable to load delivery history";
       });
