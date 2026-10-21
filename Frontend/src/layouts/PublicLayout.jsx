@@ -3,7 +3,11 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import PublicNavbar from "../components/public/PublicNavbar/PublicNavbar";
 import PublicFooter from "../components/public/PublicFooter/PublicFooter";
-import { logoutUser } from "../redux/thunks/public/auth.thunk";
+import {
+  logoutUser,
+  bootstrapUserAuth,
+} from "../redux/thunks/public/auth.thunk";
+import EmailVerification from "../components/common/EmailVerification/EmailVerification";
 import getImageUrl from "../utils/getImageUrl";
 
 export default function PublicLayout() {
@@ -60,6 +64,16 @@ export default function PublicLayout() {
         onLogout={handleLogout}
       />
       <main className="min-w-0 flex-1">
+        {isAuthenticated && (
+          <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+            <EmailVerification
+              key={user?.id || user?.email}
+              kind="user"
+              accountEmail={user?.email}
+              onVerified={() => dispatch(bootstrapUserAuth())}
+            />
+          </div>
+        )}
         <Outlet />
       </main>
       <PublicFooter />

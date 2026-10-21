@@ -13,6 +13,7 @@ export const emailLayout = ({
   greeting,
   message,
   status,
+  verificationCode,
   details = [],
   buttonText,
   buttonUrl,
@@ -170,6 +171,14 @@ export const emailLayout = ({
                       ${message}
                     </p>
 
+
+                    ${
+                      verificationCode
+                        ? `<div style="margin:28px 0;padding:25px 15px;background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;text-align:center;"><div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#9a3412;margin-bottom:12px;">Your verification code</div><div style="font-family:monospace;font-size:38px;font-weight:700;letter-spacing:8px;color:#111827;">${escapeHtml(
+                            verificationCode
+                          )}</div><div style="margin-top:12px;font-size:12px;color:#78716c;">Expires in 10 minutes</div></div>`
+                        : ""
+                    }
 
                     ${
                       status

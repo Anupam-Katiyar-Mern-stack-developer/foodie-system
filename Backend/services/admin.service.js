@@ -7,7 +7,7 @@ import { restaurantRejectedTemplate } from "../templates/restaurant/restaurantRe
 
 export const getAdminProfileService = async (adminId) => {
   const { rows } = await pool.query(
-    `SELECT id, name, email, role FROM admins WHERE id = $1 AND is_blocked = FALSE`,
+    `SELECT id, name, email, role, email_verified AS "emailVerified" FROM admins WHERE id = $1 AND is_blocked = FALSE`,
     [adminId]
   );
   if (!rows[0])
@@ -67,7 +67,7 @@ export const updateAdminProfileService = async ({
   try {
     const result = await pool.query(
       `UPDATE admins SET name=$1, email=$2, password=$3, updated_at=CURRENT_TIMESTAMP
-       WHERE id=$4 RETURNING id, name, email, role`,
+       WHERE id=$4 RETURNING id, name, email, role, email_verified AS "emailVerified"`,
       [name.trim(), email.trim().toLowerCase(), password, adminId]
     );
     return result.rows[0];

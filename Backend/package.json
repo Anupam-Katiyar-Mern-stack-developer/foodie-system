@@ -12,7 +12,9 @@
     "db:setup-site": "node database/migrate.js 017_site_settings_payments.sql",
     "create:admin": "node scripts/createAdmin.js",
     "test:partners": "node --test tests/partners.test.js",
-    "db:seed": "node database/seed.js"
+    "db:seed": "node database/seed.js",
+    "db:setup-email": "node database/migrate.js 018_email_verification.sql",
+    "test:email": "node --test tests/emailVerification.test.js"
   },
   "keywords": [],
   "author": "",

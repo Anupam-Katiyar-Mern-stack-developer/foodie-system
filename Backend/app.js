@@ -1,4 +1,5 @@
 import express from "express";
+import { emailVerificationRoutes } from "./routes/emailVerification.routes.js";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -44,6 +45,14 @@ app.get("/", (req, res) => {
     message: "Foodie API is running",
   });
 });
+
+for (const [path, kind] of [
+  ["user", "user"],
+  ["restaurant", "restaurant"],
+  ["delivery", "delivery"],
+  ["admin", "admin"],
+])
+  app.use(`/api/${path}/email-verification`, emailVerificationRoutes(kind));
 
 app.use("/api/user", authRoutes);
 app.use("/api/user", userRoutes);

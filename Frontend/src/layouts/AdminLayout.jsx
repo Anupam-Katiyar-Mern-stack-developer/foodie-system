@@ -1,3 +1,5 @@
+import EmailVerification from "../components/common/EmailVerification/EmailVerification";
+import { fetchAdminProfile } from "../redux/thunks/admin/admin.thunk";
 import { useState } from "react";
 import {
   Link,
@@ -197,6 +199,11 @@ export default function AdminLayout() {
           </div>
         </header>
         <main id="admin-main" className="mx-auto max-w-[1600px] p-4 sm:p-8">
+          <EmailVerification
+            kind="admin"
+            accountEmail={profile?.email}
+            onVerified={() => dispatch(fetchAdminProfile())}
+          />
           <Outlet />
         </main>
         <footer className="px-4 pb-6 text-xs text-slate-500 sm:px-8">
