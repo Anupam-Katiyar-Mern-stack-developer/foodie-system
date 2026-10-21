@@ -20,7 +20,9 @@ let expiryStopped = false;
 const checkExpiredOffers = async () => {
   try {
     const expiredOffers = await expireDeliveryOffersService();
-    await processOrderEmails();
+    await processOrderEmails().catch((error) =>
+      console.error("Order email worker:", error.message)
+    );
 
     for (const offer of expiredOffers) {
       try {
@@ -29,7 +31,7 @@ const checkExpiredOffers = async () => {
         console.error(
           "Delivery offer expiry socket error:",
           offer.assignmentId,
-          error.message,
+          error.message
         );
       }
     }

@@ -1,7 +1,31 @@
+import { z } from "zod";
 import { registerDeliveryAgentService } from "../../services/delivery.service.js";
 
 export const registerDeliveryAgent = async (req, res, next) => {
   try {
+    const parsed = z
+      .object({
+        name: z.string().trim().min(2),
+        email: z.string().trim().email(),
+        phone: z
+          .string()
+          .trim()
+          .regex(/^[0-9]{10}$/),
+        password: z.string().min(8),
+        vehicleType: z.enum(["BIKE", "SCOOTER", "BICYCLE"]),
+        vehicleNumber: z.string().trim().nullish(),
+        address: z.string().trim().max(1000).optional(),
+      })
+      .refine(
+        (value) =>
+          value.vehicleType === "BICYCLE" || Boolean(value.vehicleNumber),
+        { message: "Vehicle number is required" }
+      )
+      .safeParse(req.body);
+    if (!parsed.success)
+      return res
+        .status(400)
+        .json({ success: false, message: parsed.error.issues[0].message });
     const {
       name,
       email,
@@ -12,7 +36,7 @@ export const registerDeliveryAgent = async (req, res, next) => {
       address,
       latitude,
       longitude,
-    } = req.body;
+    } = parsed.data;
 
     if (!name || !name.trim()) {
       return res.status(400).json({
@@ -49,11 +73,20 @@ export const registerDeliveryAgent = async (req, res, next) => {
       });
     }
 
-    if (!vehicleNumber || !vehicleNumber.trim()) {
+    if (
+      vehicleType !== "BICYCLE" &&
+      (!vehicleNumber || !vehicleNumber.trim())
+    ) {
       return res.status(400).json({
         success: false,
         message: "Vehicle number is required",
       });
+    }
+
+    if (!["BIKE", "SCOOTER", "BICYCLE"].includes(vehicleType)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Select a valid vehicle type" });
     }
 
     const deliveryAgent = await registerDeliveryAgentService({

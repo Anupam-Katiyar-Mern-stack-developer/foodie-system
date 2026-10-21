@@ -4,6 +4,14 @@ import { generateCategorySlug } from "../utils/generateCategorySlug.js";
 
 import { saveImage, deleteImage } from "../utils/storage/imageStorage.js";
 
+// Legacy rows sometimes contain only a filename whose upload no longer exists.
+// Use a dish from the same category until an administrator uploads a category image.
+export const categoryImageSql = `CASE
+  WHEN image IS NULL OR image IN ('','{}','null') OR position('/' in image)=0
+  THEN COALESCE((SELECT f.image FROM foods f WHERE f.category_id=categories.id
+    AND f.image LIKE '/images/%' ORDER BY f.created_at DESC LIMIT 1),'')
+  ELSE image END AS image`;
+
 // create category by admin
 export const createCategoryService = async ({
   name,
@@ -27,7 +35,7 @@ export const createCategoryService = async ({
 
         LIMIT 1
       `,
-    [slug],
+    [slug]
   );
 
   if (existingCategory.rows.length > 0) {
@@ -81,7 +89,7 @@ export const createCategoryService = async ({
         description?.trim() || null,
 
         Number(displayOrder) || 0,
-      ],
+      ]
     );
 
     return result.rows[0];
@@ -101,7 +109,7 @@ export const getPublicCategoriesService = async () => {
         SELECT 
         name,
         slug,
-        image,
+        ${categoryImageSql},
         description,
         display_order AS "displayOrder"
 
@@ -113,7 +121,7 @@ export const getPublicCategoriesService = async () => {
 
           display_order ASC,
           created_at ASC  
-        `,
+        `
   );
   return result.rows;
 };
@@ -126,7 +134,7 @@ export const getAdminCategoriesService = async () => {
         SELECT 
           name ,
           slug,
-          image,
+          ${categoryImageSql},
           description,
           is_active AS "isActive",
           display_order AS "displayOrder",
@@ -138,7 +146,7 @@ export const getAdminCategoriesService = async () => {
           ORDER BY
             display_order ASC,
             created_at DESC
-        `,
+        `
   );
 
   return result.rows;
@@ -169,7 +177,7 @@ export const updateCategoryService = async ({
 
         LIMIT 1
       `,
-    [categorySlug],
+    [categorySlug]
   );
 
   if (existingResult.rows.length === 0) {
@@ -200,7 +208,7 @@ export const updateCategoryService = async ({
 
           LIMIT 1
         `,
-      [newSlug, existingCategory.id],
+      [newSlug, existingCategory.id]
     );
 
     if (slugCheck.rows.length > 0) {
@@ -262,7 +270,7 @@ export const updateCategoryService = async ({
         newImage || existingCategory.image,
 
         existingCategory.id,
-      ],
+      ]
     );
 
     const updatedCategory = result.rows[0];
@@ -293,11 +301,11 @@ export const updateCategoryService = async ({
   }
 };
 
-export const updateCategoryStatusService =async({
+export const updateCategoryStatusService = async ({
   categorySlug,
   isActive,
-})=>{
-  const result =await pool.query(
+}) => {
+  const result = await pool.query(
     `
     UPDATE categories
     SET 
@@ -315,29 +323,21 @@ export const updateCategoryStatusService =async({
           updated_at AS "updatedAt"
            
     `,
-    [
-      isActive,
-      categorySlug,
-    ]
+    [isActive, categorySlug]
   );
 
-  if(result.rows.length === 0){
-    const error =new Error(
-      "Category not found"
-    );
+  if (result.rows.length === 0) {
+    const error = new Error("Category not found");
 
-    error.statusCode= 404;
+    error.statusCode = 404;
     throw error;
   }
 
   return result.rows[0];
-}
+};
 
-
-export const deleteCategoryService =async({
-  categorySlug
-})=>{
-  const result =await pool.query(
+export const deleteCategoryService = async ({ categorySlug }) => {
+  const result = await pool.query(
     `
     DELETE FROM categories
 
@@ -347,34 +347,29 @@ export const deleteCategoryService =async({
       name,
       slug,
       image
-    `,[
-      categorySlug
-    ]
+    `,
+    [categorySlug]
   );
 
-  if(result.rows.length === 0){
-    const error = new Error(
-      "Category not found"
-    );
+  if (result.rows.length === 0) {
+    const error = new Error("Category not found");
 
-    error.statusCode =404;
-    throw new error;
+    error.statusCode = 404;
+    throw new error();
   }
 
   const deletedCategory = result.rows[0];
 
-  if(deletedCategory.image){
-    try{
-      await deleteImage(
-        deletedCategory.image
-      );
-    }catch(error){
-      console.log("Category image delete failed:",error.message);
+  if (deletedCategory.image) {
+    try {
+      await deleteImage(deletedCategory.image);
+    } catch (error) {
+      console.log("Category image delete failed:", error.message);
     }
   }
 
   return {
-    name : deletedCategory.name,
-    slug:deletedCategory.slug,
-  }
-}
+    name: deletedCategory.name,
+    slug: deletedCategory.slug,
+  };
+};

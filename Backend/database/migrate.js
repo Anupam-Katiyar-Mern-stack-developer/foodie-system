@@ -10,28 +10,25 @@ const __dirname = path.dirname(__filename);
 
 const runMigrations = async () => {
   try {
-    const migrationFolder = path.join(
-      __dirname,
-      "migrations"
-    );
+    const migrationFolder = path.join(__dirname, "migrations");
 
-    const files = fs
+    let files = fs
       .readdirSync(migrationFolder)
       .filter((file) => file.endsWith(".sql"))
       .sort();
+    const requested = process.argv[2];
+    if (requested) {
+      if (!files.includes(requested) || path.basename(requested) !== requested)
+        throw new Error("Unknown migration filename");
+      files = [requested];
+    }
 
     for (const file of files) {
       console.log(`Running: ${file}`);
 
-      const filePath = path.join(
-        migrationFolder,
-        file
-      );
+      const filePath = path.join(migrationFolder, file);
 
-      const sql = fs.readFileSync(
-        filePath,
-        "utf8"
-      );
+      const sql = fs.readFileSync(filePath, "utf8");
 
       await pool.query(sql);
 
@@ -40,10 +37,8 @@ const runMigrations = async () => {
 
     console.log("All migrations completed");
   } catch (error) {
-    console.error(
-      "Migration error:",
-      error.message
-    );
+    process.exitCode = 1;
+    console.error("Migration error:", error.message);
   } finally {
     await pool.end();
   }

@@ -512,7 +512,7 @@ const RestaurantDetails = () => {
                         >
                             <OptimizedImage
                                 src={
-                                    restaurant.image
+                                    restaurant.logo
                                 }
 
                                 alt={

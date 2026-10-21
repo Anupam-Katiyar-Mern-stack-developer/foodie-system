@@ -25,6 +25,7 @@ import Button from "../components/common/Button/Button";
 import Drawer from "../components/common/Drawer/Drawer";
 import ConfirmModal from "../components/common/ConfirmModal/ConfirmModal";
 import { sessionExpired } from "../redux/slices/admin/admin.slice";
+import OptimizedImage from "../components/common/OptimizedImage/OptimizedImage";
 
 const navigation = [
   ["dashboard", "Overview", LayoutDashboard],
@@ -45,6 +46,7 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const profile = useSelector((state) => state.admin.profile);
+  const { settings } = useSelector((state) => state.siteSettings);
   const current = navigation.find(([path]) =>
     location.pathname.startsWith(`/admin/${path}`)
   );
@@ -56,11 +58,22 @@ export default function AdminLayout() {
         className="flex items-center gap-3 rounded-xl px-2 py-3 focus-visible:outline-orange-500"
       >
         <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-500 text-white">
-          <UtensilsCrossed className="h-6 w-6" aria-hidden="true" />
+          {settings.logo ? (
+            <OptimizedImage
+              src={settings.logo}
+              alt={settings.siteName}
+              objectFit="contain"
+              wrapperClassName="h-11 w-11 bg-white"
+              className="h-11 w-11"
+            />
+          ) : (
+            <UtensilsCrossed className="h-6 w-6" aria-hidden="true" />
+          )}
         </span>
         <span>
           <span className="block text-2xl font-black tracking-tight text-slate-950">
-            foodie<span className="text-orange-500">.</span>
+            {settings.siteName}
+            <span className="text-orange-500">.</span>
           </span>
           <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">
             Admin workspace
@@ -151,7 +164,9 @@ export default function AdminLayout() {
                   {current?.[1] || "Overview"}
                 </span>
               </p>
-              <p className="mt-1 text-sm font-bold">Foodie control centre</p>
+              <p className="mt-1 text-sm font-bold">
+                {settings.siteName} control centre
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -185,7 +200,7 @@ export default function AdminLayout() {
           <Outlet />
         </main>
         <footer className="px-4 pb-6 text-xs text-slate-500 sm:px-8">
-          Foodie Admin · Your platform, in one place.
+          {settings.siteName} Admin · Your platform, in one place.
         </footer>
       </div>
       <ConfirmModal

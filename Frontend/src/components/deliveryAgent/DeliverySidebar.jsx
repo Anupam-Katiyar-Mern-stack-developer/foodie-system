@@ -1,3 +1,5 @@
+import { useSelector } from "react-redux";
+import OptimizedImage from "../common/OptimizedImage/OptimizedImage";
 import {
   Banknote,
   Bike,
@@ -12,10 +14,8 @@ import { NavLink } from "react-router-dom";
 
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 
-const DeliverySidebar = ({
-  mobileOpen,
-  onClose,
-}) => {
+const DeliverySidebar = ({ mobileOpen, onClose }) => {
+  const { settings } = useSelector((state) => state.siteSettings);
   // =========================================
   // MENU
   // =========================================
@@ -53,13 +53,9 @@ const DeliverySidebar = ({
   // =========================================
 
   const handleLogout = () => {
-    localStorage.removeItem(
-      STORAGE_KEYS.DELIVERY_TOKEN
-    );
+    localStorage.removeItem(STORAGE_KEYS.DELIVERY_TOKEN);
 
-    window.location.replace(
-      "/delivery/login"
-    );
+    window.location.replace("/delivery/login");
   };
 
   // =========================================
@@ -90,11 +86,7 @@ const DeliverySidebar = ({
           lg:z-30
           lg:translate-x-0
 
-          ${
-            mobileOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
-          }
+          ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
         {/* =========================================
@@ -104,12 +96,22 @@ const DeliverySidebar = ({
         <div className="flex min-h-[76px] items-center justify-between border-b border-slate-100 px-5">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-rose-500 text-white shadow-lg shadow-orange-100">
-              <Bike className="h-5 w-5" />
+              {settings.logo ? (
+                <OptimizedImage
+                  src={settings.logo}
+                  alt={settings.siteName}
+                  objectFit="contain"
+                  wrapperClassName="h-11 w-11 bg-white"
+                  className="h-11 w-11"
+                />
+              ) : (
+                <Bike className="h-5 w-5" />
+              )}
             </div>
 
             <div>
               <p className="text-lg font-black text-slate-950">
-                Foodie
+                {settings.siteName}
               </p>
 
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-orange-500">
@@ -206,7 +208,6 @@ const DeliverySidebar = ({
             "
           >
             <LogOut className="h-[18px] w-[18px] shrink-0" />
-
             Logout
           </button>
         </div>

@@ -7,8 +7,8 @@ const escapeHtml = (value = "") => {
     .replaceAll("'", "&#039;");
 };
 
-
 export const emailLayout = ({
+  brandName = "Foodie",
   title,
   greeting,
   message,
@@ -47,7 +47,6 @@ export const emailLayout = ({
       `
     )
     .join("");
-
 
   return `
     <!DOCTYPE html>
@@ -110,7 +109,7 @@ export const emailLayout = ({
                         font-size:30px;
                       "
                     >
-                      Foodie
+                      ${escapeHtml(brandName)}
                     </h1>
 
 
@@ -287,7 +286,7 @@ export const emailLayout = ({
                     "
                   >
 
-                    © ${new Date().getFullYear()} Foodie
+                    © ${new Date().getFullYear()} ${escapeHtml(brandName)}
 
                     <br/><br/>
 

@@ -8,8 +8,10 @@ import ErrorState from "../../../components/common/ErrorState/ErrorState";
 import Skeleton from "../../../components/common/Skeleton/Skeleton";
 import StatusBadge from "../../../components/common/StatusBadge/StatusBadge";
 import { getMyOrders } from "../../../redux/thunks/public/order.thunk";
+import getImageUrl from "../../../utils/getImageUrl";
 
 const statusConfig = {
+  PAYMENT_PENDING: { label: "Awaiting payment", variant: "warning" },
   PLACED: { label: "Placed", variant: "warning" },
   CONFIRMED: { label: "Confirmed", variant: "info" },
   PREPARING: { label: "Preparing", variant: "purple" },
@@ -55,9 +57,9 @@ const OrderCard = ({ order, onClick }) => {
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-orange-50 text-orange-500">
-            {order.restaurantLogo ? (
+            {getImageUrl(order.restaurantLogo) ? (
               <img
-                src={order.restaurantLogo}
+                src={getImageUrl(order.restaurantLogo)}
                 alt={order.restaurantName || "Restaurant"}
                 className="h-full w-full object-cover"
               />
@@ -114,12 +116,7 @@ const OrderCard = ({ order, onClick }) => {
 const OrdersSkeleton = () => (
   <div className="space-y-4">
     {[1, 2, 3].map((item) => (
-      <Skeleton
-        key={item}
-        width="w-full"
-        height="h-40"
-        rounded="rounded-2xl"
-      />
+      <Skeleton key={item} width="w-full" height="h-40" rounded="rounded-2xl" />
     ))}
   </div>
 );
@@ -160,7 +157,8 @@ const Orders = () => {
           </h1>
 
           <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
-            View all your food orders and open any order to check its complete details and live status.
+            View all your food orders and open any order to check its complete
+            details and live status.
           </p>
         </div>
 

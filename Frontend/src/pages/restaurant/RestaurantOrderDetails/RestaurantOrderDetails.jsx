@@ -518,6 +518,38 @@ const RestaurantOrderDetails = () => {
 
         setDeliveryMessage(messages[latestOffer.status] || "");
     }, [order, orderNumber]);
+  // Refresh while the picker is open: a rider may enable GPS or go online later.
+  useEffect(() => {
+    if (!showAssignModal || !orderNumber || offerSendingId) return;
+    let disposed = false;
+    let loading = false;
+    const timer = setInterval(async () => {
+      if (loading || pendingOfferRef.current) return;
+      loading = true;
+      try {
+        const payload = await dispatch(
+          getAvailableDeliveryAgents(orderNumber)
+        ).unwrap();
+        if (!disposed) {
+          setAvailableAgents(extractAgents(payload));
+          setDeliveryError("");
+        }
+      } catch (error) {
+        if (!disposed)
+          setDeliveryError(
+            getErrorMessage(error, "Unable to refresh delivery partners")
+          );
+      } finally {
+        loading = false;
+      }
+    }, 10000);
+    return () => {
+      disposed = true;
+      clearInterval(timer);
+    };
+  }, [dispatch, showAssignModal, orderNumber, offerSendingId]);
+
+
     // ======================================================
     // MODAL ESCAPE + BODY SCROLL
     // ======================================================
@@ -1931,7 +1963,7 @@ const DeliveryPartnerModal = ({
                                                     {
                                                         search
                                                             ? "No delivery partner matches your search."
-                                                            : "Abhi koi eligible online delivery partner nearby available nahi hai."
+                                                            : "Approved partner ko delivery panel mein online karo aur GPS permission do. Sirf free partners, 10 km ke andar aur recent GPS ke saath dikhte hain. List har 10 seconds refresh hoti hai."
                                                     }
 
                                                 </p>

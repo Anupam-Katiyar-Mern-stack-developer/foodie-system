@@ -1,7 +1,4 @@
-import {
-  useEffect,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
 import getImageUrl from "../../../utils/getImageUrl";
 
 const OptimizedImage = ({
@@ -25,12 +22,9 @@ const OptimizedImage = ({
 
   ...props
 }) => {
-  const [imageLoaded, setImageLoaded] =
-    useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
-  const [imageError, setImageError] =
-    useState(false);
-
+  const [imageError, setImageError] = useState(false);
 
   // src change hone par state reset
   useEffect(() => {
@@ -38,30 +32,27 @@ const OptimizedImage = ({
     setImageError(false);
   }, [src]);
 
-
   const handleLoad = () => {
     setImageLoaded(true);
   };
-
 
   const handleError = () => {
     setImageError(true);
     setImageLoaded(true);
   };
 
-
   const finalSrc =
     imageError && fallbackSrc
       ? getImageUrl(fallbackSrc)
-      : imageError ? "" : getImageUrl(src);
-
+      : imageError
+      ? ""
+      : getImageUrl(src);
 
   const objectFitClasses = {
     cover: "object-cover",
     contain: "object-contain",
     fill: "object-fill",
   };
-
 
   return (
     <div
@@ -76,19 +67,17 @@ const OptimizedImage = ({
       `}
     >
       {/* Loading Skeleton */}
-      {showLoader &&
-        !imageLoaded && (
-          <div
-            className="
+      {showLoader && !imageLoaded && (
+        <div
+          className="
               absolute
               inset-0
               animate-pulse
               bg-gray-200
             "
-            aria-hidden="true"
-          />
-        )}
-
+          aria-hidden="true"
+        />
+      )}
 
       {/* No Image */}
       {!finalSrc ? (
@@ -111,19 +100,12 @@ const OptimizedImage = ({
       ) : (
         <img
           src={finalSrc}
-
           alt={alt}
-
           loading={loading}
-
           decoding="async"
-
           draggable="false"
-
           onLoad={handleLoad}
-
           onError={handleError}
-
           className={`
             h-full
             w-full
@@ -131,22 +113,12 @@ const OptimizedImage = ({
             transition-opacity
             duration-300
 
-            ${
-              imageLoaded
-                ? "opacity-100"
-                : "opacity-0"
-            }
+            ${imageLoaded ? "opacity-100" : "opacity-0"}
 
-            ${
-              objectFitClasses[
-                objectFit
-              ] ||
-              objectFitClasses.cover
-            }
+            ${objectFitClasses[objectFit] || objectFitClasses.cover}
 
             ${className}
           `}
-
           {...props}
         />
       )}

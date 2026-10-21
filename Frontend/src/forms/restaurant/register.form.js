@@ -6,13 +6,21 @@ export const restaurantRegisterDefaultValues = {
   password: "",
   confirmPassword: "",
   description: "",
+  addressLine: "",
   city: "",
   state: "",
   pincode: "",
-
 };
 
 export const restaurantRegisterFields = [
+  {
+    name: "addressLine",
+    label: "Restaurant address",
+    type: "textarea",
+    placeholder: "Street, building and area",
+    required: true,
+    fullWidth: true,
+  },
   {
     name: "ownerName",
     label: "Owner Name",
@@ -63,7 +71,7 @@ export const restaurantRegisterFields = [
     fullWidth: true,
     rows: 4,
   },
-  
+
   {
     name: "city",
     label: "City",
@@ -85,5 +93,4 @@ export const restaurantRegisterFields = [
     placeholder: "6 digit pincode",
     required: true,
   },
-
 ];

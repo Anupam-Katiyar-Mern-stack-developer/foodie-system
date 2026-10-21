@@ -1,5 +1,11 @@
 export const deliveryRegisterFields = [
   {
+    name: "address",
+    label: "Address (optional)",
+    type: "textarea",
+    fullWidth: true,
+  },
+  {
     name: "name",
     label: "Full Name",
     type: "text",
@@ -17,7 +23,7 @@ export const deliveryRegisterFields = [
     type: "text",
     placeholder: "Enter 10 digit phone number",
   },
- 
+
   {
     name: "vehicleType",
     label: "Vehicle Type",
@@ -50,10 +56,11 @@ export const deliveryRegisterFields = [
 ];
 
 export const deliveryRegisterDefaultValues = {
+  address: "",
   name: "",
   email: "",
   phone: "",
- 
+
   vehicleType: "BIKE",
   vehicleNumber: "",
   password: "",

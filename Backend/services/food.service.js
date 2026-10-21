@@ -1,4 +1,5 @@
 import pool from "../config/database.js";
+import { categoryImageSql } from "./category.service.js";
 
 import { generateFoodSlug } from "../utils/generateFoodSlug.js";
 
@@ -41,7 +42,7 @@ export const createFoodService = async ({
 
         LIMIT 1
       `,
-    [restaurantId],
+    [restaurantId]
   );
 
   if (restaurantResult.rows.length === 0) {
@@ -84,7 +85,7 @@ export const createFoodService = async ({
 
         LIMIT 1
       `,
-    [categorySlug.trim()],
+    [categorySlug.trim()]
   );
 
   if (categoryResult.rows.length === 0) {
@@ -111,7 +112,7 @@ export const createFoodService = async ({
 
         LIMIT 1
       `,
-    [restaurantId, normalizedName],
+    [restaurantId, normalizedName]
   );
 
   if (duplicateFood.rows.length > 0) {
@@ -135,7 +136,7 @@ export const createFoodService = async ({
     (numericDiscountPrice <= 0 || numericDiscountPrice >= numericPrice)
   ) {
     const error = new Error(
-      "Discount price must be greater than 0 and less than regular price",
+      "Discount price must be greater than 0 and less than regular price"
     );
 
     error.statusCode = 400;
@@ -203,7 +204,7 @@ export const createFoodService = async ({
         isVeg !== undefined ? isVeg === true || isVeg === "true" : true,
 
         preparationTime ? Number(preparationTime) : null,
-      ],
+      ]
     );
 
     const food = result.rows[0];
@@ -254,7 +255,7 @@ export const getRestaurantFoodsService = async ({
       FROM foods
       WHERE restaurant_id = $1
     `,
-    [restaurantId],
+    [restaurantId]
   );
 
   const result = await pool.query(
@@ -288,7 +289,7 @@ export const getRestaurantFoodsService = async ({
       LIMIT $2
       OFFSET $3
     `,
-    [restaurantId, limit, offset],
+    [restaurantId, limit, offset]
   );
 
   const total = countResult.rows[0].total;
@@ -340,7 +341,7 @@ export const getRestaurantFoodBySlugService = async ({
 
       LIMIT 1
     `,
-    [foodSlug, restaurantId],
+    [foodSlug, restaurantId]
   );
 
   if (result.rows.length === 0) {
@@ -395,7 +396,7 @@ export const updateFoodService = async ({
 
         LIMIT 1
       `,
-    [foodSlug, restaurantId],
+    [foodSlug, restaurantId]
   );
 
   if (existingResult.rows.length === 0) {
@@ -438,7 +439,7 @@ export const updateFoodService = async ({
 
           LIMIT 1
         `,
-      [restaurantId, finalName, existingFood.id],
+      [restaurantId, finalName, existingFood.id]
     );
 
     if (duplicateResult.rows.length > 0) {
@@ -468,7 +469,7 @@ export const updateFoodService = async ({
 
           LIMIT 1
         `,
-      [categorySlug.trim()],
+      [categorySlug.trim()]
     );
 
     if (categoryResult.rows.length === 0) {
@@ -518,7 +519,7 @@ export const updateFoodService = async ({
       finalDiscountPrice >= finalPrice)
   ) {
     const error = new Error(
-      "Discount price must be greater than 0 and less than regular price",
+      "Discount price must be greater than 0 and less than regular price"
     );
 
     error.statusCode = 400;
@@ -647,7 +648,7 @@ export const updateFoodService = async ({
 
         existingFood.id,
         restaurantId,
-      ],
+      ]
     );
 
     if (newImage && existingFood.image) {
@@ -687,7 +688,7 @@ export const deleteFoodService = async ({ restaurantId, foodSlug }) => {
         slug,
         image
     `,
-    [foodSlug, restaurantId],
+    [foodSlug, restaurantId]
   );
 
   if (result.rows.length === 0) {
@@ -721,7 +722,7 @@ export const getAdminFoodsService = async ({ page, limit }) => {
     `
         SELECT COUNT(*)::int AS total
         FROM foods
-      `,
+      `
   );
 
   const result = await pool.query(
@@ -771,7 +772,7 @@ export const getAdminFoodsService = async ({ page, limit }) => {
         LIMIT $1
         OFFSET $2
       `,
-    [limit, offset],
+    [limit, offset]
   );
 
   const total = countResult.rows[0].total;
@@ -840,7 +841,7 @@ export const getAdminFoodBySlugService = async ({ foodSlug }) => {
 
         LIMIT 1
       `,
-    [foodSlug],
+    [foodSlug]
   );
 
   if (result.rows.length === 0) {
@@ -868,7 +869,7 @@ export const getFoodsByCategoryService = async ({
         id,
         name,
         slug,
-        image,
+        ${categoryImageSql},
         description
 
       FROM categories
@@ -879,7 +880,7 @@ export const getFoodsByCategoryService = async ({
 
       LIMIT 1
     `,
-    [categorySlug],
+    [categorySlug]
   );
 
   if (categoryResult.rows.length === 0) {
@@ -907,7 +908,7 @@ export const getFoodsByCategoryService = async ({
         AND r.approval_status = 'APPROVED'
         AND r.is_blocked = FALSE
     `,
-    [category.id],
+    [category.id]
   );
 
   // Actual foods
@@ -964,7 +965,7 @@ export const getFoodsByCategoryService = async ({
       LIMIT $2
       OFFSET $3
     `,
-    [category.id, limit, offset],
+    [category.id, limit, offset]
   );
 
   const total = countResult.rows[0].total;
@@ -1019,7 +1020,7 @@ export const getFoodsByRestaurantService = async ({
 
         LIMIT 1
       `,
-    [restaurantSlug],
+    [restaurantSlug]
   );
 
   if (restaurantResult.rows.length === 0) {
@@ -1045,7 +1046,7 @@ export const getFoodsByRestaurantService = async ({
           AND f.is_available = TRUE
           AND c.is_active = TRUE
       `,
-    [restaurant.id],
+    [restaurant.id]
   );
 
   const foodResult = await pool.query(
@@ -1094,7 +1095,7 @@ export const getFoodsByRestaurantService = async ({
         LIMIT $2
         OFFSET $3
       `,
-    [restaurant.id, limit, offset],
+    [restaurant.id, limit, offset]
   );
 
   const total = countResult.rows[0].total;
@@ -1174,7 +1175,7 @@ export const getFoodsService = async ({ page = 1, limit = 20 }) => {
       LIMIT $1
       OFFSET $2
       `,
-    [currentLimit, offset],
+    [currentLimit, offset]
   );
 
   // =========================
@@ -1197,7 +1198,7 @@ export const getFoodsService = async ({ page = 1, limit = 20 }) => {
         AND r.approval_status = 'approved'
 
         AND r.is_blocked = false
-      `,
+      `
   );
 
   const total = countResult.rows[0].total;
@@ -1307,7 +1308,7 @@ export const getFoodBySlugService = async ({ foodSlug }) => {
 
       LIMIT 1
     `,
-    [foodSlug],
+    [foodSlug]
   );
 
   // =========================

@@ -91,7 +91,7 @@ export const getAdminDashboardService = async () => {
       (SELECT COUNT(*)::int FROM categories) AS "categories",
       (SELECT COUNT(*)::int FROM foods) AS "foods",
       COUNT(*)::int AS "orders",
-      COUNT(*) FILTER (WHERE status NOT IN ('DELIVERED','CANCELLED','REJECTED'))::int AS "activeOrders",
+      COUNT(*) FILTER (WHERE status NOT IN ('PAYMENT_PENDING','DELIVERED','CANCELLED','REJECTED'))::int AS "activeOrders",
       COUNT(*) FILTER (WHERE status='DELIVERED')::int AS "deliveredOrders",
       COALESCE(SUM(total_amount) FILTER (WHERE status='DELIVERED'),0) AS "deliveredValue"
       FROM orders`),
@@ -145,6 +145,10 @@ const adminLists = {
     date: "d.created_at",
   },
   orders: {
+
+
+
+
     from: "orders o JOIN restaurants r ON r.id=o.restaurant_id JOIN order_groups og ON og.id=o.order_group_id",
     fields: `o.order_number AS "orderNumber", o.status, o.total_amount AS "totalAmount", o.delivery_fee AS "deliveryFee",
       o.created_at AS "createdAt", r.restaurant_name AS "restaurantName", og.delivery_name AS "customerName",
@@ -296,7 +300,7 @@ export const approveRestaurantService = async ({ adminId, restaurantSlug }) => {
     `
         UPDATE restaurants
 
-        SET 
+        SET
             approval_status='APPROVED',
             reviewed_by=$1,
            reviewed_at = CURRENT_TIMESTAMP,

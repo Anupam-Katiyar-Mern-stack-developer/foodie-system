@@ -20,8 +20,7 @@ export const deliveryRegisterSchema = z
       .min(1, "Phone number is required")
       .regex(/^[6-9]\d{9}$/, "Enter a valid 10 digit phone number"),
 
-    
-
+    address: z.string().trim().max(1000).optional(),
     vehicleType: z.enum(["BIKE", "SCOOTER", "BICYCLE"], {
       message: "Select a valid vehicle type",
     }),
@@ -31,11 +30,9 @@ export const deliveryRegisterSchema = z
     password: z
       .string()
       .min(1, "Password is required")
-      .min(6, "Password must be at least 6 characters"),
+      .min(8, "Password must be at least 8 characters"),
 
-    confirmPassword: z
-      .string()
-      .min(1, "Confirm password is required"),
+    confirmPassword: z.string().min(1, "Confirm password is required"),
   })
   .superRefine((data, ctx) => {
     if (data.vehicleType !== "BICYCLE" && !data.vehicleNumber) {

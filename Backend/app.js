@@ -27,7 +27,11 @@ const app = express();
 
 app.use("/images", cors(), express.static(IMAGE_ROOT));
 
-app.post("/api/payments/webhook", express.raw({type:"application/json",limit:"1mb"}), paymentWebhook);
+app.post(
+  "/api/payments/webhook",
+  express.raw({ type: "application/json", limit: "1mb" }),
+  paymentWebhook
+);
 app.use(express.json());
 
 app.use(cors());

@@ -23,12 +23,18 @@ export const placeOrderService = async ({
   paymentMethod,
   latitude,
   longitude,
+  couponCode,
+  requestKey,
+  expectedTotal,
 }) => {
   const response = await apiClient.post("/user/orders", {
     addressId,
     paymentMethod,
     latitude,
     longitude,
+    couponCode,
+    requestKey,
+    expectedTotal,
   });
 
   return getData(response);

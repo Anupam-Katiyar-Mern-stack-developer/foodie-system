@@ -7,8 +7,23 @@ export const placeOrder = async (req, res, next) => {
   try {
     const userId = req.auth.userId;
 
-    const { addressId, paymentMethod = "COD", latitude, longitude, couponCode, requestKey } = req.body;
-    if(requestKey && (typeof requestKey!=='string'||!/^[A-Za-z0-9_-]{8,100}$/.test(requestKey))) return res.status(400).json({success:false,message:"Invalid checkout request key"});
+    const {
+      addressId,
+      paymentMethod = "COD",
+      latitude,
+      longitude,
+      couponCode,
+      requestKey,
+      expectedTotal,
+    } = req.body;
+    if (
+      requestKey &&
+      (typeof requestKey !== "string" ||
+        !/^[A-Za-z0-9_-]{8,100}$/.test(requestKey))
+    )
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid checkout request key" });
 
     // =========================================
     // DELIVERY ADDRESS
@@ -25,28 +40,8 @@ export const placeOrder = async (req, res, next) => {
     // PAYMENT METHOD
     // =========================================
     //
-    // Abhi sirf COD enabled hai.
-    //
-    // Future Online Payment Module:
-    //
-    // paymentMethod = "ONLINE"
-    //        ↓
-    // Razorpay / Payment Gateway
-    //        ↓
-    // Payment Order Create
-    //        ↓
-    // Payment Verify
-    //        ↓
-    // payment_status = PAID
-    //        ↓
-    // Order placement continue
-    //
-    // Online payment module add karne ke
-    // time allowedPaymentMethods me ONLINE
-    // add karenge.
-    // =========================================
-
-    const allowedPaymentMethods = ["COD","ONLINE"];
+    // COD is placed immediately; ONLINE is released only after capture verification.
+    const allowedPaymentMethods = ["COD", "ONLINE"];
 
     if (!allowedPaymentMethods.includes(paymentMethod)) {
       return res.status(400).json({
@@ -59,12 +54,21 @@ export const placeOrder = async (req, res, next) => {
     // CREATE ORDER
     // =========================================
 
-    if(paymentMethod==='ONLINE'&&!paymentConfigured()) return res.status(503).json({success:false,message:"Online payment is not configured yet. Choose cash on delivery."});
+    if (paymentMethod === "ONLINE" && !paymentConfigured())
+      return res.status(503).json({
+        success: false,
+        message:
+          "Online payment is not configured yet. Choose cash on delivery.",
+      });
     const result = await placeOrderService({
       userId,
       addressId,
       paymentMethod,
-      latitude, longitude, couponCode, requestKey,
+      latitude,
+      longitude,
+      couponCode,
+      requestKey,
+      expectedTotal,
     });
 
     // =========================================
@@ -82,14 +86,16 @@ export const placeOrder = async (req, res, next) => {
     // uska separate order jayega.
     // =========================================
 
-    for (const order of result.paymentMethod==='COD'&&!result.replayed ? result.orders || [] : []) {
+    for (const order of result.paymentMethod === "COD" && !result.replayed
+      ? result.orders || []
+      : []) {
       try {
         const { restaurantId, ...publicOrder } = order;
 
         if (!restaurantId) {
           console.error(
             "Restaurant socket skipped: restaurantId missing",
-            order.orderNumber,
+            order.orderNumber
           );
 
           continue;
@@ -121,7 +127,7 @@ export const placeOrder = async (req, res, next) => {
     // =========================================
 
     const publicOrders = (result.orders || []).map(
-      ({ restaurantId, ...order }) => order,
+      ({ restaurantId, ...order }) => order
     );
 
     return res.status(201).json({

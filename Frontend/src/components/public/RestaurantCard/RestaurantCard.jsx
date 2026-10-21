@@ -23,7 +23,7 @@ const RestaurantCard = ({
         slug,
         restaurantName,
         description,
-        image,
+        logo,
         addressLine,
         city,
         isOpen,
@@ -89,7 +89,7 @@ const RestaurantCard = ({
           "
                 >
                     <OptimizedImage
-                        src={image}
+                        src={logo}
 
                         alt={restaurantName}
 

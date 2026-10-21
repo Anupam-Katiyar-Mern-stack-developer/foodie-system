@@ -3,8 +3,7 @@ import { loginDeliveryAgentService } from "../../services/delivery.service.js";
 export const loginDeliveryAgent = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-     console.log("controller in delivery agent",email,password);
-     
+
     if (!email || !email.trim()) {
       return res.status(400).json({
         success: false,

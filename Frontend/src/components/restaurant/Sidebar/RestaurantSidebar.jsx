@@ -1,76 +1,71 @@
+import { useSelector } from "react-redux";
+import OptimizedImage from "../../common/OptimizedImage/OptimizedImage";
 import {
-    LayoutDashboard,
-    ShoppingBag,
-    Utensils,
-    Layers3,
-    Store,
-    Clock3,
-    LogOut,
-    ChefHat,
-    X,
+  LayoutDashboard,
+  ShoppingBag,
+  Utensils,
+  Layers3,
+  Store,
+  Clock3,
+  LogOut,
+  ChefHat,
+  X,
 } from "lucide-react";
 
-import {
-    NavLink,
-} from "react-router-dom";
-
+import { NavLink } from "react-router-dom";
 
 const restaurantNavigation = [
-    {
-        label: "Dashboard",
-        to: "/restaurant/dashboard",
-        icon: LayoutDashboard,
-    },
+  {
+    label: "Dashboard",
+    to: "/restaurant/dashboard",
+    icon: LayoutDashboard,
+  },
 
-    {
-        label: "Orders",
-        to: "/restaurant/orders",
-        icon: ShoppingBag,
-    },
+  {
+    label: "Orders",
+    to: "/restaurant/orders",
+    icon: ShoppingBag,
+  },
 
-    {
-        label: "Foods",
-        to: "/restaurant/foods",
-        icon: Utensils,
-    },
+  {
+    label: "Foods",
+    to: "/restaurant/foods",
+    icon: Utensils,
+  },
 
-    {
-        label: "Categories",
-        to: "/restaurant/categories",
-        icon: Layers3,
-    },
+  {
+    label: "Categories",
+    to: "/restaurant/categories",
+    icon: Layers3,
+  },
 
-    {
-        label: "Profile",
-        to: "/restaurant/profile",
-        icon: Store,
-    },
+  {
+    label: "Profile",
+    to: "/restaurant/profile",
+    icon: Store,
+  },
 
-    {
-        label: "Business Hours",
-        to: "/restaurant/business-hours",
-        icon: Clock3,
-    },
+  {
+    label: "Business Hours",
+    to: "/restaurant/business-hours",
+    icon: Clock3,
+  },
 ];
 
-
-const RestaurantSidebar = ({
-    open = false,
-    onClose,
-    onLogout,
-}) => {
-    return (
-        <>
-            {/* =========================
+const RestaurantSidebar = ({ open = false, onClose, onLogout }) => {
+  const { settings } = useSelector((state) => state.siteSettings);
+  return (
+    <>
+      {/* =========================
           MOBILE OVERLAY
       ========================== */}
 
-            {open && (
-                <button
-                    type="button"
-                    aria-label="Close sidebar"
-                    onClick={onClose}
-                    className="
+      {open && (
+        <button
+          type="button"
+          aria-label="Close sidebar"
+          onClick={onClose}
+          className="
             fixed
             inset-0
             z-40
@@ -80,16 +75,15 @@ const RestaurantSidebar = ({
 
             lg:hidden
           "
-                />
-            )}
+        />
+      )}
 
-
-            {/* =========================
+      {/* =========================
           SIDEBAR
       ========================== */}
 
-            <aside
-                className={`
+      <aside
+        className={`
           fixed
           left-0
           top-0
@@ -114,18 +108,15 @@ const RestaurantSidebar = ({
           lg:translate-x-0
           lg:shadow-none
 
-          ${open
-                        ? "translate-x-0"
-                        : "-translate-x-full"
-                    }
+          ${open ? "translate-x-0" : "-translate-x-full"}
         `}
-            >
-                {/* =====================
+      >
+        {/* =====================
             LOGO
         ====================== */}
 
-                <div
-                    className="
+        <div
+          className="
             flex
             min-h-[76px]
             items-center
@@ -136,16 +127,16 @@ const RestaurantSidebar = ({
 
             px-5
           "
-                >
-                    <div
-                        className="
+        >
+          <div
+            className="
               flex
               items-center
               gap-3
             "
-                    >
-                        <div
-                            className="
+          >
+            <div
+              className="
                 flex
                 h-11
                 w-11
@@ -163,38 +154,35 @@ const RestaurantSidebar = ({
                 shadow-lg
                 shadow-orange-500/20
               "
-                        >
-                            <ChefHat
-                                className="
-                  h-6
-                  w-6
-                "
-                            />
-                        </div>
+            >
+              {settings.logo ? (
+                <OptimizedImage
+                  src={settings.logo}
+                  alt={settings.siteName}
+                  objectFit="contain"
+                  wrapperClassName="h-11 w-11 bg-white"
+                  className="h-11 w-11"
+                />
+              ) : (
+                <ChefHat className="h-6 w-6" />
+              )}
+            </div>
 
-
-                        <div>
-                            <p
-                                className="
+            <div>
+              <p
+                className="
                   text-xl
                   font-black
                   leading-none
                   tracking-tight
                   text-slate-950
                 "
-                            >
-                                Food
-                                <span
-                                    className="
-                    text-orange-500
-                  "
-                                >
-                                    ie
-                                </span>
-                            </p>
+              >
+                {settings.siteName}
+              </p>
 
-                            <p
-                                className="
+              <p
+                className="
                   mt-1
 
                   text-[9px]
@@ -203,17 +191,16 @@ const RestaurantSidebar = ({
                   tracking-[0.2em]
                   text-slate-400
                 "
-                            >
-                                Restaurant Panel
-                            </p>
-                        </div>
-                    </div>
+              >
+                Restaurant Panel
+              </p>
+            </div>
+          </div>
 
-
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="
+          <button
+            type="button"
+            onClick={onClose}
+            className="
               inline-flex
               h-9
               w-9
@@ -231,30 +218,29 @@ const RestaurantSidebar = ({
 
               lg:hidden
             "
-                    >
-                        <X
-                            className="
+          >
+            <X
+              className="
                 h-5
                 w-5
               "
-                        />
-                    </button>
-                </div>
+            />
+          </button>
+        </div>
 
-
-                {/* =====================
+        {/* =====================
             RESTAURANT INFO
         ====================== */}
 
-                <div
-                    className="
+        <div
+          className="
             px-4
             pb-3
             pt-5
           "
-                >
-                    <div
-                        className="
+        >
+          <div
+            className="
               rounded-2xl
 
               border
@@ -266,16 +252,16 @@ const RestaurantSidebar = ({
 
               p-3.5
             "
-                    >
-                        <div
-                            className="
+          >
+            <div
+              className="
                 flex
                 items-center
                 gap-3
               "
-                        >
-                            <div
-                                className="
+            >
+              <div
+                className="
                   flex
                   h-11
                   w-11
@@ -291,44 +277,43 @@ const RestaurantSidebar = ({
 
                   shadow-sm
                 "
-                            >
-                                <Store
-                                    className="
+              >
+                <Store
+                  className="
                     h-5
                     w-5
                   "
-                                />
-                            </div>
+                />
+              </div>
 
-
-                            <div
-                                className="
+              <div
+                className="
                   min-w-0
                   flex-1
                 "
-                            >
-                                <p
-                                    className="
+              >
+                <p
+                  className="
                     truncate
 
                     text-sm
                     font-black
                     text-slate-950
                   "
-                                >
-                                    Foodie Kitchen
-                                </p>
+                >
+                  Foodie Kitchen
+                </p>
 
-                                <div
-                                    className="
+                <div
+                  className="
                     mt-1
                     flex
                     items-center
                     gap-1.5
                   "
-                                >
-                                    <span
-                                        className="
+                >
+                  <span
+                    className="
                       h-2
                       w-2
 
@@ -336,30 +321,29 @@ const RestaurantSidebar = ({
 
                       bg-emerald-500
                     "
-                                    />
+                  />
 
-                                    <span
-                                        className="
+                  <span
+                    className="
                       text-[11px]
                       font-semibold
                       text-emerald-700
                     "
-                                    >
-                                        Open
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                  >
+                    Open
+                  </span>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-
-                {/* =====================
+        {/* =====================
             NAVIGATION
         ====================== */}
 
-                <nav
-                    className="
+        <nav
+          className="
             flex-1
 
             space-y-1
@@ -369,9 +353,9 @@ const RestaurantSidebar = ({
             px-3
             py-3
           "
-                >
-                    <p
-                        className="
+        >
+          <p
+            className="
               mb-2
               px-3
 
@@ -381,24 +365,19 @@ const RestaurantSidebar = ({
               tracking-[0.16em]
               text-slate-400
             "
-                    >
-                        Management
-                    </p>
+          >
+            Management
+          </p>
 
+          {restaurantNavigation.map((item) => {
+            const Icon = item.icon;
 
-                    {restaurantNavigation.map(
-                        (item) => {
-                            const Icon =
-                                item.icon;
-
-                            return (
-                                <NavLink
-                                    key={item.to}
-                                    to={item.to}
-                                    onClick={onClose}
-                                    className={({
-                                        isActive,
-                                    }) => `
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={onClose}
+                className={({ isActive }) => `
                     flex
                     min-h-12
                     items-center
@@ -413,8 +392,9 @@ const RestaurantSidebar = ({
 
                     transition-all
 
-                    ${isActive
-                                            ? `
+                    ${
+                      isActive
+                        ? `
                           bg-gradient-to-r
                           from-orange-500
                           to-rose-500
@@ -424,49 +404,45 @@ const RestaurantSidebar = ({
                           shadow-md
                           shadow-orange-500/15
                         `
-                                            : `
+                        : `
                           text-slate-600
 
                           hover:bg-orange-50
                           hover:text-orange-600
                         `
-                                        }
+                    }
                   `}
-                                >
-                                    <Icon
-                                        className="
+              >
+                <Icon
+                  className="
                       h-5
                       w-5
                       shrink-0
                     "
-                                    />
+                />
 
-                                    <span>
-                                        {item.label}
-                                    </span>
-                                </NavLink>
-                            );
-                        }
-                    )}
-                </nav>
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
 
-
-                {/* =====================
+        {/* =====================
             LOGOUT
         ====================== */}
 
-                <div
-                    className="
+        <div
+          className="
             border-t
             border-slate-100
 
             p-3
           "
-                >
-                    <button
-                        type="button"
-                        onClick={onLogout}
-                        className="
+        >
+          <button
+            type="button"
+            onClick={onLogout}
+            className="
               flex
               min-h-12
               w-full
@@ -485,21 +461,19 @@ const RestaurantSidebar = ({
 
               hover:bg-rose-50
             "
-                    >
-                        <LogOut
-                            className="
+          >
+            <LogOut
+              className="
                 h-5
                 w-5
               "
-                        />
-
-                        Logout
-                    </button>
-                </div>
-            </aside>
-        </>
-    );
+            />
+            Logout
+          </button>
+        </div>
+      </aside>
+    </>
+  );
 };
-
 
 export default RestaurantSidebar;

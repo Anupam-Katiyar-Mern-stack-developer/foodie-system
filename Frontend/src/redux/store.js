@@ -57,7 +57,7 @@ const store = configureStore({
     deliveryOffer: deliveryOfferReducer,
     deliveryProfile: deliveryProfileReducer,
     deliveryHistory: deliveryHistoryReducer,
-    deliveryLocation:deliveryLocationReducer,
+    deliveryLocation: deliveryLocationReducer,
     deliveryActiveOrder: deliveryActiveOrderReducer,
   },
 });

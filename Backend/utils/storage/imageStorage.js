@@ -3,14 +3,16 @@ import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 
-export const IMAGE_ROOT = fileURLToPath(new URL("../../images/", import.meta.url));
+export const IMAGE_ROOT = path.resolve(
+  fileURLToPath(new URL("../../images/", import.meta.url))
+);
 
 const extensionByMimeType = {
   "image/jpeg": ".jpg",
   "image/png": ".png",
   "image/webp": ".webp",
 };
-// save image function 
+// save image function
 export const saveImage = async ({ file, folder }) => {
   if (!file) {
     throw new Error("Image file is required");
@@ -39,7 +41,6 @@ export const saveImage = async ({ file, folder }) => {
 
   return publicPath;
 };
-
 
 // delete image function
 export const deleteImage = async (imagePath) => {

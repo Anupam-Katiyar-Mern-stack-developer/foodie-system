@@ -12,11 +12,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendEmail = async ({ to, subject, html, text }) => {
+export const sendEmail = async ({ to, subject, html, text, fromName }) => {
   try {
     const mailOptions = {
       from: {
-        name: process.env.MAIL_FROM_NAME || "Foodie",
+        name: fromName || process.env.MAIL_FROM_NAME || "Foodie",
         address: process.env.MAIL_FROM_EMAIL || process.env.SMTP_USER,
       },
 

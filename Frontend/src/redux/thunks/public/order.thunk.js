@@ -28,7 +28,7 @@ export const getMyOrders = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
-  },
+  }
 );
 
 // =========================
@@ -40,14 +40,15 @@ export const placeOrder = createAsyncThunk(
 
   async (payload, { rejectWithValue }) => {
     try {
-      showSuccessToast("Order placed successfully");
-
-      return await placeOrderService(payload);
+      const result = await placeOrderService(payload);
+      if (result.paymentMethod === "COD")
+        showSuccessToast("Order placed successfully");
+      return result;
     } catch (error) {
       const message = getErrorMessage(error, "Unable to place order");
 
       showErrorToast(message);
       return rejectWithValue(getErrorMessage(error));
     }
-  },
+  }
 );

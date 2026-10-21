@@ -1,18 +1,9 @@
-import {
-  useEffect,
-} from "react";
+import getImageUrl from "../../../utils/getImageUrl";
+import { useEffect } from "react";
 
-import {
-  Link,
-  useLocation,
-  useNavigate,
-  useParams,
-} from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
-import {
-  useDispatch,
-  useSelector,
-} from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 import {
   FaArrowLeft,
@@ -32,54 +23,32 @@ import ErrorState from "../../../components/common/ErrorState/ErrorState";
 import Skeleton from "../../../components/common/Skeleton/Skeleton";
 import OptimizedImage from "../../../components/common/OptimizedImage/OptimizedImage";
 
-import {
-  getFoodBySlug,
-} from "../../../redux/thunks/public/food.thunk";
+import { getFoodBySlug } from "../../../redux/thunks/public/food.thunk";
 
-import {
-  addCartItem,
-} from "../../../redux/thunks/public/cart.thunk";
-
+import { addCartItem } from "../../../redux/thunks/public/cart.thunk";
 
 const FoodDetails = () => {
-  const dispatch =
-    useDispatch();
+  const dispatch = useDispatch();
 
-  const navigate =
-    useNavigate();
+  const navigate = useNavigate();
 
-  const location =
-    useLocation();
+  const location = useLocation();
 
-  const {
-    slug,
-  } = useParams();
-
+  const { slug } = useParams();
 
   // =========================
   // REDUX
   // =========================
 
   const {
-    selectedFood:
-      food,
+    selectedFood: food,
 
     detailLoading,
 
     detailError,
-  } = useSelector(
-    (state) =>
-      state.publicFood
-  );
+  } = useSelector((state) => state.publicFood);
 
-
-  const {
-    isAuthenticated,
-  } = useSelector(
-    (state) =>
-      state.publicAuth
-  );
-
+  const { isAuthenticated } = useSelector((state) => state.publicAuth);
 
   // =========================
   // LOAD FOOD
@@ -90,112 +59,62 @@ const FoodDetails = () => {
       return;
     }
 
-    dispatch(
-      getFoodBySlug(
-        slug
-      )
-    );
-  }, [
-    dispatch,
-    slug,
-  ]);
-
+    dispatch(getFoodBySlug(slug));
+  }, [dispatch, slug]);
 
   // =========================
   // PRICE
   // =========================
 
   const hasDiscount =
-    food?.discountPrice !==
-      null &&
-    food?.discountPrice !==
-      undefined &&
-    Number(
-      food.discountPrice
-    ) <
-      Number(
-        food?.price || 0
-      );
+    food?.discountPrice !== null &&
+    food?.discountPrice !== undefined &&
+    Number(food.discountPrice) < Number(food?.price || 0);
 
-
-  const finalPrice =
-    hasDiscount
-      ? Number(
-          food.discountPrice
-        )
-      : Number(
-          food?.price || 0
-        );
-
+  const finalPrice = hasDiscount
+    ? Number(food.discountPrice)
+    : Number(food?.price || 0);
 
   const discountPercent =
-    hasDiscount &&
-    Number(food.price) > 0
+    hasDiscount && Number(food.price) > 0
       ? Math.round(
-          ((Number(
-            food.price
-          ) -
-            Number(
-              food.discountPrice
-            )) /
-            Number(
-              food.price
-            )) *
+          ((Number(food.price) - Number(food.discountPrice)) /
+            Number(food.price)) *
             100
         )
       : 0;
-
 
   // =========================
   // ADD TO CART
   // =========================
 
-  const handleAddToCart =
-    async () => {
-      if (
-        !food?.slug ||
-        food?.isAvailable ===
-          false
-      ) {
-        return;
-      }
+  const handleAddToCart = async () => {
+    if (!food?.slug || food?.isAvailable === false) {
+      return;
+    }
 
+    if (!isAuthenticated) {
+      navigate("/login", {
+        state: {
+          from: location.pathname,
+        },
+      });
 
-      if (
-        !isAuthenticated
-      ) {
-        navigate(
-          "/login",
-          {
-            state: {
-              from:
-                location.pathname,
-            },
-          }
-        );
+      return;
+    }
 
-        return;
-      }
+    try {
+      await dispatch(
+        addCartItem({
+          foodSlug: food.slug,
 
-
-      try {
-        await dispatch(
-          addCartItem({
-            foodSlug:
-              food.slug,
-
-            quantity: 1,
-          })
-        ).unwrap();
-
-      } catch (error) {
-        console.error(
-          "ADD TO CART ERROR:",
-          error
-        );
-      }
-    };
-
+          quantity: 1,
+        })
+      ).unwrap();
+    } catch (error) {
+      console.error("ADD TO CART ERROR:", error);
+    }
+  };
 
   // =========================
   // LOADING
@@ -211,10 +130,7 @@ const FoodDetails = () => {
         "
       >
         <Container>
-          <Skeleton
-            width="w-32"
-            height="h-8"
-          />
+          <Skeleton width="w-32" height="h-8" />
 
           <div
             className="
@@ -237,32 +153,19 @@ const FoodDetails = () => {
                 space-y-4
               "
             >
-              <Skeleton
-                width="w-24"
-                height="h-7"
-              />
+              <Skeleton width="w-24" height="h-7" />
 
-              <Skeleton
-                width="w-3/4"
-                height="h-12"
-              />
+              <Skeleton width="w-3/4" height="h-12" />
 
-              <Skeleton
-                width="w-full"
-                height="h-24"
-              />
+              <Skeleton width="w-full" height="h-24" />
 
-              <Skeleton
-                width="w-full"
-                height="h-16"
-              />
+              <Skeleton width="w-full" height="h-16" />
             </div>
           </div>
         </Container>
       </main>
     );
   }
-
 
   // =========================
   // ERROR
@@ -280,10 +183,8 @@ const FoodDetails = () => {
         <Container>
           <ErrorState
             title="Unable to load food"
-
             description={
-              typeof detailError ===
-              "string"
+              typeof detailError === "string"
                 ? detailError
                 : "Something went wrong while loading this food."
             }
@@ -292,7 +193,6 @@ const FoodDetails = () => {
       </main>
     );
   }
-
 
   // =========================
   // NOT FOUND
@@ -309,19 +209,14 @@ const FoodDetails = () => {
       >
         <Container>
           <EmptyState
-            icon={
-              FaUtensils
-            }
-
+            icon={FaUtensils}
             title="Food not found"
-
             description="This food item is unavailable or no longer exists."
           />
         </Container>
       </main>
     );
   }
-
 
   return (
     <main
@@ -352,11 +247,7 @@ const FoodDetails = () => {
           >
             <button
               type="button"
-
-              onClick={() =>
-                navigate(-1)
-              }
-
+              onClick={() => navigate(-1)}
               className="
                 inline-flex
                 items-center
@@ -372,13 +263,11 @@ const FoodDetails = () => {
               "
             >
               <FaArrowLeft />
-
               Back
             </button>
           </div>
         </Container>
       </section>
-
 
       {/* =========================
           FOOD DETAILS
@@ -430,24 +319,16 @@ const FoodDetails = () => {
                 "
               >
                 <OptimizedImage
-                  src={
-                    food.image
-                  }
-
-                  alt={
-                    food.name
-                  }
-
+                  src={food.image}
+                  alt={food.name}
                   className="
                     h-full
                     w-full
                     object-cover
                   "
-
                   rounded="rounded-none"
                 />
               </div>
-
 
               {/* VEG / NON VEG */}
 
@@ -488,21 +369,15 @@ const FoodDetails = () => {
                     }
                   `}
                 >
-                  {food.isVeg && (
-                    <FaLeaf />
-                  )}
+                  {food.isVeg && <FaLeaf />}
 
-                  {food.isVeg
-                    ? "Veg"
-                    : "Non Veg"}
+                  {food.isVeg ? "Veg" : "Non Veg"}
                 </span>
               </div>
 
-
               {/* DISCOUNT */}
 
-              {discountPercent >
-                0 && (
+              {discountPercent > 0 && (
                 <div
                   className="
                     absolute
@@ -523,14 +398,10 @@ const FoodDetails = () => {
                     shadow-lg
                   "
                 >
-                  {
-                    discountPercent
-                  }
-                  % OFF
+                  {discountPercent}% OFF
                 </div>
               )}
             </div>
-
 
             {/* =====================
                 CONTENT
@@ -549,12 +420,9 @@ const FoodDetails = () => {
                     text-orange-500
                   "
                 >
-                  {
-                    food.categoryName
-                  }
+                  {food.categoryName}
                 </p>
               )}
-
 
               {/* NAME */}
 
@@ -573,11 +441,8 @@ const FoodDetails = () => {
                   lg:text-5xl
                 "
               >
-                {
-                  food.name
-                }
+                {food.name}
               </h1>
-
 
               {/* DESCRIPTION */}
 
@@ -595,12 +460,9 @@ const FoodDetails = () => {
                     sm:text-base
                   "
                 >
-                  {
-                    food.description
-                  }
+                  {food.description}
                 </p>
               )}
-
 
               {/* =====================
                   META
@@ -642,14 +504,9 @@ const FoodDetails = () => {
                         text-orange-500
                       "
                     />
-
-                    {
-                      food.preparationTime
-                    }{" "}
-                    min
+                    {food.preparationTime} min
                   </div>
                 )}
-
 
                 <div
                   className={`
@@ -682,18 +539,11 @@ const FoodDetails = () => {
                     }
                   `}
                 >
-                  {food.isAvailable ? (
-                    <FaCheckCircle />
-                  ) : (
-                    <FaTimesCircle />
-                  )}
+                  {food.isAvailable ? <FaCheckCircle /> : <FaTimesCircle />}
 
-                  {food.isAvailable
-                    ? "Available"
-                    : "Unavailable"}
+                  {food.isAvailable ? "Available" : "Unavailable"}
                 </div>
               </div>
-
 
               {/* =====================
                   PRICE
@@ -725,7 +575,6 @@ const FoodDetails = () => {
                   Price
                 </p>
 
-
                 <div
                   className="
                     mt-2
@@ -743,12 +592,8 @@ const FoodDetails = () => {
                       text-slate-950
                     "
                   >
-                    ₹
-                    {finalPrice.toFixed(
-                      2
-                    )}
+                    ₹{finalPrice.toFixed(2)}
                   </span>
-
 
                   {hasDiscount && (
                     <>
@@ -763,14 +608,8 @@ const FoodDetails = () => {
                           line-through
                         "
                       >
-                        ₹
-                        {Number(
-                          food.price
-                        ).toFixed(
-                          2
-                        )}
+                        ₹{Number(food.price).toFixed(2)}
                       </span>
-
 
                       <span
                         className="
@@ -788,17 +627,12 @@ const FoodDetails = () => {
                           text-emerald-700
                         "
                       >
-                        Save{" "}
-                        {
-                          discountPercent
-                        }
-                        %
+                        Save {discountPercent}%
                       </span>
                     </>
                   )}
                 </div>
               </div>
-
 
               {/* =====================
                   RESTAURANT
@@ -807,7 +641,6 @@ const FoodDetails = () => {
               {food.restaurantName && (
                 <Link
                   to={`/restaurants/${food.restaurantSlug}`}
-
                   className="
                     mt-6
 
@@ -848,16 +681,10 @@ const FoodDetails = () => {
                       text-orange-500
                     "
                   >
-                    {food.restaurantLogo ? (
+                    {getImageUrl(food.restaurantLogo) ? (
                       <img
-                        src={
-                          food.restaurantLogo
-                        }
-
-                        alt={
-                          food.restaurantName
-                        }
-
+                        src={getImageUrl(food.restaurantLogo)}
+                        alt={food.restaurantName}
                         className="
                           h-full
                           w-full
@@ -868,7 +695,6 @@ const FoodDetails = () => {
                       <FaStore />
                     )}
                   </div>
-
 
                   <div
                     className="
@@ -896,13 +722,10 @@ const FoodDetails = () => {
                         text-slate-950
                       "
                     >
-                      {
-                        food.restaurantName
-                      }
+                      {food.restaurantName}
                     </p>
 
-                    {(food.restaurantCity ||
-                      food.city) && (
+                    {(food.restaurantCity || food.city) && (
                       <p
                         className="
                           mt-1
@@ -917,14 +740,12 @@ const FoodDetails = () => {
                       >
                         <FaMapMarkerAlt />
 
-                        {food.restaurantCity ||
-                          food.city}
+                        {food.restaurantCity || food.city}
                       </p>
                     )}
                   </div>
                 </Link>
               )}
-
 
               {/* =====================
                   ADD CART
@@ -937,16 +758,8 @@ const FoodDetails = () => {
               >
                 <button
                   type="button"
-
-                  disabled={
-                    food.isAvailable ===
-                    false
-                  }
-
-                  onClick={
-                    handleAddToCart
-                  }
-
+                  disabled={food.isAvailable === false}
+                  onClick={handleAddToCart}
                   className="
                     inline-flex
                     min-h-14
@@ -985,12 +798,9 @@ const FoodDetails = () => {
                 >
                   <FaShoppingBag />
 
-                  {food.isAvailable ===
-                  false
+                  {food.isAvailable === false
                     ? "Currently Unavailable"
-                    : `Add to Cart • ₹${finalPrice.toFixed(
-                        2
-                      )}`}
+                    : `Add to Cart • ₹${finalPrice.toFixed(2)}`}
                 </button>
               </div>
             </div>
@@ -1000,6 +810,5 @@ const FoodDetails = () => {
     </main>
   );
 };
-
 
 export default FoodDetails;

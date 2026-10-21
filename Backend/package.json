@@ -5,10 +5,13 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:payments": "node --test tests/payment.test.js",
     "start": "node server.js",
     "dev": "nodemon server.js",
     "db:migrate": "node database/migrate.js",
-    "create:admin": "node scripts/createAdmin.js"
+    "db:setup-site": "node database/migrate.js 017_site_settings_payments.sql",
+    "create:admin": "node scripts/createAdmin.js",
+    "test:partners": "node --test tests/partners.test.js"
   },
   "keywords": [],
   "author": "",

@@ -31,9 +31,8 @@ const RestaurantProfile = () => {
   const dispatch = useDispatch();
   const logoInputRef = useRef(null);
 
-  const { profile, fetchLoading, updateLoading, error } = useSelector(
-    (state) => state.restaurantProfile,
-  ) || {};
+  const { profile, fetchLoading, updateLoading, error } =
+    useSelector((state) => state.restaurantProfile) || {};
 
   const [editMode, setEditMode] = useState(false);
   const [logoFile, setLogoFile] = useState(null);
@@ -65,16 +64,16 @@ const RestaurantProfile = () => {
           ? String(profile.pincode)
           : "",
     }),
-    [profile],
+    [profile]
   );
 
   // Logo CommonForm me nahi dikhana
   const editableProfileFields = useMemo(
     () =>
       restaurantProfileFields.filter(
-        (field) => !["logo", "image"].includes(field.name),
+        (field) => !["logo", "image"].includes(field.name)
       ),
-    [],
+    []
   );
 
   // =========================
@@ -249,7 +248,7 @@ const RestaurantProfile = () => {
                 <div className="h-full w-full overflow-hidden rounded-2xl border-4 border-white bg-slate-100 shadow-md">
                   {restaurantLogo ? (
                     <img
-                      src={restaurantLogo}
+                      src={getImageUrl(restaurantLogo)}
                       alt={restaurant.restaurantName || "Restaurant"}
                       className="h-full w-full object-cover"
                     />
@@ -309,8 +308,8 @@ const RestaurantProfile = () => {
                   restaurant.approvalStatus === "APPROVED"
                     ? "success"
                     : restaurant.approvalStatus === "REJECTED"
-                      ? "danger"
-                      : "warning"
+                    ? "danger"
+                    : "warning"
                 }
                 size="sm"
                 dot

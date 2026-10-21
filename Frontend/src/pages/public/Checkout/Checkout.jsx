@@ -1,2021 +1,576 @@
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import {
-    useEffect,
-    useMemo,
-    useState,
-} from "react";
-
-import {
-    Link,
-    useNavigate,
-} from "react-router-dom";
-
-
-
-import {
-    FaArrowLeft,
-    FaCheck,
-    FaExclamationTriangle,
-    FaHome,
-    FaMapMarkerAlt,
-    FaMoneyBillWave,
-    FaPlus,
-    FaShoppingBag,
-    FaStore,
-} from "react-icons/fa";
-
+  MapPin,
+  ShoppingBag,
+  CreditCard,
+  Banknote,
+  ArrowLeft,
+  ShieldCheck,
+  Tag,
+} from "lucide-react";
+import toast from "react-hot-toast";
 import Container from "../../../components/common/Container/Container";
+import Card from "../../../components/common/Card/Card";
+import PageHeader from "../../../components/common/PageHeader/PageHeader";
+import Button from "../../../components/common/Button/Button";
+import Input from "../../../components/common/Input/Input";
+import Checkbox from "../../../components/common/Checkbox/Checkbox";
+import OptimizedImage from "../../../components/common/OptimizedImage/OptimizedImage";
 import EmptyState from "../../../components/common/EmptyState/EmptyState";
+import ErrorState from "../../../components/common/ErrorState/ErrorState";
 import Skeleton from "../../../components/common/Skeleton/Skeleton";
+import { placeOrder } from "../../../redux/thunks/public/order.thunk";
+import { getCart } from "../../../redux/thunks/public/cart.thunk";
+import { getAddresses } from "../../../redux/thunks/public/address.thunk";
 import {
-    placeOrder,
-} from "../../../redux/thunks/public/order.thunk";
-import {
-    useDispatch,
-    useSelector,
-} from "react-redux";
-
-const Checkout = () => {
-    const navigate =
-        useNavigate();
-
-    const dispatch =
-        useDispatch();
-    // =========================
-    // REDUX
-    // =========================
-
-    const [locationLoading, setLocationLoading] = useState(false);
-    const [locationError, setLocationError] = useState("");
-
-    const {
-        cartGroups,
-        fetchLoading:
-        cartLoading,
-    } = useSelector(
-        (state) =>
-            state.publicCart
-    );
-
-
-    const {
-        addresses,
-        fetchLoading:
-        addressLoading,
-    } = useSelector(
-        (state) =>
-            state.publicAddress
-    );
-
-
-    const {
-        placeOrderLoading,
-        placeOrderError,
-    } = useSelector(
-        (state) =>
-            state.publicOrder
-    );
-
-    // =========================
-    // LOCAL STATE
-    // =========================
-
-    const [
-        selectedAddressId,
-        setSelectedAddressId,
-    ] = useState(null);
-
-
-    // =========================
-    // DEFAULT ADDRESS
-    // =========================
-
-    useEffect(() => {
-        if (
-            selectedAddressId ||
-            addresses.length === 0
-        ) {
-            return;
-        }
-
-
-        const defaultAddress =
-            addresses.find(
-                (address) =>
-                    address.isDefault
-            );
-
-
-        setSelectedAddressId(
-            defaultAddress?.id ||
-            addresses[0]?.id
-        );
-    }, [
-        addresses,
-        selectedAddressId,
-    ]);
-
-
-    // =========================
-    // SELECTED ADDRESS
-    // =========================
-
-    const selectedAddress =
-        useMemo(
-            () =>
-                addresses.find(
-                    (address) =>
-                        address.id ===
-                        selectedAddressId
-                ),
-
-            [
-                addresses,
-                selectedAddressId,
-            ]
-        );
-
-
-    // =========================
-    // CHECKOUT SUMMARY
-    // =========================
-
-    const summary =
-        useMemo(() => {
-            let totalItems = 0;
-
-            let foodTotal = 0;
-
-            let unavailableItems = 0;
-
-            let closedRestaurants = 0;
-
-
-            cartGroups.forEach(
-                (group) => {
-                    if (
-                        group.restaurant
-                            .isOpen === false
-                    ) {
-                        closedRestaurants +=
-                            1;
-                    }
-
-
-                    group.items.forEach(
-                        (item) => {
-                            const hasDiscount =
-                                item.discountPrice &&
-                                Number(
-                                    item.discountPrice
-                                ) <
-                                Number(
-                                    item.price
-                                );
-
-
-                            const unitPrice =
-                                hasDiscount
-                                    ? Number(
-                                        item.discountPrice
-                                    )
-                                    : Number(
-                                        item.price
-                                    );
-
-
-                            totalItems +=
-                                Number(
-                                    item.quantity
-                                );
-
-
-                            foodTotal +=
-                                unitPrice *
-                                Number(
-                                    item.quantity
-                                );
-
-
-                            if (
-                                item.isAvailable ===
-                                false
-                            ) {
-                                unavailableItems +=
-                                    1;
-                            }
-                        }
-                    );
-                }
-            );
-
-
-            return {
-                totalItems,
-
-                foodTotal,
-
-                restaurantCount:
-                    cartGroups.length,
-
-                unavailableItems,
-
-                closedRestaurants,
-            };
-        }, [
-            cartGroups,
-        ]);
-
-
-    const formatPrice = (
-        amount
-    ) => {
-        return new Intl.NumberFormat(
-            "en-IN",
-            {
-                style: "currency",
-                currency: "INR",
-                maximumFractionDigits: 0,
-            }
-        ).format(amount || 0);
-    };
-
-
-    // =========================
-    // VALIDATION
-    // =========================
-
-    const canPlaceOrder =
-        Boolean(
-            selectedAddress
-        ) &&
-        cartGroups.length > 0 &&
-        summary.unavailableItems ===
-        0 &&
-        summary.closedRestaurants ===
-        0;
-
-
-    // =========================
-    // PLACE ORDER
-    // =========================
-
-    const handlePlaceOrder = async () => {
-        if (
-            !canPlaceOrder ||
-            !selectedAddress?.id ||
-            placeOrderLoading ||
-            locationLoading
-        ) {
-            return;
-        }
-
-        setLocationError("");
-        setLocationLoading(true);
-
-        try {
-            if (!window.isSecureContext) {
-                throw new Error(
-                    "Location ke liye HTTPS ya localhost par website kholo.",
-                );
-            }
-
-            if (!navigator.geolocation) {
-                throw new Error("Browser location support nahi karta.");
-            }
-
-            const position = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(
-                    resolve,
-                    reject,
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 15000,
-                        maximumAge: 0,
-                    },
-                );
-            });
-
-            const { latitude, longitude } = position.coords;
-
-            if (
-                !Number.isFinite(latitude) ||
-                !Number.isFinite(longitude)
-            ) {
-                throw new Error("Valid location nahi mili. Dobara try karo.");
-            }
-
-            await dispatch(
-                placeOrder({
-                    addressId: selectedAddress.id,
-                    paymentMethod: "COD",
-                    latitude,
-                    longitude,
-                }),
-            ).unwrap();
-
-            navigate("/orders", { replace: true });
-        } catch (error) {
-            const message =
-                error?.code === 1
-                    ? "Location permission allow karo, phir order place karo."
-                    : error?.code === 2
-                        ? "Location unavailable. Phone location on karke try karo."
-                        : error?.code === 3
-                            ? "Location fetch timeout. Dobara try karo."
-                            : typeof error === "string"
-                                ? error
-                                : error?.message || "Order place nahi ho paya.";
-
-            setLocationError(message);
-        } finally {
-            setLocationLoading(false);
-        }
-    };
-
-    // =========================
-    // LOADING
-    // =========================
-
-    if (
-        cartLoading ||
-        addressLoading
-    ) {
-        return (
-            <div
-                className="
-          min-h-screen
-          bg-[#fffaf5]
-          py-10
-        "
-            >
-                <Container>
-                    <Skeleton
-                        width="w-52"
-                        height="h-9"
-                    />
-
-
-                    <div
-                        className="
-              mt-8
-
-              grid
-              gap-6
-
-              lg:grid-cols-[minmax(0,1fr)_380px]
-            "
-                    >
-                        <div
-                            className="
-                space-y-5
-              "
-                        >
-                            <Skeleton
-                                width="w-full"
-                                height="h-[300px]"
-                                rounded="rounded-[2rem]"
-                            />
-
-                            <Skeleton
-                                width="w-full"
-                                height="h-[320px]"
-                                rounded="rounded-[2rem]"
-                            />
-                        </div>
-
-
-                        <Skeleton
-                            width="w-full"
-                            height="h-[420px]"
-                            rounded="rounded-[2rem]"
-                        />
-                    </div>
-                </Container>
-            </div>
-        );
+  getCheckoutQuote,
+  getPaymentConfig,
+  payForCheckout,
+} from "../../../services/public/payment.service";
+
+const money = (value) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0));
+export default function Checkout() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const {
+    cartGroups,
+    fetchLoading: cartLoading,
+    error: cartError,
+  } = useSelector((s) => s.publicCart);
+  const {
+    addresses,
+    fetchLoading: addressLoading,
+    error: addressError,
+  } = useSelector((s) => s.publicAddress);
+  const { settings } = useSelector((s) => s.siteSettings);
+  const [selectedId, setSelectedId] = useState(null);
+  const [requestedMethod, setMethod] = useState("COD");
+  const method =
+    requestedMethod === "ONLINE" && settings.onlineEnabled
+      ? "ONLINE"
+      : settings.codEnabled
+      ? "COD"
+      : "ONLINE";
+  const [useBrowser, setUseBrowser] = useState(true);
+  const [code, setCode] = useState("");
+  const [appliedCode, setAppliedCode] = useState("");
+  const [quote, setQuote] = useState(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState("");
+  const [quoteRevision, setQuoteRevision] = useState(0);
+  const [gateway, setGateway] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(null);
+  const requestKey = useRef(null);
+  const inFlight = useRef(false);
+  const cartVersion = JSON.stringify(
+    cartGroups.map((g) => [
+      g.restaurant.slug,
+      g.items.map((i) => [i.slug, i.quantity, i.price, i.discountPrice]),
+    ])
+  );
+  useEffect(() => {
+    dispatch(getCart());
+    dispatch(getAddresses());
+    getPaymentConfig()
+      .then(setGateway)
+      .catch(() => setGateway({ configured: false }));
+  }, [dispatch]);
+  useEffect(() => {
+    if (!cartGroups.length) return;
+    const controller = new AbortController();
+    setQuoteLoading(true);
+    setQuoteError("");
+    setQuote(null);
+    getCheckoutQuote(appliedCode, controller.signal)
+      .then(setQuote)
+      .catch((err) => {
+        if (!controller.signal.aborted)
+          setQuoteError(
+            err.response?.data?.message || "Unable to calculate checkout total"
+          );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setQuoteLoading(false);
+      });
+    return () => controller.abort();
+  }, [cartVersion, appliedCode, cartGroups.length, quoteRevision]);
+  const address =
+    addresses.find((a) => String(a.id) === String(selectedId)) ||
+    addresses.find((a) => a.isDefault) ||
+    addresses[0];
+  const blocked = cartGroups.some(
+    (g) =>
+      g.restaurant.isOpen === false ||
+      g.items.some((i) => i.isAvailable === false)
+  );
+  const resume = async (number) => {
+    setBusy(true);
+    setError("");
+    try {
+      await payForCheckout(number);
+      toast.success("Payment verified. Your order is confirmed.");
+      navigate("/orders", { replace: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
     }
-
-
-    // =========================
-    // EMPTY CART
-    // =========================
-
+  };
+  const submit = async () => {
     if (
-        cartGroups.length === 0
-    ) {
-        return (
-            <div
-                className="
-          min-h-[70vh]
-
-          bg-[#fffaf5]
-
-          py-14
-        "
-            >
-                <Container>
-                    <EmptyState
-                        icon={
-                            FaShoppingBag
-                        }
-
-                        title="Nothing to checkout"
-
-                        description="Your cart is empty. Add some food before continuing to checkout."
-
-                        action={
-                            <button
-                                type="button"
-
-                                onClick={() =>
-                                    navigate(
-                                        "/restaurants"
-                                    )
-                                }
-
-                                className="
-                  min-h-11
-
-                  rounded-xl
-
-                  bg-orange-500
-
-                  px-5
-
-                  text-sm
-                  font-bold
-                  text-white
-                "
-                            >
-                                Explore Restaurants
-                            </button>
-                        }
-                    />
-                </Container>
-            </div>
+      inFlight.current ||
+      busy ||
+      !address ||
+      !quote ||
+      quoteLoading ||
+      blocked
+    )
+      return;
+    inFlight.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      let coordinates = {};
+      if (useBrowser) {
+        if (!window.isSecureContext || !navigator.geolocation)
+          throw new Error("Use HTTPS or localhost and allow browser location.");
+        const location = await new Promise((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0,
+          })
         );
+        coordinates = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        };
+      }
+      if (!requestKey.current) requestKey.current = crypto.randomUUID();
+      const result = await dispatch(
+        placeOrder({
+          addressId: address.id,
+          paymentMethod: method,
+          couponCode: appliedCode || undefined,
+          requestKey: requestKey.current,
+          expectedTotal: quote.grandTotal,
+          ...coordinates,
+        })
+      ).unwrap();
+      if (result.paymentMethod === "ONLINE") {
+        setPending(result.checkoutNumber);
+        dispatch(getCart());
+        await payForCheckout(result.checkoutNumber);
+        toast.success("Payment verified. Your order is confirmed.");
+      } else dispatch(getCart());
+      navigate("/orders", { replace: true });
+    } catch (err) {
+      setQuoteRevision((value) => value + 1);
+      setError(
+        typeof err === "string"
+          ? err
+          : err.code === 1
+          ? "Please allow location access."
+          : err.response?.data?.message ||
+            err.message ||
+            "Unable to place order."
+      );
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
     }
-
-
+  };
+  if ((cartLoading || addressLoading) && !cartGroups.length && !pending)
     return (
-        <div
-            className="
-        min-h-screen
-        bg-[#fffaf5]
-      "
-        >
-            {/* =========================
-          PAGE HEADER
-      ========================== */}
-
-            <section
-                className="
-          border-b
-          border-orange-100
-
-          bg-white
-        "
-            >
-                <Container>
-                    <div
-                        className="
-              py-8
-
-              sm:py-10
-            "
-                    >
-                        <button
-                            type="button"
-
-                            onClick={() =>
-                                navigate("/cart")
-                            }
-
-                            className="
-                inline-flex
-                items-center
-                gap-2
-
-                text-sm
-                font-bold
-                text-slate-500
-
-                transition
-
-                hover:text-orange-600
-              "
-                        >
-                            <FaArrowLeft
-                                className="
-                  h-3
-                  w-3
-                "
-                            />
-
-                            Back to cart
-                        </button>
-
-
-                        <div
-                            className="
-                mt-5
-              "
-                        >
-                            <p
-                                className="
-                  text-xs
-                  font-black
-                  uppercase
-                  tracking-[0.15em]
-                  text-orange-500
-                "
-                            >
-                                Final step
-                            </p>
-
-
-                            <h1
-                                className="
-                  mt-2
-
-                  text-3xl
-                  font-black
-                  tracking-tight
-                  text-slate-950
-
-                  sm:text-4xl
-                "
-                            >
-                                Complete your
-                                <span
-                                    className="
-                    text-orange-500
-                  "
-                                >
-                                    {" "}
-                                    order
-                                </span>
-                            </h1>
-
-
-                            <p
-                                className="
-                  mt-2
-
-                  max-w-2xl
-
-                  text-sm
-                  leading-6
-                  text-slate-500
-
-                  sm:text-base
-                "
-                            >
-                                Select a delivery
-                                address, review your
-                                restaurants and confirm
-                                your order.
-                            </p>
-                        </div>
-                    </div>
-                </Container>
-            </section>
-
-
-            {/* =========================
-          CHECKOUT CONTENT
-      ========================== */}
-
-            <section
-                className="
-          py-8
-
-          sm:py-10
-
-          lg:py-12
-        "
-            >
-                <Container>
-                    <div
-                        className="
-              grid
-              gap-6
-
-              lg:grid-cols-[minmax(0,1fr)_380px]
-              lg:items-start
-            "
-                    >
-                        {/* =====================
-                LEFT
-            ====================== */}
-
-                        <div
-                            className="
-                space-y-6
-              "
-                        >
-                            {/* =====================
-                  ADDRESS
-              ====================== */}
-
-                            <div
-                                className="
-                  rounded-[1.75rem]
-
-                  border
-                  border-slate-200
-
-                  bg-white
-
-                  p-5
-
-                  shadow-sm
-
-                  sm:p-6
-                "
-                            >
-                                <div
-                                    className="
-                    flex
-                    items-start
-                    justify-between
-                    gap-4
-                  "
-                                >
-                                    <div>
-                                        <div
-                                            className="
-                        flex
-                        items-center
-                        gap-2
-                      "
-                                        >
-                                            <span
-                                                className="
-                          flex
-                          h-10
-                          w-10
-                          items-center
-                          justify-center
-
-                          rounded-xl
-
-                          bg-orange-100
-
-                          text-orange-600
-                        "
-                                            >
-                                                <FaMapMarkerAlt
-                                                    className="
-                            h-4
-                            w-4
-                          "
-                                                />
-                                            </span>
-
-
-                                            <div>
-                                                <h2
-                                                    className="
-                            text-lg
-                            font-black
-                            text-slate-950
-
-                            sm:text-xl
-                          "
-                                                >
-                                                    Delivery address
-                                                </h2>
-
-                                                <p
-                                                    className="
-                            mt-0.5
-
-                            text-xs
-                            text-slate-500
-                          "
-                                                >
-                                                    Where should we
-                                                    deliver your food?
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-
-                                    <Link
-                                        to="/addresses"
-
-                                        className="
-                      hidden
-                      shrink-0
-                      items-center
-                      gap-1.5
-
-                      rounded-xl
-
-                      bg-orange-50
-
-                      px-3
-                      py-2
-
-                      text-xs
-                      font-bold
-                      text-orange-600
-
-                      sm:inline-flex
-                    "
-                                    >
-                                        <FaPlus
-                                            className="
-                        h-2.5
-                        w-2.5
-                      "
-                                        />
-
-                                        Manage
-                                    </Link>
-                                </div>
-
-
-                                {/* ADDRESSES */}
-
-                                {addresses.length >
-                                    0 ? (
-                                    <div
-                                        className="
-                      mt-5
-
-                      grid
-                      gap-3
-                    "
-                                    >
-                                        {addresses.map(
-                                            (
-                                                address
-                                            ) => {
-                                                const selected =
-                                                    selectedAddressId ===
-                                                    address.id;
-
-
-                                                return (
-                                                    <button
-                                                        key={
-                                                            address.id
-                                                        }
-
-                                                        type="button"
-
-                                                        onClick={() =>
-                                                            setSelectedAddressId(
-                                                                address.id
-                                                            )
-                                                        }
-
-                                                        className={`
-                              relative
-
-                              w-full
-
-                              rounded-2xl
-
-                              border-2
-
-                              p-4
-
-                              text-left
-
-                              transition
-
-                              ${selected
-                                                                ? `
-                                    border-orange-400
-                                    bg-orange-50/70
-                                  `
-                                                                : `
-                                    border-slate-100
-                                    bg-slate-50/50
-
-                                    hover:border-orange-200
-                                    hover:bg-orange-50/30
-                                  `
-                                                            }
-                            `}
-                                                    >
-                                                        <div
-                                                            className="
-                                flex
-                                items-start
-                                gap-3
-                              "
-                                                        >
-                                                            <span
-                                                                className={`
-                                  flex
-                                  h-10
-                                  w-10
-                                  shrink-0
-                                  items-center
-                                  justify-center
-
-                                  rounded-xl
-
-                                  ${selected
-                                                                        ? `
-                                        bg-orange-500
-                                        text-white
-                                      `
-                                                                        : `
-                                        bg-white
-                                        text-slate-500
-                                      `
-                                                                    }
-                                `}
-                                                            >
-                                                                <FaHome
-                                                                    className="
-                                    h-4
-                                    w-4
-                                  "
-                                                                />
-                                                            </span>
-
-
-                                                            <div
-                                                                className="
-                                  min-w-0
-                                  flex-1
-                                "
-                                                            >
-                                                                <div
-                                                                    className="
-                                    flex
-                                    flex-wrap
-                                    items-center
-                                    gap-2
-                                  "
-                                                                >
-                                                                    <p
-                                                                        className="
-                                      text-sm
-                                      font-black
-                                      text-slate-950
-                                    "
-                                                                    >
-                                                                        {address.isDefault
-                                                                            ? "Default Address"
-                                                                            : "Saved Address"}
-                                                                    </p>
-
-
-                                                                    {address.isDefault && (
-                                                                        <span
-                                                                            className="
-                                        rounded-full
-
-                                        bg-emerald-100
-
-                                        px-2
-                                        py-0.5
-
-                                        text-[9px]
-                                        font-black
-                                        uppercase
-                                        tracking-wide
-                                        text-emerald-700
-                                      "
-                                                                        >
-                                                                            Default
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-
-
-                                                                <p
-                                                                    className="
-                                    mt-1.5
-
-                                    text-sm
-                                    leading-6
-                                    text-slate-600
-                                  "
-                                                                >
-                                                                    {
-                                                                        address.addressLine
-                                                                    }
-                                                                    ,{" "}
-                                                                    {
-                                                                        address.city
-                                                                    }
-                                                                    ,{" "}
-                                                                    {
-                                                                        address.state
-                                                                    }
-                                                                    {" - "}
-                                                                    {
-                                                                        address.pincode
-                                                                    }
-                                                                </p>
-                                                            </div>
-
-
-                                                            {/* SELECT */}
-
-                                                            <span
-                                                                className={`
-                                  mt-1
-
-                                  flex
-                                  h-6
-                                  w-6
-                                  shrink-0
-                                  items-center
-                                  justify-center
-
-                                  rounded-full
-
-                                  border-2
-
-                                  ${selected
-                                                                        ? `
-                                        border-orange-500
-                                        bg-orange-500
-                                        text-white
-                                      `
-                                                                        : `
-                                        border-slate-300
-                                        bg-white
-                                      `
-                                                                    }
-                                `}
-                                                            >
-                                                                {selected && (
-                                                                    <FaCheck
-                                                                        className="
-                                      h-2.5
-                                      w-2.5
-                                    "
-                                                                    />
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                    </button>
-                                                );
-                                            }
-                                        )}
-
-
-                                        <Link
-                                            to="/addresses"
-
-                                            className="
-                        inline-flex
-                        min-h-11
-                        items-center
-                        justify-center
-                        gap-2
-
-                        rounded-xl
-
-                        border
-                        border-dashed
-                        border-orange-300
-
-                        bg-orange-50/50
-
-                        px-4
-
-                        text-sm
-                        font-bold
-                        text-orange-600
-
-                        sm:hidden
-                      "
-                                        >
-                                            <FaPlus />
-
-                                            Manage addresses
-                                        </Link>
-                                    </div>
-                                ) : (
-                                    <div
-                                        className="
-                      mt-5
-
-                      rounded-2xl
-
-                      border
-                      border-dashed
-                      border-orange-300
-
-                      bg-orange-50
-
-                      p-5
-
-                      text-center
-                    "
-                                    >
-                                        <FaMapMarkerAlt
-                                            className="
-                        mx-auto
-
-                        text-xl
-                        text-orange-500
-                      "
-                                        />
-
-                                        <p
-                                            className="
-                        mt-3
-
-                        text-sm
-                        font-black
-                        text-slate-900
-                      "
-                                        >
-                                            No saved address
-                                        </p>
-
-
-                                        <p
-                                            className="
-                        mt-1
-
-                        text-xs
-                        text-slate-500
-                      "
-                                        >
-                                            Add an address before
-                                            placing your order.
-                                        </p>
-
-
-                                        <Link
-                                            to="/addresses"
-
-                                            className="
-                        mt-4
-
-                        inline-flex
-                        min-h-10
-                        items-center
-                        justify-center
-
-                        rounded-xl
-
-                        bg-orange-500
-
-                        px-4
-
-                        text-xs
-                        font-bold
-                        text-white
-                      "
-                                        >
-                                            Add Address
-                                        </Link>
-                                    </div>
-                                )}
-                            </div>
-
-
-                            {/* =====================
-                  PAYMENT
-              ====================== */}
-
-                            <div
-                                className="
-                  rounded-[1.75rem]
-
-                  border
-                  border-slate-200
-
-                  bg-white
-
-                  p-5
-
-                  shadow-sm
-
-                  sm:p-6
-                "
-                            >
-                                <div
-                                    className="
-                    flex
-                    items-center
-                    gap-3
-                  "
-                                >
-                                    <span
-                                        className="
-                      flex
-                      h-10
-                      w-10
-                      items-center
-                      justify-center
-
-                      rounded-xl
-
-                      bg-emerald-100
-
-                      text-emerald-600
-                    "
-                                    >
-                                        <FaMoneyBillWave
-                                            className="
-                        h-4
-                        w-4
-                      "
-                                        />
-                                    </span>
-
-
-                                    <div>
-                                        <h2
-                                            className="
-                        text-lg
-                        font-black
-                        text-slate-950
-
-                        sm:text-xl
-                      "
-                                        >
-                                            Payment
-                                        </h2>
-
-                                        <p
-                                            className="
-                        mt-0.5
-
-                        text-xs
-                        text-slate-500
-                      "
-                                        >
-                                            Available payment
-                                            method
-                                        </p>
-                                    </div>
-                                </div>
-
-
-                                <div
-                                    className="
-                    mt-5
-
-                    rounded-2xl
-
-                    border-2
-                    border-emerald-400
-
-                    bg-emerald-50/60
-
-                    p-4
-                  "
-                                >
-                                    <div
-                                        className="
-                      flex
-                      items-center
-                      gap-3
-                    "
-                                    >
-                                        <span
-                                            className="
-                        flex
-                        h-10
-                        w-10
-                        shrink-0
-                        items-center
-                        justify-center
-
-                        rounded-xl
-
-                        bg-emerald-500
-
-                        text-white
-                      "
-                                        >
-                                            <FaMoneyBillWave />
-                                        </span>
-
-
-                                        <div
-                                            className="
-                        min-w-0
-                        flex-1
-                      "
-                                        >
-                                            <p
-                                                className="
-                          text-sm
-                          font-black
-                          text-slate-950
-                        "
-                                            >
-                                                Cash on Delivery
-                                            </p>
-
-                                            <p
-                                                className="
-                          mt-0.5
-
-                          text-xs
-                          text-slate-500
-                        "
-                                            >
-                                                Pay when your order
-                                                arrives.
-                                            </p>
-                                        </div>
-
-
-                                        <span
-                                            className="
-                        flex
-                        h-6
-                        w-6
-                        items-center
-                        justify-center
-
-                        rounded-full
-
-                        bg-emerald-500
-
-                        text-white
-                      "
-                                        >
-                                            <FaCheck
-                                                className="
-                          h-2.5
-                          w-2.5
-                        "
-                                            />
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-
-                            {/* =====================
-                  RESTAURANT REVIEW
-              ====================== */}
-
-                            <div
-                                className="
-                  rounded-[1.75rem]
-
-                  border
-                  border-slate-200
-
-                  bg-white
-
-                  p-5
-
-                  shadow-sm
-
-                  sm:p-6
-                "
-                            >
-                                <div>
-                                    <h2
-                                        className="
-                      text-lg
-                      font-black
-                      text-slate-950
-
-                      sm:text-xl
-                    "
-                                    >
-                                        Review your order
-                                    </h2>
-
-                                    <p
-                                        className="
-                      mt-1
-
-                      text-xs
-                      text-slate-500
-                    "
-                                    >
-                                        Your checkout contains{" "}
-
-                                        {
-                                            summary.restaurantCount
-                                        }{" "}
-
-                                        restaurant
-                                        {
-                                            summary.restaurantCount !==
-                                                1
-                                                ? "s"
-                                                : ""
-                                        }.
-                                    </p>
-                                </div>
-
-
-                                <div
-                                    className="
-                    mt-5
-                    space-y-4
-                  "
-                                >
-                                    {cartGroups.map(
-                                        (group) => (
-                                            <div
-                                                key={
-                                                    group
-                                                        .restaurant
-                                                        .slug
-                                                }
-
-                                                className="
-                          rounded-2xl
-
-                          border
-                          border-slate-100
-
-                          bg-slate-50/60
-
-                          p-4
-                        "
-                                            >
-                                                {/* RESTAURANT */}
-
-                                                <div
-                                                    className="
-                            flex
-                            items-center
-                            justify-between
-                            gap-3
-                          "
-                                                >
-                                                    <div
-                                                        className="
-                              flex
-                              min-w-0
-                              items-center
-                              gap-2.5
-                            "
-                                                    >
-                                                        <span
-                                                            className="
-                                flex
-                                h-9
-                                w-9
-                                shrink-0
-                                items-center
-                                justify-center
-
-                                rounded-xl
-
-                                bg-orange-100
-
-                                text-orange-600
-                              "
-                                                        >
-                                                            <FaStore
-                                                                className="
-                                  h-3.5
-                                  w-3.5
-                                "
-                                                            />
-                                                        </span>
-
-
-                                                        <p
-                                                            className="
-                                truncate
-
-                                text-sm
-                                font-black
-                                text-slate-950
-                              "
-                                                        >
-                                                            {
-                                                                group
-                                                                    .restaurant
-                                                                    .restaurantName
-                                                            }
-                                                        </p>
-                                                    </div>
-
-
-                                                    <span
-                                                        className={`
-                              shrink-0
-
-                              rounded-full
-
-                              px-2
-                              py-1
-
-                              text-[9px]
-                              font-black
-                              uppercase
-                              tracking-wide
-
-                              ${group
-                                                                .restaurant
-                                                                .isOpen
-                                                                ? `
-                                    bg-emerald-100
-                                    text-emerald-700
-                                  `
-                                                                : `
-                                    bg-rose-100
-                                    text-rose-700
-                                  `
-                                                            }
-                            `}
-                                                    >
-                                                        {group
-                                                            .restaurant
-                                                            .isOpen
-                                                            ? "Open"
-                                                            : "Closed"}
-                                                    </span>
-                                                </div>
-
-
-                                                {/* FOODS */}
-
-                                                <div
-                                                    className="
-                            mt-4
-                            space-y-2
-                          "
-                                                >
-                                                    {group.items.map(
-                                                        (item) => (
-                                                            <div
-                                                                key={
-                                                                    item.slug
-                                                                }
-
-                                                                className="
-                                  flex
-                                  items-center
-                                  justify-between
-                                  gap-3
-
-                                  text-xs
-                                "
-                                                            >
-                                                                <p
-                                                                    className="
-                                    min-w-0
-                                    truncate
-                                    text-slate-600
-                                  "
-                                                                >
-                                                                    {
-                                                                        item.name
-                                                                    }
-
-                                                                    <span
-                                                                        className="
-                                      ml-1
-
-                                      font-bold
-                                      text-slate-900
-                                    "
-                                                                    >
-                                                                        ×{" "}
-                                                                        {
-                                                                            item.quantity
-                                                                        }
-                                                                    </span>
-                                                                </p>
-
-
-                                                                {!item.isAvailable && (
-                                                                    <span
-                                                                        className="
-                                      shrink-0
-
-                                      font-bold
-                                      text-rose-600
-                                    "
-                                                                    >
-                                                                        Unavailable
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        )
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-
-                        {/* =====================
-                RIGHT SUMMARY
-            ====================== */}
-
-                        <aside
-                            className="
-                lg:sticky
-                lg:top-28
-              "
-                        >
-                            <div
-                                className="
-                  overflow-hidden
-
-                  rounded-[1.75rem]
-
-                  border
-                  border-slate-200
-
-                  bg-white
-
-                  shadow-xl
-                  shadow-slate-950/5
-                "
-                            >
-                                {/* HEADER */}
-
-                                <div
-                                    className="
-                    border-b
-                    border-slate-100
-
-                    p-5
-                  "
-                                >
-                                    <h2
-                                        className="
-                      text-xl
-                      font-black
-                      text-slate-950
-                    "
-                                    >
-                                        Checkout summary
-                                    </h2>
-
-                                    <p
-                                        className="
-                      mt-1
-
-                      text-xs
-                      text-slate-500
-                    "
-                                    >
-                                        Final values are
-                                        validated by the server.
-                                    </p>
-                                </div>
-
-
-                                <div
-                                    className="
-                    space-y-4
-
-                    p-5
-                  "
-                                >
-                                    {/* ITEMS */}
-
-                                    <div
-                                        className="
-                      flex
-                      items-center
-                      justify-between
-                      gap-4
-
-                      text-sm
-                    "
-                                    >
-                                        <span
-                                            className="
-                        text-slate-500
-                      "
-                                        >
-                                            Items
-                                        </span>
-
-                                        <span
-                                            className="
-                        font-bold
-                        text-slate-900
-                      "
-                                        >
-                                            {
-                                                summary.totalItems
-                                            }
-                                        </span>
-                                    </div>
-
-
-                                    {/* RESTAURANTS */}
-
-                                    <div
-                                        className="
-                      flex
-                      items-center
-                      justify-between
-                      gap-4
-
-                      text-sm
-                    "
-                                    >
-                                        <span
-                                            className="
-                        text-slate-500
-                      "
-                                        >
-                                            Restaurants
-                                        </span>
-
-                                        <span
-                                            className="
-                        font-bold
-                        text-slate-900
-                      "
-                                        >
-                                            {
-                                                summary.restaurantCount
-                                            }
-                                        </span>
-                                    </div>
-
-
-                                    {/* PAYMENT */}
-
-                                    <div
-                                        className="
-                      flex
-                      items-center
-                      justify-between
-                      gap-4
-
-                      text-sm
-                    "
-                                    >
-                                        <span
-                                            className="
-                        text-slate-500
-                      "
-                                        >
-                                            Payment
-                                        </span>
-
-                                        <span
-                                            className="
-                        font-bold
-                        text-emerald-600
-                      "
-                                        >
-                                            COD
-                                        </span>
-                                    </div>
-
-
-                                    <div
-                                        className="
-                      h-px
-                      bg-slate-100
-                    "
-                                    />
-
-
-                                    {/* TOTAL */}
-
-                                    <div
-                                        className="
-                      flex
-                      items-end
-                      justify-between
-                      gap-4
-                    "
-                                    >
-                                        <div>
-                                            <p
-                                                className="
-                          text-xs
-                          font-bold
-                          uppercase
-                          tracking-wide
-                          text-slate-400
-                        "
-                                            >
-                                                Food total
-                                            </p>
-
-                                            <p
-                                                className="
-                          mt-1
-
-                          text-[11px]
-                          text-slate-400
-                        "
-                                            >
-                                                Backend recalculates
-                                                before order creation.
-                                            </p>
-                                        </div>
-
-
-                                        <p
-                                            className="
-                        shrink-0
-
-                        text-2xl
-                        font-black
-                        text-slate-950
-                      "
-                                        >
-                                            {formatPrice(
-                                                summary.foodTotal
-                                            )}
-                                        </p>
-                                    </div>
-
-
-                                    {/* MULTI RESTAURANT */}
-
-                                    {summary.restaurantCount >
-                                        1 && (
-                                            <div
-                                                className="
-                        rounded-2xl
-
-                        border
-                        border-orange-200
-
-                        bg-orange-50
-
-                        p-3.5
-                      "
-                                            >
-                                                <p
-                                                    className="
-                          text-xs
-                          leading-5
-                          text-orange-800
-                        "
-                                                >
-                                                    One checkout will
-                                                    create separate orders
-                                                    for each restaurant.
-                                                </p>
-                                            </div>
-                                        )}
-
-
-                                    {/* CLOSED */}
-
-                                    {summary.closedRestaurants >
-                                        0 && (
-                                            <div
-                                                className="
-                        flex
-                        gap-2.5
-
-                        rounded-2xl
-
-                        border
-                        border-rose-200
-
-                        bg-rose-50
-
-                        p-3.5
-                      "
-                                            >
-                                                <FaExclamationTriangle
-                                                    className="
-                          mt-0.5
-                          shrink-0
-
-                          text-rose-500
-                        "
-                                                />
-
-                                                <p
-                                                    className="
-                          text-xs
-                          leading-5
-                          text-rose-700
-                        "
-                                                >
-                                                    A restaurant in your
-                                                    cart is currently
-                                                    closed.
-                                                </p>
-                                            </div>
-                                        )}
-
-
-                                    {/* UNAVAILABLE */}
-
-                                    {summary.unavailableItems >
-                                        0 && (
-                                            <div
-                                                className="
-                        flex
-                        gap-2.5
-
-                        rounded-2xl
-
-                        border
-                        border-rose-200
-
-                        bg-rose-50
-
-                        p-3.5
-                      "
-                                            >
-                                                <FaExclamationTriangle
-                                                    className="
-                          mt-0.5
-                          shrink-0
-
-                          text-rose-500
-                        "
-                                                />
-
-                                                <p
-                                                    className="
-                          text-xs
-                          leading-5
-                          text-rose-700
-                        "
-                                                >
-                                                    Remove unavailable
-                                                    food before placing
-                                                    the order.
-                                                </p>
-                                            </div>
-                                        )}
-
-
-                                    {/* NO ADDRESS */}
-
-                                    {!selectedAddress && (
-                                        <div
-                                            className="
-                        flex
-                        gap-2.5
-
-                        rounded-2xl
-
-                        border
-                        border-amber-200
-
-                        bg-amber-50
-
-                        p-3.5
-                      "
-                                        >
-                                            <FaMapMarkerAlt
-                                                className="
-                          mt-0.5
-                          shrink-0
-
-                          text-amber-500
-                        "
-                                            />
-
-                                            <p
-                                                className="
-                          text-xs
-                          leading-5
-                          text-amber-800
-                        "
-                                            >
-                                                Select a delivery
-                                                address to continue.
-                                            </p>
-                                        </div>
-                                    )}
-
-
-                                    {/* PLACE ORDER */}
-                                    <p className="mb-3 text-sm text-slate-600">
-                                        Delivery aapki current browser location par hogi.
-                                        Order delivery wali jagah se hi place karein.
-                                    </p>
-
-                                    {locationError && (
-                                        <p className="mb-3 text-sm text-red-600">
-                                            {locationError}
-                                        </p>
-                                    )}
-
-                                    <button
-                                        type="button"
-
-                                        onClick={
-                                            handlePlaceOrder
-                                        }
-
-                                        disabled={
-                                            !canPlaceOrder ||
-                                            placeOrderLoading ||
-                                            locationLoading
-                                        }
-                                        className="
-    inline-flex
-    min-h-12
-    w-full
-    items-center
-    justify-center
-    gap-2
-
-    rounded-2xl
-
-    bg-gradient-to-r
-    from-orange-500
-    to-rose-500
-
-    px-5
-
-    text-sm
-    font-black
-    text-white
-
-    shadow-lg
-    shadow-orange-500/20
-
-    transition
-
-    hover:-translate-y-0.5
-    hover:shadow-xl
-
-    disabled:cursor-not-allowed
-    disabled:opacity-40
-    disabled:hover:translate-y-0
-  "
-                                    >
-                                        <FaShoppingBag
-                                            className="
-      h-3.5
-      w-3.5
-    "
-                                        />
-
-                                        {locationLoading
-                                            ? "Getting location / placing order..."
-                                            : placeOrderLoading
-                                                ? "Placing Order..."
-                                                : "Place Order"}
-                                    </button>
-
-
-                                    {/* PREVIEW MESSAGE */}
-
-                                    {placeOrderError && (
-                                        <div
-                                            className="
-      rounded-xl
-
-      border
-      border-rose-200
-
-      bg-rose-50
-
-      p-3
-
-      text-xs
-      font-semibold
-      leading-5
-      text-rose-700
-    "
-                                        >
-                                            {placeOrderError}
-                                        </div>
-                                    )}
-
-                                    <p
-                                        className="
-                      text-center
-
-                      text-[10px]
-                      leading-4
-                      text-slate-400
-                    "
-                                    >
-                                        By placing the order,
-                                        the final food prices,
-                                        availability and
-                                        restaurant status will
-                                        be verified again.
-                                    </p>
-                                </div>
-                            </div>
-                        </aside>
-                    </div>
-                </Container>
-            </section>
+      <Container>
+        <div className="space-y-5 py-10">
+          <Skeleton height="h-10" width="w-64" />
+          <Skeleton height="h-80" width="w-full" />
         </div>
+      </Container>
     );
-};
-
-
-export default Checkout;
+  if (pending)
+    return (
+      <Container>
+        <div className="mx-auto max-w-xl space-y-5 py-16">
+          <Card
+            title="Your checkout is saved"
+            description="Your restaurants will receive this order after payment is verified."
+          >
+            <p className="mb-4 font-mono text-sm">{pending}</p>
+            {error && (
+              <p role="alert" className="mb-4 text-sm text-red-700">
+                {error}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-3">
+              <Button loading={busy} onClick={() => resume(pending)}>
+                Continue payment
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/orders")}>
+                My orders
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </Container>
+    );
+  if (cartError || addressError)
+    return (
+      <Container>
+        <div className="py-10">
+          <ErrorState
+            title="Unable to load checkout"
+            description={cartError || addressError}
+            onRetry={() => {
+              dispatch(getCart());
+              dispatch(getAddresses());
+            }}
+          />
+        </div>
+      </Container>
+    );
+  if (!cartGroups.length)
+    return (
+      <Container>
+        <div className="py-16">
+          <EmptyState
+            icon={ShoppingBag}
+            title="Something delicious is waiting"
+            description="Add your favourites to the cart to start your order."
+            action={
+              <Button onClick={() => navigate("/restaurants")}>
+                Explore restaurants
+              </Button>
+            }
+          />
+        </div>
+      </Container>
+    );
+  return (
+    <Container>
+      <div className="space-y-7 py-8 sm:py-12">
+        <Link
+          to="/cart"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Back to cart
+        </Link>
+        <PageHeader
+          title="A few details. Then, delicious."
+          description="Choose your delivery point, apply an offer and make it yours."
+        />
+        <div className="grid items-start gap-6 lg:grid-cols-[1.5fr_1fr]">
+          <div className="space-y-6">
+            <Card
+              title="Delivery address"
+              headerAction={
+                <Button variant="ghost" onClick={() => navigate("/addresses")}>
+                  Manage addresses
+                </Button>
+              }
+            >
+              {!addresses.length ? (
+                <EmptyState
+                  icon={MapPin}
+                  title="Add a delivery address"
+                  description="Save your contact and address details before ordering."
+                  action={
+                    <Button onClick={() => navigate("/addresses")}>
+                      Add address
+                    </Button>
+                  }
+                />
+              ) : (
+                <div className="space-y-3">
+                  {addresses.map((a) => (
+                    <label
+                      key={a.id}
+                      className={`flex cursor-pointer gap-3 rounded-xl border p-4 ${
+                        String(a.id) === String(address?.id)
+                          ? "border-orange-400 bg-orange-50"
+                          : "border-slate-200"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="delivery-address"
+                        checked={String(a.id) === String(address?.id)}
+                        onChange={() => setSelectedId(a.id)}
+                        className="mt-1 accent-orange-500"
+                      />
+                      <span>
+                        <span className="font-bold">
+                          {a.label}
+                          {a.isDefault ? " · Default" : ""}
+                        </span>
+                        <span className="mt-1 block text-sm leading-6 text-slate-600">
+                          {[
+                            a.addressLine,
+                            a.landmark,
+                            a.city,
+                            a.state,
+                            a.pincode,
+                          ]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+              <div className="mt-5 border-t pt-4">
+                <Checkbox
+                  checked={useBrowser}
+                  onChange={(event) => setUseBrowser(event.target.checked)}
+                  label="Deliver to my current browser location"
+                  description="Place the order from the delivery address. Uncheck to use the saved address coordinates."
+                />
+              </div>
+            </Card>
+            <Card
+              title="Payment"
+              description="Pay securely online or choose cash on delivery."
+            >
+              <div className="space-y-3">
+                {[
+                  ["COD", "Cash on delivery", Banknote, settings.codEnabled],
+                  [
+                    "ONLINE",
+                    "Pay online with Razorpay",
+                    CreditCard,
+                    settings.onlineEnabled && gateway?.configured,
+                  ],
+                ].map(([value, label, Icon, enabled]) => (
+                  <label
+                    key={value}
+                    className={`flex items-center gap-3 rounded-xl border p-4 ${
+                      !enabled
+                        ? "cursor-not-allowed opacity-50"
+                        : "cursor-pointer"
+                    } ${
+                      method === value
+                        ? "border-orange-400 bg-orange-50"
+                        : "border-slate-200"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment-method"
+                      value={value}
+                      checked={method === value}
+                      disabled={!enabled || busy}
+                      onChange={() => setMethod(value)}
+                      className="accent-orange-500"
+                    />
+                    <Icon
+                      className="h-5 w-5 text-orange-600"
+                      aria-hidden="true"
+                    />
+                    <span className="text-sm font-semibold">
+                      {label}
+                      {value === "ONLINE" && !gateway?.configured && (
+                        <span className="mt-1 block text-xs font-normal">
+                          Awaiting gateway configuration
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </Card>
+            <Card title="Your favourites">
+              {cartGroups.map((group) => (
+                <div key={group.restaurant.slug} className="mb-5 last:mb-0">
+                  <p className="mb-3 text-sm font-bold text-slate-900">
+                    {group.restaurant.restaurantName}
+                    {group.restaurant.isOpen === false
+                      ? " · Currently closed"
+                      : ""}
+                  </p>
+                  <div className="divide-y divide-slate-100">
+                    {group.items.map((item) => (
+                      <div
+                        key={item.slug}
+                        className="flex items-center gap-3 py-3"
+                      >
+                        <OptimizedImage
+                          src={item.image}
+                          alt={item.name}
+                          wrapperClassName="h-12 w-12 shrink-0"
+                          className="h-12 w-12"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold">{item.name}</p>
+                          <p className="text-xs text-slate-500">
+                            Quantity {item.quantity}
+                          </p>
+                        </div>
+                        <span className="text-sm font-bold">
+                          {money(
+                            Number(item.discountPrice || item.price) *
+                              Number(item.quantity)
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </Card>
+          </div>
+          <div className="space-y-5 lg:sticky lg:top-24">
+            {settings.couponsEnabled && (
+              <Card
+                title="A little extra off"
+                headerAction={
+                  <Tag className="h-5 w-5 text-orange-600" aria-hidden="true" />
+                }
+              >
+                <div className="flex items-end gap-2">
+                  <Input
+                    label="Coupon code"
+                    value={code}
+                    onChange={(event) =>
+                      setCode(event.target.value.toUpperCase())
+                    }
+                    placeholder="Enter your code"
+                    wrapperClassName="min-w-0 flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    disabled={!code.trim() || busy}
+                    onClick={() => setAppliedCode(code.trim())}
+                  >
+                    Apply
+                  </Button>
+                </div>
+                {appliedCode && (
+                  <div className="mt-3 flex items-center justify-between text-sm">
+                    <span className="font-semibold text-orange-700">
+                      {appliedCode}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setAppliedCode("");
+                        setCode("");
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                )}
+              </Card>
+            )}
+            <Card title="Order summary">
+              {quoteLoading ? (
+                <Skeleton height="h-40" width="w-full" />
+              ) : quoteError ? (
+                <ErrorState
+                  title="Check your order"
+                  description={quoteError}
+                  onRetry={() => {
+                    setAppliedCode("");
+                    setCode("");
+                    setQuoteRevision((value) => value + 1);
+                  }}
+                />
+              ) : (
+                quote && (
+                  <dl className="space-y-3 text-sm">
+                    {[
+                      ["Food subtotal", quote.foodTotal],
+                      ["Delivery fee", quote.deliveryFee],
+                      ["Tax", quote.taxAmount],
+                    ].map(([label, value]) => (
+                      <div key={label} className="flex justify-between">
+                        <dt className="text-slate-500">{label}</dt>
+                        <dd className="font-semibold">{money(value)}</dd>
+                      </div>
+                    ))}
+                    {quote.discount > 0 && (
+                      <div className="flex justify-between text-green-700">
+                        <dt>Coupon discount</dt>
+                        <dd>-{money(quote.discount)}</dd>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-t pt-4 text-lg font-black">
+                      <dt>Total to pay</dt>
+                      <dd>{money(quote.grandTotal)}</dd>
+                    </div>
+                  </dl>
+                )
+              )}
+              {cartGroups.length > 1 && (
+                <p className="mt-4 text-xs leading-5 text-slate-500">
+                  One checkout creates a separate delivery for each restaurant.
+                  Delivery fees apply per restaurant.
+                </p>
+              )}
+              {blocked && (
+                <p role="alert" className="mt-4 text-sm text-red-700">
+                  A restaurant is closed or an item is unavailable. Update your
+                  cart.
+                </p>
+              )}
+              {settings.maintenanceMode && (
+                <p role="alert" className="mt-4 text-sm text-amber-800">
+                  {settings.maintenanceMessage}
+                </p>
+              )}
+              {error && (
+                <p role="alert" className="mt-4 text-sm text-red-700">
+                  {error}
+                </p>
+              )}
+              <Button
+                fullWidth
+                className="mt-6"
+                loading={busy}
+                loadingText="Preparing your order..."
+                disabled={
+                  !address ||
+                  !quote ||
+                  quoteLoading ||
+                  blocked ||
+                  settings.maintenanceMode ||
+                  Number(quote?.foodTotal) < Number(settings.minimumOrder) ||
+                  (method === "ONLINE" && !gateway?.configured) ||
+                  (method === "COD" && !settings.codEnabled)
+                }
+                onClick={submit}
+              >
+                {method === "ONLINE"
+                  ? "Continue to secure payment"
+                  : "Place order · Cash on delivery"}
+              </Button>
+              {quote &&
+                Number(quote.foodTotal) < Number(settings.minimumOrder) && (
+                  <p className="mt-3 text-sm text-red-700">
+                    Minimum food subtotal is {money(settings.minimumOrder)}.
+                  </p>
+                )}
+              <p className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-500">
+                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                Order total verified by the server
+              </p>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </Container>
+  );
+}

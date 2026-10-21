@@ -7,7 +7,7 @@ export const completeDeliveryOrder = async (req, res, next) => {
 
     const { orderNumber } = req.params;
 
-    const { otp } = req.body;
+    const { otp, cashCollected } = req.body;
 
     if (!otp || !/^\d{6}$/.test(String(otp))) {
       return res.status(400).json({
@@ -20,6 +20,7 @@ export const completeDeliveryOrder = async (req, res, next) => {
       deliveryAgentId,
       orderNumber,
       otp: String(otp),
+      cashCollected: cashCollected === true,
     });
     try {
       emitOrderStatusUpdate({

@@ -29,7 +29,8 @@ export const registerDeliveryAgentService = async ({
 
   const normalizedPhone = phone.trim();
 
-  const normalizedVehicleNumber = vehicleNumber.trim().toUpperCase();
+  const normalizedVehicleNumber =
+    vehicleType === "BICYCLE" ? null : vehicleNumber?.trim().toUpperCase();
 
   // Email / phone already registered?
   const existingResult = await pool.query(
@@ -46,7 +47,7 @@ export const registerDeliveryAgentService = async ({
 
         LIMIT 1
       `,
-    [normalizedEmail, normalizedPhone],
+    [normalizedEmail, normalizedPhone]
   );
 
   if (existingResult.rows.length > 0) {
@@ -60,7 +61,7 @@ export const registerDeliveryAgentService = async ({
     }
 
     const error = new Error(
-      "Delivery agent phone number is already registered",
+      "Delivery agent phone number is already registered"
     );
 
     error.statusCode = 409;
@@ -126,7 +127,7 @@ export const registerDeliveryAgentService = async ({
         vehicleType.trim(),
         normalizedVehicleNumber,
         address?.trim() || null,
-      ],
+      ]
     );
     return result.rows[0];
   } catch (error) {
@@ -137,7 +138,7 @@ export const registerDeliveryAgentService = async ({
       } catch (deleteError) {
         console.error(
           "Delivery agent image cleanup failed:",
-          deleteError.message,
+          deleteError.message
         );
       }
     }
@@ -148,7 +149,6 @@ export const registerDeliveryAgentService = async ({
 // login delivery agent
 export const loginDeliveryAgentService = async ({ email, password }) => {
   const normalizedEmail = email.trim().toLowerCase();
-  console.log("email in services =>", normalizedEmail, password);
 
   // Agent find
   const result = await pool.query(
@@ -183,7 +183,7 @@ export const loginDeliveryAgentService = async ({ email, password }) => {
 
       LIMIT 1
     `,
-    [normalizedEmail],
+    [normalizedEmail]
   );
 
   if (result.rows.length === 0) {
@@ -226,7 +226,7 @@ export const loginDeliveryAgentService = async ({ email, password }) => {
     const error = new Error(
       agent.rejectionReason
         ? `Your registration was rejected: ${agent.rejectionReason}`
-        : "Your delivery agent registration was rejected",
+        : "Your delivery agent registration was rejected"
     );
 
     error.statusCode = 403;
@@ -261,7 +261,7 @@ export const loginDeliveryAgentService = async ({ email, password }) => {
 
     {
       expiresIn: "7d",
-    },
+    }
   );
 
   // Password response me nahi bhejna
@@ -323,7 +323,7 @@ export const getPendingDeliveryAgentsService = async () => {
       WHERE approval_status = 'PENDING'
 
       ORDER BY created_at ASC
-    `,
+    `
   );
 
   return result.rows;
@@ -353,7 +353,7 @@ export const approveDeliveryAgentService = async ({ publicId }) => {
 
         updated_at AS "updatedAt"
     `,
-    [publicId],
+    [publicId]
   );
 
   if (result.rows.length === 0) {
@@ -367,7 +367,7 @@ export const approveDeliveryAgentService = async ({ publicId }) => {
 
         LIMIT 1
       `,
-      [publicId],
+      [publicId]
     );
 
     if (existing.rows.length === 0) {
@@ -378,7 +378,7 @@ export const approveDeliveryAgentService = async ({ publicId }) => {
     }
 
     const error = new Error(
-      `Delivery agent cannot be approved from ${existing.rows[0].approvalStatus} status`,
+      `Delivery agent cannot be approved from ${existing.rows[0].approvalStatus} status`
     );
 
     error.statusCode = 409;
@@ -415,7 +415,7 @@ export const rejectDeliveryAgentService = async ({ publicId, reason }) => {
 
         updated_at AS "updatedAt"
     `,
-    [reason, publicId],
+    [reason, publicId]
   );
 
   if (result.rows.length === 0) {
@@ -429,7 +429,7 @@ export const rejectDeliveryAgentService = async ({ publicId, reason }) => {
 
         LIMIT 1
       `,
-      [publicId],
+      [publicId]
     );
 
     if (existing.rows.length === 0) {
@@ -440,7 +440,7 @@ export const rejectDeliveryAgentService = async ({ publicId, reason }) => {
     }
 
     const error = new Error(
-      `Delivery agent cannot be rejected from ${existing.rows[0].approvalStatus} status`,
+      `Delivery agent cannot be rejected from ${existing.rows[0].approvalStatus} status`
     );
 
     error.statusCode = 409;
@@ -501,7 +501,7 @@ export const getDeliveryProfileService = async ({ deliveryAgentId }) => {
 
         LIMIT 1
       `,
-    [deliveryAgentId],
+    [deliveryAgentId]
   );
 
   if (result.rows.length === 0) {
@@ -584,7 +584,7 @@ export const updateDeliveryProfileService = async ({
 
         LIMIT 1
       `,
-    [deliveryAgentId],
+    [deliveryAgentId]
   );
 
   if (existingResult.rows.length === 0) {
@@ -676,7 +676,7 @@ export const updateDeliveryProfileService = async ({
 
         LIMIT 1
       `,
-    [deliveryAgentId, finalEmail, finalPhone],
+    [deliveryAgentId, finalEmail, finalPhone]
   );
 
   if (duplicateResult.rows.length > 0) {
@@ -684,7 +684,7 @@ export const updateDeliveryProfileService = async ({
 
     if (duplicate.email.toLowerCase() === finalEmail.toLowerCase()) {
       const error = new Error(
-        "Email is already registered with another delivery agent",
+        "Email is already registered with another delivery agent"
       );
 
       error.statusCode = 409;
@@ -692,7 +692,7 @@ export const updateDeliveryProfileService = async ({
     }
 
     const error = new Error(
-      "Phone number is already registered with another delivery agent",
+      "Phone number is already registered with another delivery agent"
     );
 
     error.statusCode = 409;
@@ -782,7 +782,7 @@ export const updateDeliveryProfileService = async ({
         newImage || existingAgent.image,
 
         deliveryAgentId,
-      ],
+      ]
     );
 
     const updatedAgent = result.rows[0];
@@ -806,7 +806,7 @@ export const updateDeliveryProfileService = async ({
       } catch (deleteError) {
         console.error(
           "New delivery image cleanup failed:",
-          deleteError.message,
+          deleteError.message
         );
       }
     }
@@ -853,7 +853,7 @@ export const updateDeliveryStatusService = async ({
 
           FOR UPDATE
         `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     if (agentResult.rows.length === 0) {
@@ -874,7 +874,7 @@ export const updateDeliveryStatusService = async ({
 
     if (agent.approvalStatus !== "APPROVED") {
       const error = new Error(
-        "Only approved delivery agents can change online status",
+        "Only approved delivery agents can change online status"
       );
 
       error.statusCode = 403;
@@ -901,7 +901,7 @@ export const updateDeliveryStatusService = async ({
 
           LIMIT 1
         `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     const hasActiveOrder = activeOrderResult.rows.length > 0;
@@ -914,7 +914,7 @@ export const updateDeliveryStatusService = async ({
       const activeOrder = activeOrderResult.rows[0];
 
       const error = new Error(
-        `You cannot go offline while order ${activeOrder.orderNumber} is ${activeOrder.status}`,
+        `You cannot go offline while order ${activeOrder.orderNumber} is ${activeOrder.status}`
       );
 
       error.statusCode = 409;
@@ -956,7 +956,7 @@ export const updateDeliveryStatusService = async ({
             updated_at
               AS "updatedAt"
         `,
-      [isOnline, isAvailable, deliveryAgentId],
+      [isOnline, isAvailable, deliveryAgentId]
     );
 
     await client.query("COMMIT");
@@ -988,7 +988,7 @@ export const updateDeliveryLocationService = async ({
       WHERE id = $1
       LIMIT 1
     `,
-    [deliveryAgentId],
+    [deliveryAgentId]
   );
 
   if (agentResult.rows.length === 0) {
@@ -1007,7 +1007,7 @@ export const updateDeliveryLocationService = async ({
 
   if (agent.approvalStatus !== "APPROVED") {
     const error = new Error(
-      "Only approved delivery agents can update location",
+      "Only approved delivery agents can update location"
     );
     error.statusCode = 403;
     throw error;
@@ -1017,6 +1017,12 @@ export const updateDeliveryLocationService = async ({
   const lng = Number(longitude);
 
   if (
+    latitude === null ||
+    latitude === undefined ||
+    latitude === "" ||
+    longitude === null ||
+    longitude === undefined ||
+    longitude === "" ||
     !Number.isFinite(lat) ||
     !Number.isFinite(lng) ||
     lat < -90 ||
@@ -1047,7 +1053,7 @@ export const updateDeliveryLocationService = async ({
         location_updated_at AS "locationUpdatedAt",
         updated_at AS "updatedAt"
     `,
-    [lat, lng, deliveryAgentId],
+    [lat, lng, deliveryAgentId]
   );
 
   return result.rows[0];
@@ -1111,7 +1117,7 @@ AND o.status = 'READY_FOR_PICKUP'
 
       LIMIT 1
     `,
-    [deliveryAgentId],
+    [deliveryAgentId]
   );
 
   if (result.rows.length === 0) {
@@ -1165,7 +1171,7 @@ export const acceptDeliveryOrderService = async ({
 
           FOR UPDATE
         `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     if (agentResult.rows.length === 0) {
@@ -1193,7 +1199,7 @@ export const acceptDeliveryOrderService = async ({
 
     if (!agent.isAvailable) {
       const error = new Error(
-        "You are currently unavailable for a new delivery",
+        "You are currently unavailable for a new delivery"
       );
 
       error.statusCode = 409;
@@ -1242,7 +1248,7 @@ o.restaurant_id AS "restaurantId",
 
           FOR UPDATE OF da, o
         `,
-      [orderNumber, deliveryAgentId],
+      [orderNumber, deliveryAgentId]
     );
 
     if (offerResult.rows.length === 0) {
@@ -1256,7 +1262,7 @@ o.restaurant_id AS "restaurantId",
 
     if (offer.status !== "READY_FOR_PICKUP") {
       const error = new Error(
-        `Order cannot be accepted from ${offer.status} status`,
+        `Order cannot be accepted from ${offer.status} status`
       );
 
       error.statusCode = 409;
@@ -1265,7 +1271,7 @@ o.restaurant_id AS "restaurantId",
 
     if (offer.assignedDeliveryAgentId) {
       const error = new Error(
-        "Another delivery agent is already assigned to this order",
+        "Another delivery agent is already assigned to this order"
       );
 
       error.statusCode = 409;
@@ -1291,7 +1297,7 @@ o.restaurant_id AS "restaurantId",
 
         WHERE id = $1
       `,
-      [offer.assignmentId],
+      [offer.assignmentId]
     );
 
     // =================================
@@ -1332,7 +1338,7 @@ o.restaurant_id AS "restaurantId",
             delivery_assigned_at
               AS "deliveryAssignedAt"
         `,
-      [deliveryAgentId, offer.orderId],
+      [deliveryAgentId, offer.orderId]
     );
 
     if (orderResult.rows.length === 0) {
@@ -1358,7 +1364,7 @@ o.restaurant_id AS "restaurantId",
 
         WHERE id = $1
       `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     await client.query("COMMIT");
@@ -1441,7 +1447,7 @@ d.public_id AS "deliveryAgentPublicId",
 
           FOR UPDATE OF da, o
         `,
-      [orderNumber, deliveryAgentId],
+      [orderNumber, deliveryAgentId]
     );
 
     if (offerResult.rows.length === 0) {
@@ -1475,7 +1481,7 @@ d.public_id AS "deliveryAgentPublicId",
 
         WHERE id = $1
       `,
-      [offer.assignmentId],
+      [offer.assignmentId]
     );
 
     rejectedOrder = {
@@ -1572,7 +1578,7 @@ export const getActiveDeliveryOrderService = async ({
 ORDER BY o.delivery_assigned_at DESC, o.id DESC
 LIMIT 1
     `,
-    [deliveryAgentId, orderNumber],
+    [deliveryAgentId, orderNumber]
   );
 
   if (orderResult.rows.length === 0) {
@@ -1593,7 +1599,7 @@ LIMIT 1
       WHERE order_id = $1
       ORDER BY id ASC
     `,
-    [order.orderId],
+    [order.orderId]
   );
 
   const activity = [
@@ -1661,7 +1667,7 @@ export const pickupDeliveryOrderService = async ({
 
           FOR UPDATE
         `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     if (agentResult.rows.length === 0) {
@@ -1706,7 +1712,7 @@ export const pickupDeliveryOrderService = async ({
 
           FOR UPDATE
         `,
-      [orderNumber],
+      [orderNumber]
     );
 
     if (orderResult.rows.length === 0) {
@@ -1729,7 +1735,7 @@ export const pickupDeliveryOrderService = async ({
     // Correct status required
     if (order.status !== "DELIVERY_ASSIGNED") {
       const error = new Error(
-        `Order cannot be picked up from ${order.status} status`,
+        `Order cannot be picked up from ${order.status} status`
       );
 
       error.statusCode = 409;
@@ -1766,7 +1772,7 @@ export const pickupDeliveryOrderService = async ({
             updated_at
               AS "updatedAt"
         `,
-      [order.id, deliveryAgentId],
+      [order.id, deliveryAgentId]
     );
 
     if (updateResult.rows.length === 0) {
@@ -1793,7 +1799,7 @@ export const pickupDeliveryOrderService = async ({
 
         WHERE id = $1
       `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     await client.query("COMMIT");
@@ -1847,7 +1853,7 @@ export const markOrderOutForDeliveryService = async ({
 
           FOR UPDATE
         `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     if (agentResult.rows.length === 0) {
@@ -1910,7 +1916,7 @@ export const markOrderOutForDeliveryService = async ({
 
           FOR UPDATE OF o
         `,
-      [orderNumber],
+      [orderNumber]
     );
 
     if (orderResult.rows.length === 0) {
@@ -1939,7 +1945,7 @@ export const markOrderOutForDeliveryService = async ({
 
     if (order.status !== "PICKED_UP") {
       const error = new Error(
-        `Order cannot move to out for delivery from ${order.status} status`,
+        `Order cannot move to out for delivery from ${order.status} status`
       );
 
       error.statusCode = 409;
@@ -2005,7 +2011,7 @@ export const markOrderOutForDeliveryService = async ({
             delivery_otp_expires_at
               AS "otpExpiresAt"
         `,
-      [otpHash, order.id, deliveryAgentId],
+      [otpHash, order.id, deliveryAgentId]
     );
 
     if (updateResult.rows.length === 0) {
@@ -2074,6 +2080,7 @@ export const completeDeliveryOrderService = async ({
   deliveryAgentId,
   orderNumber,
   otp,
+  cashCollected = false,
 }) => {
   const client = await pool.connect();
 
@@ -2115,7 +2122,7 @@ export const completeDeliveryOrderService = async ({
 
           FOR UPDATE
         `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
     if (agentResult.rows.length === 0) {
@@ -2142,6 +2149,7 @@ export const completeDeliveryOrderService = async ({
       `
           SELECT
             id,
+            order_group_id AS "orderGroupId",
 
             status,
 
@@ -2165,7 +2173,7 @@ export const completeDeliveryOrderService = async ({
 
           FOR UPDATE
         `,
-      [orderNumber],
+      [orderNumber]
     );
 
     if (orderResult.rows.length === 0) {
@@ -2176,6 +2184,31 @@ export const completeDeliveryOrderService = async ({
     }
 
     const order = orderResult.rows[0];
+    const paymentGroup = (
+      await client.query(
+        "SELECT payment_method,payment_status FROM order_groups WHERE id=$1 FOR UPDATE",
+        [order.orderGroupId]
+      )
+    ).rows[0];
+    if (!paymentGroup)
+      throw Object.assign(new Error("Checkout not found"), { statusCode: 404 });
+    if (
+      paymentGroup.payment_method === "ONLINE" &&
+      paymentGroup.payment_status !== "PAID"
+    ) {
+      throw Object.assign(
+        new Error("Online payment must be verified before completing delivery"),
+        { statusCode: 409 }
+      );
+    }
+    if (paymentGroup.payment_method === "COD" && cashCollected !== true) {
+      throw Object.assign(
+        new Error(
+          "Confirm cash collection before completing this COD delivery"
+        ),
+        { statusCode: 400 }
+      );
+    }
 
     // ==========================================
     // 3. Ownership check
@@ -2194,7 +2227,7 @@ export const completeDeliveryOrderService = async ({
 
     if (order.status !== "OUT_FOR_DELIVERY") {
       const error = new Error(
-        `Order cannot be delivered from ${order.status} status`,
+        `Order cannot be delivered from ${order.status} status`
       );
 
       error.statusCode = 409;
@@ -2218,7 +2251,7 @@ export const completeDeliveryOrderService = async ({
 
     if (order.deliveryOtpAttempts >= 5) {
       const error = new Error(
-        "Maximum OTP attempts exceeded. Generate a new OTP.",
+        "Maximum OTP attempts exceeded. Generate a new OTP."
       );
 
       error.statusCode = 429;
@@ -2266,7 +2299,7 @@ export const completeDeliveryOrderService = async ({
               delivery_otp_attempts
                 AS "deliveryOtpAttempts"
           `,
-        [order.id],
+        [order.id]
       );
 
       const attempts = attemptsResult.rows[0].deliveryOtpAttempts;
@@ -2280,7 +2313,7 @@ export const completeDeliveryOrderService = async ({
       const error = new Error(
         remainingAttempts > 0
           ? `Invalid OTP. ${remainingAttempts} attempts remaining.`
-          : "Maximum OTP attempts exceeded. Generate a new OTP.",
+          : "Maximum OTP attempts exceeded. Generate a new OTP."
       );
 
       error.statusCode = remainingAttempts > 0 ? 400 : 429;
@@ -2338,7 +2371,7 @@ export const completeDeliveryOrderService = async ({
             total_amount
               AS "totalAmount"
         `,
-      [order.id, deliveryAgentId],
+      [order.id, deliveryAgentId]
     );
 
     if (deliveredResult.rows.length === 0) {
@@ -2369,14 +2402,34 @@ export const completeDeliveryOrderService = async ({
 
         WHERE id = $1
       `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     );
 
+    if (paymentGroup.payment_method === "COD") {
+      await client.query(
+        "UPDATE orders SET cash_collected_at=NOW() WHERE id=$1",
+        [order.id]
+      );
+      await client.query(
+        `UPDATE order_groups SET payment_status='PAID',updated_at=NOW()
+        WHERE id=$1 AND NOT EXISTS(SELECT 1 FROM orders WHERE order_group_id=$1 AND cash_collected_at IS NULL)`,
+        [order.orderGroupId]
+      );
+    }
+    const finalPayment = (
+      await client.query(
+        "SELECT payment_status FROM order_groups WHERE id=$1",
+        [order.orderGroupId]
+      )
+    ).rows[0];
     await client.query("COMMIT");
 
     transactionOpen = false;
 
     return {
+      paymentStatus: finalPayment.payment_status,
+      paymentMethod: paymentGroup.payment_method,
+
       ...deliveredResult.rows[0],
 
       deliveryAgent: {
@@ -2422,7 +2475,7 @@ export const getDeliveryDashboardService = async ({ deliveryAgentId }) => {
 
         LIMIT 1
       `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     ),
 
     // =========================
@@ -2465,7 +2518,7 @@ export const getDeliveryDashboardService = async ({ deliveryAgentId }) => {
 
         WHERE da.delivery_agent_id = $1
       `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     ),
 
     // =========================
@@ -2522,7 +2575,7 @@ export const getDeliveryDashboardService = async ({ deliveryAgentId }) => {
 
         LIMIT 1
       `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     ),
 
     // =========================
@@ -2561,7 +2614,7 @@ export const getDeliveryDashboardService = async ({ deliveryAgentId }) => {
 
         LIMIT 5
       `,
-      [deliveryAgentId],
+      [deliveryAgentId]
     ),
   ]);
 
@@ -2677,7 +2730,7 @@ export const getDeliveryHistoryService = async ({
   AND da.status = 'ACCEPTED'
   AND o.status IN ('DELIVERED', 'CANCELLED')
     `,
-    [deliveryAgentId],
+    [deliveryAgentId]
   );
 
   const countResult = await pool.query(
@@ -2697,7 +2750,7 @@ export const getDeliveryHistoryService = async ({
 
       WHERE ${whereClause}
     `,
-    values,
+    values
   );
 
   const queryValues = [...values, limit, offset];
@@ -2743,7 +2796,7 @@ export const getDeliveryHistoryService = async ({
       LIMIT $${limitPosition}
       OFFSET $${offsetPosition}
     `,
-    queryValues,
+    queryValues
   );
 
   const stats = statsResult.rows[0];
@@ -2799,7 +2852,7 @@ export const getAvailableDeliveryAgentsForOrderService = async ({
         AND o.restaurant_id = $2
       LIMIT 1
     `,
-    [orderNumber, restaurantId],
+    [orderNumber, restaurantId]
   );
 
   if (orderResult.rows.length === 0) {
@@ -2812,7 +2865,7 @@ export const getAvailableDeliveryAgentsForOrderService = async ({
 
   if (order.status !== "READY_FOR_PICKUP") {
     const error = new Error(
-      "Order must be ready for pickup before assigning a delivery partner",
+      "Order must be ready for pickup before assigning a delivery partner"
     );
     error.statusCode = 409;
     throw error;
@@ -2820,7 +2873,7 @@ export const getAvailableDeliveryAgentsForOrderService = async ({
 
   if (order.assignedDeliveryAgentId) {
     const error = new Error(
-      "Delivery partner is already assigned to this order",
+      "Delivery partner is already assigned to this order"
     );
     error.statusCode = 409;
     throw error;
@@ -2830,6 +2883,8 @@ export const getAvailableDeliveryAgentsForOrderService = async ({
   const restaurantLongitude = Number(order.restaurantLongitude);
 
   if (
+    order.restaurantLatitude === null ||
+    order.restaurantLongitude === null ||
     !Number.isFinite(restaurantLatitude) ||
     !Number.isFinite(restaurantLongitude)
   ) {
@@ -2849,12 +2904,12 @@ export const getAvailableDeliveryAgentsForOrderService = async ({
         AND expires_at > CURRENT_TIMESTAMP
       LIMIT 1
     `,
-    [order.id],
+    [order.id]
   );
 
   if (activeOfferResult.rows.length > 0) {
     const error = new Error(
-      "A delivery offer is already pending for this order",
+      "A delivery offer is already pending for this order"
     );
     error.statusCode = 409;
     throw error;
@@ -2949,7 +3004,7 @@ export const getAvailableDeliveryAgentsForOrderService = async ({
 
       LIMIT 30
     `,
-    [restaurantLatitude, restaurantLongitude],
+    [restaurantLatitude, restaurantLongitude]
   );
 
   return {
@@ -2991,7 +3046,7 @@ export const createRestaurantDeliveryOfferService = async ({
         LIMIT 1
         FOR UPDATE OF o
       `,
-      [orderNumber, restaurantId],
+      [orderNumber, restaurantId]
     );
 
     if (orderResult.rows.length === 0) {
@@ -3004,7 +3059,7 @@ export const createRestaurantDeliveryOfferService = async ({
 
     if (order.status !== "READY_FOR_PICKUP") {
       const error = new Error(
-        "Order must be ready for pickup before sending delivery offer",
+        "Order must be ready for pickup before sending delivery offer"
       );
       error.statusCode = 409;
       throw error;
@@ -3012,7 +3067,7 @@ export const createRestaurantDeliveryOfferService = async ({
 
     if (order.assignedDeliveryAgentId) {
       const error = new Error(
-        "Delivery partner is already assigned to this order",
+        "Delivery partner is already assigned to this order"
       );
       error.statusCode = 409;
       throw error;
@@ -3022,6 +3077,8 @@ export const createRestaurantDeliveryOfferService = async ({
     const restaurantLongitude = Number(order.restaurantLongitude);
 
     if (
+      order.restaurantLatitude === null ||
+      order.restaurantLongitude === null ||
       !Number.isFinite(restaurantLatitude) ||
       !Number.isFinite(restaurantLongitude)
     ) {
@@ -3040,12 +3097,12 @@ export const createRestaurantDeliveryOfferService = async ({
             AND status = 'OFFERED'
           LIMIT 1
         `,
-      [order.id],
+      [order.id]
     );
 
     if (existingOrderOffer.rows.length > 0) {
       const error = new Error(
-        "This order already has a pending delivery offer",
+        "This order already has a pending delivery offer"
       );
       error.statusCode = 409;
       throw error;
@@ -3118,7 +3175,7 @@ export const createRestaurantDeliveryOfferService = async ({
           LIMIT 1
           FOR UPDATE OF d
         `,
-      [deliveryAgentPublicId, restaurantLatitude, restaurantLongitude],
+      [deliveryAgentPublicId, restaurantLatitude, restaurantLongitude]
     );
 
     if (agentResult.rows.length === 0) {
@@ -3167,7 +3224,7 @@ export const createRestaurantDeliveryOfferService = async ({
 
     if (!Number.isFinite(distanceKm) || distanceKm > 10) {
       const error = new Error(
-        "Delivery partner is outside the delivery assignment range",
+        "Delivery partner is outside the delivery assignment range"
       );
       error.statusCode = 409;
       throw error;
@@ -3187,12 +3244,12 @@ export const createRestaurantDeliveryOfferService = async ({
             )
           LIMIT 1
         `,
-      [agent.id],
+      [agent.id]
     );
 
     if (activeDeliveryResult.rows.length > 0) {
       const error = new Error(
-        "Delivery partner is currently handling another delivery",
+        "Delivery partner is currently handling another delivery"
       );
       error.statusCode = 409;
       throw error;
@@ -3208,12 +3265,12 @@ export const createRestaurantDeliveryOfferService = async ({
             AND status = 'OFFERED'
           LIMIT 1
         `,
-      [agent.id],
+      [agent.id]
     );
 
     if (agentOfferResult.rows.length > 0) {
       const error = new Error(
-        "Delivery partner already has another pending offer",
+        "Delivery partner already has another pending offer"
       );
       error.statusCode = 409;
       throw error;
@@ -3233,7 +3290,7 @@ export const createRestaurantDeliveryOfferService = async ({
           LIMIT 1
           FOR UPDATE
         `,
-      [order.id, agent.id],
+      [order.id, agent.id]
     );
 
     let offer;
@@ -3262,13 +3319,13 @@ export const createRestaurantDeliveryOfferService = async ({
               offered_at AS "offeredAt",
               expires_at AS "expiresAt"
           `,
-          [previousOffer.id],
+          [previousOffer.id]
         );
 
         offer = offerResult.rows[0];
       } else {
         const error = new Error(
-          "This delivery offer cannot be sent again right now",
+          "This delivery offer cannot be sent again right now"
         );
         error.statusCode = 409;
         throw error;
@@ -3294,7 +3351,7 @@ export const createRestaurantDeliveryOfferService = async ({
             offered_at AS "offeredAt",
             expires_at AS "expiresAt"
         `,
-        [order.id, agent.id],
+        [order.id, agent.id]
       );
 
       offer = offerResult.rows[0];
@@ -3321,7 +3378,7 @@ export const createRestaurantDeliveryOfferService = async ({
 
     if (error.code === "23505") {
       const conflictError = new Error(
-        "This order or delivery partner already has an active offer",
+        "This order or delivery partner already has an active offer"
       );
 
       conflictError.statusCode = 409;

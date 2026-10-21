@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { saveImage, deleteImage } from "../utils/storage/imageStorage.js";
 import pool from "../config/database.js";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../utils/sendEmail.js";
@@ -29,7 +30,7 @@ export const registerRestaurantService = async ({
         FROM restaurants WHERE email =$1
             LIMIT 1
         `,
-    [normalizedEmail],
+    [normalizedEmail]
   );
 
   if (emailCheck.rows.length > 0) {
@@ -45,7 +46,7 @@ export const registerRestaurantService = async ({
         WHERE phone = $1
         LIMIT 1
         `,
-    [normalizedPhone],
+    [normalizedPhone]
   );
 
   if (phoneCheck.rows.length > 0) {
@@ -115,7 +116,7 @@ export const registerRestaurantService = async ({
       pincode.trim(),
       latitude ?? null,
       longitude ?? null,
-    ],
+    ]
   );
 
   const restaurant = result.rows[0];
@@ -173,7 +174,7 @@ export const loginRestaurantService = async ({ email, password }) => {
           WHERE email = $1
           LIMIT 1
         `,
-    [normalizedEmail],
+    [normalizedEmail]
   );
 
   if (result.rows.length === 0) {
@@ -234,7 +235,7 @@ export const loginRestaurantService = async ({ email, password }) => {
     process.env.JWT_SECRET,
     {
       expiresIn: "7d",
-    },
+    }
   );
 
   delete restaurant.password;
@@ -279,7 +280,7 @@ export const getRestaurantProfileService = async ({ restaurantId }) => {
       WHERE id = $1
       LIMIT 1
     `,
-    [restaurantId],
+    [restaurantId]
   );
 
   if (result.rows.length === 0) {
@@ -355,7 +356,7 @@ export const updateRestaurantProfileService = async ({
 
       LIMIT 1
     `,
-    [restaurantId],
+    [restaurantId]
   );
 
   if (existingResult.rows.length === 0) {
@@ -446,19 +447,19 @@ export const updateRestaurantProfileService = async ({
   const finalPincode = normalizeNumber(
     pincode,
     existingRestaurant.pincode,
-    "Pincode",
+    "Pincode"
   );
 
   const finalLatitude = normalizeNumber(
     latitude,
     existingRestaurant.latitude,
-    "Latitude",
+    "Latitude"
   );
 
   const finalLongitude = normalizeNumber(
     longitude,
     existingRestaurant.longitude,
-    "Longitude",
+    "Longitude"
   );
 
   // =========================
@@ -569,7 +570,7 @@ export const updateRestaurantProfileService = async ({
         newLogo || existingRestaurant.logo,
 
         restaurantId,
-      ],
+      ]
     );
 
     const updatedRestaurant = result.rows[0];
@@ -595,7 +596,7 @@ export const updateRestaurantProfileService = async ({
       } catch (deleteError) {
         console.error(
           "New restaurant logo cleanup failed:",
-          deleteError.message,
+          deleteError.message
         );
       }
     }
@@ -628,12 +629,12 @@ export const updateRestaurantStatusService = async ({
         approval_status AS "approvalStatus",
         updated_at AS "updatedAt"
     `,
-    [isOpen, restaurantId],
+    [isOpen, restaurantId]
   );
 
   if (result.rows.length === 0) {
     const error = new Error(
-      "Approved restaurant not found or restaurant is blocked",
+      "Approved restaurant not found or restaurant is blocked"
     );
 
     error.statusCode = 403;
@@ -657,7 +658,7 @@ export const getRestaurantFoodService = async ({
       FROM foods
       WHERE restaurant_id = $1
     `,
-    [restaurantId],
+    [restaurantId]
   );
 
   const result = await pool.query(
@@ -691,7 +692,7 @@ export const getRestaurantFoodService = async ({
         OFFSET $3
 
     `,
-    [restaurantId, limit, offset],
+    [restaurantId, limit, offset]
   );
 
   const total = countResult.rows[0].total;
@@ -747,7 +748,7 @@ export const getRestaurantFoodBySlugService = async ({
       LIMIT 1
 
     `,
-    [foodSlug, restaurantId],
+    [foodSlug, restaurantId]
   );
 
   if (result.rows.length === 0) {
@@ -802,7 +803,7 @@ export const updateFoodService = async ({
 
         LIMIT 1
       `,
-    [foodSlug, restaurantId],
+    [foodSlug, restaurantId]
   );
 
   if (existingResult.rows.length === 0) {
@@ -845,7 +846,7 @@ export const updateFoodService = async ({
 
           LIMIT 1
         `,
-      [restaurantId, finalName, existingFood.id],
+      [restaurantId, finalName, existingFood.id]
     );
 
     if (duplicateResult.rows.length > 0) {
@@ -875,7 +876,7 @@ export const updateFoodService = async ({
 
           LIMIT 1
         `,
-      [categorySlug.trim()],
+      [categorySlug.trim()]
     );
 
     if (categoryResult.rows.length === 0) {
@@ -925,7 +926,7 @@ export const updateFoodService = async ({
       finalDiscountPrice >= finalPrice)
   ) {
     const error = new Error(
-      "Discount price must be greater than 0 and less than regular price",
+      "Discount price must be greater than 0 and less than regular price"
     );
 
     error.statusCode = 400;
@@ -1054,7 +1055,7 @@ export const updateFoodService = async ({
 
         existingFood.id,
         restaurantId,
-      ],
+      ]
     );
 
     if (newImage && existingFood.image) {
@@ -1094,7 +1095,7 @@ export const deleteFoodService = async ({ restaurantId, foodSlug }) => {
         slug,
         image
     `,
-    [foodSlug, restaurantId],
+    [foodSlug, restaurantId]
   );
 
   if (result.rows.length === 0) {
@@ -1153,7 +1154,7 @@ export const getPublicRestaurantBySlugService = async ({ restaurantSlug }) => {
 
       LIMIT 1
     `,
-    [restaurantSlug],
+    [restaurantSlug]
   );
 
   if (result.rows.length === 0) {
@@ -1218,7 +1219,7 @@ export const getRestaurantsService = async ({ page = 1, limit = 20 }) => {
       LIMIT $1
       OFFSET $2
       `,
-    [currentLimit, offset],
+    [currentLimit, offset]
   );
 
   // =========================
@@ -1233,10 +1234,10 @@ export const getRestaurantsService = async ({ page = 1, limit = 20 }) => {
       FROM restaurants
 
       WHERE
-        approval_status = 'approved'
+        approval_status = 'APPROVED'
 
         AND is_blocked = false
-      `,
+      `
   );
 
   const total = countResult.rows[0]?.total || 0;
@@ -1277,7 +1278,7 @@ export const getRestaurantDashboardService = async ({ restaurantId }) => {
 
           LIMIT 1
         `,
-    [restaurantId],
+    [restaurantId]
   );
 
   if (restaurantResult.rows.length === 0) {
@@ -1392,9 +1393,9 @@ export const getRestaurantDashboardService = async ({ restaurantId }) => {
           FROM orders
 
           WHERE
-            restaurant_id = $1
+            restaurant_id = $1 AND status <> 'PAYMENT_PENDING'
         `,
-    [restaurantId],
+    [restaurantId]
   );
 
   // =========================================
@@ -1422,7 +1423,7 @@ export const getRestaurantDashboardService = async ({ restaurantId }) => {
           WHERE
             restaurant_id = $1
         `,
-    [restaurantId],
+    [restaurantId]
   );
 
   // =========================================
@@ -1455,14 +1456,14 @@ export const getRestaurantDashboardService = async ({ restaurantId }) => {
               o.order_group_id
 
           WHERE
-            o.restaurant_id = $1
+            o.restaurant_id = $1 AND o.status <> 'PAYMENT_PENDING'
 
           ORDER BY
             o.created_at DESC
 
           LIMIT 5
         `,
-    [restaurantId],
+    [restaurantId]
   );
 
   const orderStats = orderStatsResult.rows[0];
@@ -1566,7 +1567,7 @@ export const updateRestaurantLocationService = async ({
         updated_at
           AS "updatedAt"
     `,
-    [lat, lng, restaurantId],
+    [lat, lng, restaurantId]
   );
 
   // ==========================================
