@@ -107,6 +107,13 @@ export const getAdminDashboardService = async () => {
 
 // Fixed query definitions keep table/column identifiers outside user input.
 const adminLists = {
+  foods: {
+    from: "foods f JOIN restaurants r ON r.id=f.restaurant_id JOIN categories c ON c.id=f.category_id",
+    fields: `f.slug, f.name, f.description, f.price, f.discount_price AS "discountPrice", f.image,
+      f.is_veg AS "isVeg", f.is_available AS "isAvailable", f.preparation_time AS "preparationTime",
+      f.created_at AS "createdAt", c.name AS "categoryName", r.restaurant_name AS "restaurantName"`,
+    search: "concat_ws(' ',f.name,r.restaurant_name,c.name)", status: null, date: "f.created_at",
+  },
   restaurants: {
     from: "restaurants r",
     fields: `r.slug, r.restaurant_name AS "restaurantName", r.owner_name AS "ownerName", r.email,

@@ -22,7 +22,6 @@ import { updateCategoryStatus } from "../controllers/admin/updateCategoryStatus.
 
 import { deleteCategory } from "../controllers/admin/deleteCategory.controller.js";
 
-import { getFoods } from "../controllers/admin/getFoods.controller.js";
 
 import { getFoodBySlug } from "../controllers/admin/getFoodBySlug.controller.js";
 
@@ -101,7 +100,7 @@ router.patch(
 router.delete("/categories/:categorySlug", adminAuthMiddleware, deleteCategory);
 
 // get all foods
-router.get("/foods", adminAuthMiddleware, getFoods);
+router.get("/foods", adminAuthMiddleware, getAdminList("foods"));
 
 // get single food by foodslug
 router.get("/foods/:foodSlug", adminAuthMiddleware, getFoodBySlug);

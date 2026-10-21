@@ -1,89 +1,29 @@
-import {
-  Route,
-  Routes,
-} from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
+import AdminProtectedRoute from "../protectedRoutes/AdminProtectedRoute";
+import AdminLayout from "../layouts/AdminLayout";
+import AdminLogin from "../pages/admin/Auth/AdminLogin";
+import AdminDashboard from "../pages/admin/Dashboard/AdminDashboard";
+import AdminPartners from "../pages/admin/Partners/AdminPartners";
+import AdminCategories from "../pages/admin/Categories/AdminCategories";
+import AdminRecords from "../pages/admin/Records/AdminRecords";
+import AdminSettings from "../pages/admin/Settings/AdminSettings";
 
-
-const Screen = ({
-  title,
-}) => {
-  return (
-    <div className="p-8">
-      <h1
-        className="
-          text-2xl
-          font-bold
-          text-gray-900
-        "
-      >
-        {title}
-      </h1>
-    </div>
-  );
-};
-
-
-const AdminRoutes = () => {
-  return (
-    <Routes>
-      <Route
-        path="login"
-        element={
-          <Screen title="Admin Login" />
-        }
-      />
-
-      <Route
-        path="dashboard"
-        element={
-          <Screen title="Admin Dashboard" />
-        }
-      />
-
-      <Route
-        path="restaurants"
-        element={
-          <Screen title="Manage Restaurants" />
-        }
-      />
-
-      <Route
-        path="delivery-agents"
-        element={
-          <Screen title="Manage Delivery Agents" />
-        }
-      />
-
-      <Route
-        path="categories"
-        element={
-          <Screen title="Manage Categories" />
-        }
-      />
-
-      <Route
-        path="foods"
-        element={
-          <Screen title="Manage Foods" />
-        }
-      />
-
-      <Route
-        path="orders"
-        element={
-          <Screen title="Manage Orders" />
-        }
-      />
-
-      <Route
-        path="settings"
-        element={
-          <Screen title="Settings" />
-        }
-      />
-    </Routes>
-  );
-};
-
-
-export default AdminRoutes;
+export default function AdminRoutes() {
+  return <Routes>
+    <Route path="login" element={<AdminLogin />} />
+    <Route element={<AdminProtectedRoute />}>
+      <Route element={<AdminLayout />}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="restaurants" element={<AdminPartners key="restaurants" kind="restaurants" />} />
+        <Route path="delivery-agents" element={<AdminPartners key="delivery-agents" kind="delivery-agents" />} />
+        <Route path="categories" element={<AdminCategories />} />
+        <Route path="foods" element={<AdminRecords key="foods" resource="foods" />} />
+        <Route path="orders" element={<AdminRecords key="orders" resource="orders" />} />
+        <Route path="users" element={<AdminRecords key="users" resource="users" />} />
+        <Route path="settings" element={<AdminSettings />} />
+        <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+      </Route>
+    </Route>
+  </Routes>;
+}
