@@ -44,6 +44,9 @@ const Checkout = () => {
     // REDUX
     // =========================
 
+    const [locationLoading, setLocationLoading] = useState(false);
+    const [locationError, setLocationError] = useState("");
+
     const {
         cartGroups,
         fetchLoading:
@@ -256,49 +259,78 @@ const Checkout = () => {
     // PLACE ORDER
     // =========================
 
-    const handlePlaceOrder =
-        async () => {
-            if (
-                !canPlaceOrder ||
-                !selectedAddress?.id ||
-                placeOrderLoading
-            ) {
-                return;
+    const handlePlaceOrder = async () => {
+        if (
+            !canPlaceOrder ||
+            !selectedAddress?.id ||
+            placeOrderLoading ||
+            locationLoading
+        ) {
+            return;
+        }
+
+        setLocationError("");
+        setLocationLoading(true);
+
+        try {
+            if (!window.isSecureContext) {
+                throw new Error(
+                    "Location ke liye HTTPS ya localhost par website kholo.",
+                );
             }
 
-            try {
-                const result =
-                    await dispatch(
-                        placeOrder({
-                            addressId:
-                                selectedAddress.id,
+            if (!navigator.geolocation) {
+                throw new Error("Browser location support nahi karta.");
+            }
 
-                            paymentMethod:
-                                "COD",
-                        })
-                    ).unwrap();
-
-
-                console.log(
-                    "ORDER CREATED:",
-                    result
-                );
-
-
-                navigate(
-                    "/orders",
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(
+                    resolve,
+                    reject,
                     {
-                        replace: true,
-                    }
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 0,
+                    },
                 );
+            });
 
-            } catch (error) {
-                console.error(
-                    "PLACE ORDER ERROR:",
-                    error
-                );
+            const { latitude, longitude } = position.coords;
+
+            if (
+                !Number.isFinite(latitude) ||
+                !Number.isFinite(longitude)
+            ) {
+                throw new Error("Valid location nahi mili. Dobara try karo.");
             }
-        };
+
+            await dispatch(
+                placeOrder({
+                    addressId: selectedAddress.id,
+                    paymentMethod: "COD",
+                    latitude,
+                    longitude,
+                }),
+            ).unwrap();
+
+            navigate("/orders", { replace: true });
+        } catch (error) {
+            const message =
+                error?.code === 1
+                    ? "Location permission allow karo, phir order place karo."
+                    : error?.code === 2
+                        ? "Location unavailable. Phone location on karke try karo."
+                        : error?.code === 3
+                            ? "Location fetch timeout. Dobara try karo."
+                            : typeof error === "string"
+                                ? error
+                                : error?.message || "Order place nahi ho paya.";
+
+            setLocationError(message);
+        } finally {
+            setLocationLoading(false);
+        }
+    };
 
     // =========================
     // LOADING
@@ -1865,6 +1897,16 @@ const Checkout = () => {
 
 
                                     {/* PLACE ORDER */}
+                                    <p className="mb-3 text-sm text-slate-600">
+                                        Delivery aapki current browser location par hogi.
+                                        Order delivery wali jagah se hi place karein.
+                                    </p>
+
+                                    {locationError && (
+                                        <p className="mb-3 text-sm text-red-600">
+                                            {locationError}
+                                        </p>
+                                    )}
 
                                     <button
                                         type="button"
@@ -1875,9 +1917,9 @@ const Checkout = () => {
 
                                         disabled={
                                             !canPlaceOrder ||
-                                            placeOrderLoading
+                                            placeOrderLoading ||
+                                            locationLoading
                                         }
-
                                         className="
     inline-flex
     min-h-12
@@ -1918,9 +1960,11 @@ const Checkout = () => {
     "
                                         />
 
-                                        {placeOrderLoading
-                                            ? "Placing Order..."
-                                            : "Place Order"}
+                                        {locationLoading
+                                            ? "Getting location / placing order..."
+                                            : placeOrderLoading
+                                                ? "Placing Order..."
+                                                : "Place Order"}
                                     </button>
 
 

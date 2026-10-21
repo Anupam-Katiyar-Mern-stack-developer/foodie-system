@@ -1,4 +1,3 @@
-
 import { updateAddressService } from "../../services/address.service.js";
 import { geocodeAddress } from "../../utils/geocodeAddress.js";
 
@@ -21,6 +20,7 @@ export const updateAddress = async (req, res, next) => {
     } = req.body;
     const coordinates = await geocodeAddress({
       addressLine,
+      landmark,
       city,
       state,
       pincode,

@@ -4,20 +4,15 @@ const getData = (response) => {
   return response?.data?.data ?? response?.data;
 };
 
-
 // =========================
 // GET MY ORDERS
 // =========================
 
 export const getMyOrdersService = async () => {
-  const response =
-    await apiClient.get(
-      "/user/orders"
-    );
+  const response = await apiClient.get("/user/orders");
 
   return getData(response);
 };
-
 
 // =========================
 // PLACE ORDER
@@ -26,15 +21,15 @@ export const getMyOrdersService = async () => {
 export const placeOrderService = async ({
   addressId,
   paymentMethod,
+  latitude,
+  longitude,
 }) => {
-  const response =
-    await apiClient.post(
-      "/user/orders",
-      {
-        addressId,
-        paymentMethod,
-      }
-    );
+  const response = await apiClient.post("/user/orders", {
+    addressId,
+    paymentMethod,
+    latitude,
+    longitude,
+  });
 
   return getData(response);
 };

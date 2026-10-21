@@ -26,6 +26,7 @@ export const createAddress = async (req, res, next) => {
 
     const coordinates = await geocodeAddress({
       addressLine,
+      landmark,
       city,
       state,
       pincode,

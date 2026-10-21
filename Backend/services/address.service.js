@@ -151,6 +151,7 @@ export const getAddressesService = async (userId) => {
     try {
       const coordinates = await geocodeAddress({
         addressLine: address.addressLine,
+        landmark: address.landmark,
         city: address.city,
         state: address.state,
         pincode: address.pincode,

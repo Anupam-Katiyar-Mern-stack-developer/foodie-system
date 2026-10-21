@@ -1,4 +1,10 @@
-export const geocodeAddress = async ({ addressLine, city, state, pincode }) => {
+export const geocodeAddress = async ({
+  addressLine,
+  landmark,
+  city,
+  state,
+  pincode,
+}) => {
   if (!addressLine || !city || !state || !pincode) {
     const error = new Error("Complete delivery address is required");
     error.statusCode = 400;
@@ -13,7 +19,10 @@ export const geocodeAddress = async ({ addressLine, city, state, pincode }) => {
     throw error;
   }
 
-  const text = [addressLine, city, state, pincode, "India"].join(", ");
+  const text = [addressLine, landmark, city, state, pincode, "India"]
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean)
+    .join(", ");
 
   const url = new URL("https://api.geoapify.com/v1/geocode/search");
 
@@ -36,13 +45,35 @@ export const geocodeAddress = async ({ addressLine, city, state, pincode }) => {
   }
 
   if (!response.ok) {
-    const error = new Error("Address lookup service is unavailable");
+    console.error("Geoapify HTTP status:", response.status);
+
+    const reasons = {
+      400: "Geocoding request ke parameters invalid hain",
+      401: "API authentication failed; key check karo",
+      403: "Access denied; key aur IP/origin restrictions check karo",
+      429: "Request limit/quota exceed hui hai",
+    };
+
+    const reason =
+      reasons[response.status] || "Geocoding provider request failed";
+
+    const error = new Error(`Geoapify HTTP ${response.status}: ${reason}`);
+
     error.statusCode = 502;
     throw error;
   }
 
   const data = await response.json();
   const result = data.results?.[0];
+
+  console.log("Address match diagnostic:", {
+    matchFound: Boolean(result),
+    resultType: result?.result_type ?? null,
+    savedPincode: String(pincode).trim(),
+    matchedPincode: result?.postcode ?? null,
+    latitudePresent: result?.lat != null,
+    longitudePresent: result?.lon != null,
+  });
 
   const latitude = Number(result?.lat);
   const longitude = Number(result?.lon);
