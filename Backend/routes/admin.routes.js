@@ -32,6 +32,24 @@ import { approveDeliveryAgent } from "../controllers/admin/approveDeliveryAgent.
 
 import { rejectDeliveryAgent } from "../controllers/admin/rejectDeliveryAgent.controller.js";
 const router = express.Router();
+import {
+  getAdminDashboard,
+  getAdminList,
+  getAdminProfile,
+  updateAdminProfile,
+} from "../controllers/admin/adminManagement.controller.js";
+
+router.get("/profile", adminAuthMiddleware, getAdminProfile);
+router.patch("/profile", adminAuthMiddleware, updateAdminProfile);
+router.get("/dashboard", adminAuthMiddleware, getAdminDashboard);
+router.get("/restaurants", adminAuthMiddleware, getAdminList("restaurants"));
+router.get(
+  "/delivery-agents",
+  adminAuthMiddleware,
+  getAdminList("delivery-agents"),
+);
+router.get("/orders", adminAuthMiddleware, getAdminList("orders"));
+router.get("/users", adminAuthMiddleware, getAdminList("users"));
 
 // login admin
 router.post("/login", loginAdmin);
