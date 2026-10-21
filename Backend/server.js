@@ -6,6 +6,7 @@ import { connectDatabase } from "./config/database.js";
 import { initializeSocket } from "./socket/socket.js";
 import { expireDeliveryOffersService } from "./services/delivery.service.js";
 import { emitDeliveryOfferResponse } from "./socket/order.socket.js";
+import { reconcilePendingPaymentsService } from "./services/payment.service.js";
 import { processOrderEmails } from "./services/notification.service.js";
 
 const PORT = process.env.PORT || 5000;
@@ -13,6 +14,20 @@ const PORT = process.env.PORT || 5000;
 const httpServer = http.createServer(app);
 
 initializeSocket(httpServer);
+
+let paymentTimer;
+const checkPayments = async () => {
+  try {
+    await reconcilePendingPaymentsService();
+  } catch (error) {
+    console.error("Payment recovery worker:", error.message);
+  } finally {
+    if (!expiryStopped) {
+      paymentTimer = setTimeout(checkPayments, 30000);
+      paymentTimer.unref();
+    }
+  }
+};
 
 let expiryTimer;
 let expiryStopped = false;
@@ -48,6 +63,7 @@ const checkExpiredOffers = async () => {
 httpServer.on("close", () => {
   expiryStopped = true;
   clearTimeout(expiryTimer);
+  clearTimeout(paymentTimer);
 });
 
 const startServer = async () => {
@@ -57,6 +73,7 @@ const startServer = async () => {
     httpServer.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       void checkExpiredOffers();
+      void checkPayments();
     });
   } catch (error) {
     console.error("Server start error:", error.message);

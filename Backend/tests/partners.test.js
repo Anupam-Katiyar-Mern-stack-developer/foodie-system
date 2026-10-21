@@ -542,6 +542,72 @@ test("partner registration, logo upload and delivery assignment use an isolated 
       ).pagination.total,
       0
     );
+    const earnings = await delivery.getDeliveryEarningsService({
+      deliveryAgentId: riderId,
+    });
+    assert.equal(earnings.summary.completedDeliveries, 12);
+    assert.equal(earnings.summary.totalEarnings, 240);
+    assert.equal(earnings.entries.length, 12);
+    assert.equal(earnings.weekly.length, 7);
+    assert.equal(
+      earnings.weekly.reduce((sum, day) => sum + day.earning, 0),
+      240
+    );
+    assert.equal(
+      (
+        await delivery.getDeliveryEarningsService({
+          deliveryAgentId: riderId,
+          search: "FILTER-23",
+        })
+      ).pagination.total,
+      0
+    );
+    assert.equal(
+      (
+        await delivery.getDeliveryEarningsService({
+          deliveryAgentId: riderId,
+          paymentMethod: "ONLINE",
+        })
+      ).pagination.total,
+      0
+    );
+    assert.equal(
+      (await delivery.getDeliveryEarningsService({ deliveryAgentId: 999 }))
+        .summary.totalEarnings,
+      0
+    );
+    assert.equal(
+      (
+        await delivery.getDeliveryEarningsService({
+          deliveryAgentId: riderId,
+          range: "TODAY",
+          page: 2,
+          limit: 5,
+        })
+      ).entries.length,
+      5
+    );
+    await assert.rejects(
+      () =>
+        delivery.getDeliveryEarningsService({
+          deliveryAgentId: riderId,
+          range: "INVALID",
+        }),
+      /Invalid earnings/
+    );
+    const earningsHttp = await request(
+      "/api/delivery/earnings?range=WEEK&paymentMethod=COD",
+      undefined,
+      riderToken,
+      "GET"
+    );
+    assert.equal(earningsHttp.status, 200);
+    assert.equal(earningsHttp.body.data.summary.totalEarnings, 240);
+    assert.equal(
+      (await request("/api/delivery/earnings", undefined, undefined, "GET"))
+        .status,
+      401
+    );
     const httpSearch = await request(
       "/api/restaurant/orders?search=FILTER-23&status=CANCELLED&page=1&limit=5",
       undefined,
@@ -550,13 +616,42 @@ test("partner registration, logo upload and delivery assignment use an isolated 
     );
     assert.equal(httpSearch.status, 200);
     assert.equal(httpSearch.body.pagination.total, 1);
-    const matchingPayments=await request('/api/restaurant/orders?status=CANCELLED&paymentMethod=COD&paymentStatus=PENDING&search=FILTER-23',undefined,token,'GET');
-    assert.equal(matchingPayments.status,200);assert.equal(matchingPayments.body.data.length,1);
-    const noMatches=await request('/api/restaurant/orders?status=CANCELLED&paymentMethod=ONLINE&search=FILTER-23',undefined,token,'GET');
-    assert.equal(noMatches.status,200);assert.deepEqual(noMatches.body.data,[]);assert.equal(noMatches.body.pagination.total,0);
-    const cleared=await request('/api/restaurant/orders?status=ALL&paymentMethod=ALL&paymentStatus=ALL',undefined,token,'GET');
-    assert.equal(cleared.status,200);assert.equal(cleared.body.pagination.total,25);
-    assert.equal((await request('/api/restaurant/orders?paymentMethod=invalid',undefined,token,'GET')).status,400);
+    const matchingPayments = await request(
+      "/api/restaurant/orders?status=CANCELLED&paymentMethod=COD&paymentStatus=PENDING&search=FILTER-23",
+      undefined,
+      token,
+      "GET"
+    );
+    assert.equal(matchingPayments.status, 200);
+    assert.equal(matchingPayments.body.data.length, 1);
+    const noMatches = await request(
+      "/api/restaurant/orders?status=CANCELLED&paymentMethod=ONLINE&search=FILTER-23",
+      undefined,
+      token,
+      "GET"
+    );
+    assert.equal(noMatches.status, 200);
+    assert.deepEqual(noMatches.body.data, []);
+    assert.equal(noMatches.body.pagination.total, 0);
+    const cleared = await request(
+      "/api/restaurant/orders?status=ALL&paymentMethod=ALL&paymentStatus=ALL",
+      undefined,
+      token,
+      "GET"
+    );
+    assert.equal(cleared.status, 200);
+    assert.equal(cleared.body.pagination.total, 25);
+    assert.equal(
+      (
+        await request(
+          "/api/restaurant/orders?paymentMethod=invalid",
+          undefined,
+          token,
+          "GET"
+        )
+      ).status,
+      400
+    );
 
     assert.equal(
       (

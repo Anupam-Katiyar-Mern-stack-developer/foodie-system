@@ -5,3 +5,6 @@ export const getDeliveryDashboardService = async () => {
 
   return response.data;
 };
+
+export const getDeliveryEarningsService = async (params, signal) =>
+  (await apiClient.get("/delivery/earnings", { params, signal })).data.data;

@@ -11,7 +11,8 @@
     "db:migrate": "node database/migrate.js",
     "db:setup-site": "node database/migrate.js 017_site_settings_payments.sql",
     "create:admin": "node scripts/createAdmin.js",
-    "test:partners": "node --test tests/partners.test.js"
+    "test:partners": "node --test tests/partners.test.js",
+    "db:seed": "node database/seed.js"
   },
   "keywords": [],
   "author": "",

@@ -3439,3 +3439,88 @@ export const expireDeliveryOffersService = async () => {
 
   return result.rows;
 };
+
+// Earnings are earned delivery fees, never the customer's full order value.
+export const getDeliveryEarningsService = async ({
+  deliveryAgentId,
+  page = 1,
+  limit = 15,
+  search = "",
+  range = "ALL",
+  paymentMethod = "ALL",
+}) => {
+  page = Math.max(1, Math.trunc(Number(page) || 1));
+  limit = Math.min(50, Math.max(1, Math.trunc(Number(limit) || 15)));
+  range = String(range).toUpperCase();
+  paymentMethod = String(paymentMethod).toUpperCase();
+  if (
+    !["ALL", "TODAY", "WEEK", "MONTH"].includes(range) ||
+    !["ALL", "COD", "ONLINE"].includes(paymentMethod)
+  )
+    throw Object.assign(new Error("Invalid earnings filter"), {
+      statusCode: 400,
+    });
+  const day =
+    "timezone('Asia/Kolkata',COALESCE(o.delivered_at,o.updated_at))::date";
+  const today = "timezone('Asia/Kolkata',NOW())::date";
+  const base =
+    "o.assigned_delivery_agent_id=$1 AND o.status='DELIVERED' AND EXISTS (SELECT 1 FROM delivery_assignments da WHERE da.order_id=o.id AND da.delivery_agent_id=$1 AND da.status='ACCEPTED')";
+  const summary = (
+    await pool.query(
+      `SELECT COUNT(*)::int AS "completedDeliveries",COALESCE(SUM(o.delivery_fee),0) AS "totalEarnings",COALESCE(SUM(o.delivery_fee) FILTER (WHERE ${day}=${today}),0) AS "todayEarnings",COALESCE(SUM(o.delivery_fee) FILTER (WHERE ${day}>=${today}-6),0) AS "weekEarnings" FROM orders o WHERE ${base}`,
+      [deliveryAgentId]
+    )
+  ).rows[0];
+  const weekly = (
+    await pool.query(
+      `WITH days AS (SELECT generate_series(${today}-6,${today},'1 day')::date AS day), earned AS (SELECT ${day} AS day,SUM(o.delivery_fee) AS amount FROM orders o WHERE ${base} GROUP BY 1) SELECT to_char(d.day,'YYYY-MM-DD') AS date,to_char(d.day,'Dy') AS label,COALESCE(e.amount,0) AS earning FROM days d LEFT JOIN earned e ON e.day=d.day ORDER BY d.day`,
+      [deliveryAgentId]
+    )
+  ).rows;
+  const values = [deliveryAgentId],
+    conditions = [base];
+  if (range !== "ALL")
+    conditions.push(
+      `${day}>=${today}-${range === "TODAY" ? 0 : range === "WEEK" ? 6 : 29}`
+    );
+  if (paymentMethod !== "ALL") {
+    values.push(paymentMethod);
+    conditions.push(`og.payment_method=$${values.length}`);
+  }
+  if (String(search).trim()) {
+    values.push(
+      `%${String(search)
+        .trim()
+        .slice(0, 150)
+        .replace(/[\\%_]/g, "\\$&")}%`
+    );
+    conditions.push(
+      `concat_ws(' ',o.order_number,r.restaurant_name,og.delivery_name) ILIKE $${values.length}`
+    );
+  }
+  const from =
+    "FROM orders o JOIN restaurants r ON r.id=o.restaurant_id JOIN order_groups og ON og.id=o.order_group_id";
+  const where = conditions.join(" AND ");
+  const total = (
+    await pool.query(
+      `SELECT COUNT(*)::int AS total ${from} WHERE ${where}`,
+      values
+    )
+  ).rows[0].total;
+  const entries = (
+    await pool.query(
+      `SELECT o.order_number AS "orderNumber",r.restaurant_name AS "restaurantName",og.delivery_name AS "customerName",o.delivery_fee AS earning,og.payment_method AS "paymentMethod",CASE WHEN og.payment_method='COD' THEN CASE WHEN o.cash_collected_at IS NOT NULL THEN 'PAID' ELSE 'PENDING' END ELSE og.payment_status END AS "customerPaymentStatus",COALESCE(o.delivered_at,o.updated_at) AS "completedAt" ${from} WHERE ${where} ORDER BY COALESCE(o.delivered_at,o.updated_at) DESC,o.id DESC LIMIT $${
+        values.length + 1
+      } OFFSET $${values.length + 2}`,
+      [...values, limit, (page - 1) * limit]
+    )
+  ).rows;
+  return {
+    summary: Object.fromEntries(
+      Object.entries(summary).map(([k, v]) => [k, Number(v)])
+    ),
+    weekly: weekly.map((row) => ({ ...row, earning: Number(row.earning) })),
+    entries: entries.map((row) => ({ ...row, earning: Number(row.earning) })),
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
+};

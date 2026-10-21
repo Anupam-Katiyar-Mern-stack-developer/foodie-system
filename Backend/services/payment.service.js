@@ -254,6 +254,58 @@ export const captureVerifiedPayment = async (
   }
 };
 
+// Capture authorized money only after matching it to our stored checkout.
+export const ensureCapturedPayment = async (payment) => {
+  if (payment.status !== "authorized") return payment;
+  const { rows } = await pool.query(
+    `SELECT p.amount_paise,p.currency,p.status,og.payment_status,og.grand_total,
+    EXISTS(SELECT 1 FROM orders o WHERE o.order_group_id=og.id AND o.status='PAYMENT_PENDING') AS awaiting
+    FROM payments p JOIN order_groups og ON og.id=p.order_group_id WHERE p.razorpay_order_id=$1`,
+    [payment.order_id]
+  );
+  const stored = rows[0];
+  if (
+    !stored ||
+    !stored.awaiting ||
+    ["REFUNDED", "PAID"].includes(stored.payment_status) ||
+    stored.status === "REFUNDED"
+  )
+    throw fail("Checkout is not awaiting capture", 409);
+  if (
+    Number(stored.amount_paise) !== payment.amount ||
+    Math.round(Number(stored.grand_total) * 100) !== payment.amount ||
+    stored.currency !== payment.currency
+  )
+    throw fail("Payment amount or currency mismatch", 409);
+  let captured;
+  try {
+    captured = await razorpayRequest(
+      `payments/${encodeURIComponent(payment.id)}/capture`,
+      "POST",
+      { amount: Number(stored.amount_paise), currency: stored.currency }
+    );
+  } catch (error) {
+    // Another callback, worker or dashboard may have captured it concurrently.
+    const latest = await razorpayRequest(
+      `payments/${encodeURIComponent(payment.id)}`
+    );
+    if (latest.status !== "captured")
+      throw fail(
+        "Payment is not captured yet. Retry verification shortly.",
+        409
+      );
+    captured = latest;
+  }
+  if (
+    captured.id !== payment.id ||
+    captured.order_id !== payment.order_id ||
+    captured.amount !== payment.amount ||
+    captured.currency !== payment.currency
+  )
+    throw fail("Gateway capture response mismatch", 502);
+  return captured;
+};
+
 export const reconcilePaymentService = async (userId, checkoutNumber) => {
   const { rows } = await pool.query(
     `SELECT og.payment_status AS "paymentStatus",p.razorpay_order_id
@@ -268,12 +320,14 @@ export const reconcilePaymentService = async (userId, checkoutNumber) => {
   const gateway = await razorpayRequest(
     `orders/${encodeURIComponent(payment.razorpay_order_id)}/payments`
   );
-  const captured = gateway.items?.find(
-    (item) =>
-      item.status === "captured" && item.order_id === payment.razorpay_order_id
+  const candidates = (gateway.items || []).filter(
+    (item) => item.order_id === payment.razorpay_order_id
   );
+  const captured =
+    candidates.find((item) => item.status === "captured") ||
+    candidates.find((item) => item.status === "authorized");
   return captured
-    ? captureVerifiedPayment(captured)
+    ? captureVerifiedPayment(await ensureCapturedPayment(captured))
     : { checkoutNumber, paymentStatus: payment.paymentStatus };
 };
 
@@ -302,7 +356,7 @@ export const verifyPaymentService = async (userId, input) => {
   const payment = await razorpayRequest(`payments/${paymentId}`);
   if (payment.order_id !== orderId)
     throw fail("Payment belongs to a different checkout");
-  return captureVerifiedPayment(payment);
+  return captureVerifiedPayment(await ensureCapturedPayment(payment));
 };
 
 export const processPaymentWebhook = async (raw, signature, eventId) => {
@@ -339,4 +393,27 @@ export const processPaymentWebhook = async (raw, signature, eventId) => {
     );
   }
   return { received: true };
+};
+
+// Recovery when a browser closes before the checkout callback; webhook is optional.
+export const reconcilePendingPaymentsService = async () => {
+  if (!paymentConfigured()) return { checked: 0 };
+  const { rows } =
+    await pool.query(`SELECT p.id,og.user_id,og.checkout_number FROM payments p JOIN order_groups og ON og.id=p.order_group_id
+    WHERE og.payment_method='ONLINE' AND og.payment_status='PENDING' AND p.status IN ('CREATED','AUTHORIZED','FAILED') AND p.razorpay_order_id IS NOT NULL
+    AND p.updated_at<=NOW()-INTERVAL '30 seconds' AND EXISTS(SELECT 1 FROM orders o WHERE o.order_group_id=og.id AND o.status='PAYMENT_PENDING')
+    ORDER BY p.updated_at,p.id LIMIT 5`);
+  await Promise.allSettled(
+    rows.map(async (row) => {
+      await pool.query("UPDATE payments SET updated_at=NOW() WHERE id=$1", [
+        row.id,
+      ]);
+      try {
+        await reconcilePaymentService(row.user_id, row.checkout_number);
+      } catch (error) {
+        console.error("Payment recovery:", row.checkout_number, error.message);
+      }
+    })
+  );
+  return { checked: rows.length };
 };

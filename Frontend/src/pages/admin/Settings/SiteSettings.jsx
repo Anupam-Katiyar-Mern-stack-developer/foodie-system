@@ -250,9 +250,10 @@ export default function SiteSettings() {
           )}
           {tab === "ordering" && (
             <p className="mt-5 rounded-xl bg-orange-50 p-4 text-sm leading-6 text-orange-800">
-              Razorpay needs valid test/live keys and a webhook secret in
-              Backend/.env. Placeholder keys never process payments. SMTP
-              credentials are needed for email delivery.
+              Razorpay needs your key ID and secret in Backend/.env. Authorized
+              payments are captured and recovered by the server. Webhooks are
+              optional for basic checkout. Placeholder keys never process
+              payments. SMTP credentials are needed for email delivery.
             </p>
           )}
         </Card>

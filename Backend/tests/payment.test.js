@@ -24,6 +24,8 @@ import {
   paymentConfigured,
   razorpayRequest,
   reconcilePaymentService,
+  ensureCapturedPayment,
+  reconcilePendingPaymentsService,
 } from "../services/payment.service.js";
 
 test("pricing allocates discounts in paise and keeps restaurant totals equal to checkout", () => {
@@ -141,9 +143,16 @@ test("isolated database: coupons, checkout retries, signatures, capture and webh
     await pool.query(
       "INSERT INTO coupons(code,title,discount_type,discount_value,min_order) VALUES('TEST10','Ten percent','PERCENT',10,100)"
     );
-    await pool.query("INSERT INTO coupons(code,title,discount_type,discount_value,starts_at) VALUES('FUTURE','Not started','FIXED',5,NOW()+INTERVAL '1 day')");
-    await pool.query("INSERT INTO coupons(code,title,discount_type,discount_value,expires_at) VALUES('EXPIRED','Expired','FIXED',5,NOW()-INTERVAL '1 day')");
-    assert.deepEqual((await getCouponsService(true)).map(c=>c.code),['TEST10']);
+    await pool.query(
+      "INSERT INTO coupons(code,title,discount_type,discount_value,starts_at) VALUES('FUTURE','Not started','FIXED',5,NOW()+INTERVAL '1 day')"
+    );
+    await pool.query(
+      "INSERT INTO coupons(code,title,discount_type,discount_value,expires_at) VALUES('EXPIRED','Expired','FIXED',5,NOW()-INTERVAL '1 day')"
+    );
+    assert.deepEqual(
+      (await getCouponsService(true)).map((c) => c.code),
+      ["TEST10"]
+    );
     const refill = async () => {
       const cart = (
         await pool.query("INSERT INTO carts(user_id) VALUES(1) RETURNING id")
@@ -274,6 +283,8 @@ test("isolated database: coupons, checkout retries, signatures, capture and webh
     let gatewayOrderCalls = 0;
     let amount = 0;
     let gatewayStatus = "authorized";
+    let captureAvailable = false,
+      captureCalls = 0;
     globalThis.fetch = async (url, options) => {
       assert.equal(
         options.headers.Authorization,
@@ -292,6 +303,28 @@ test("isolated database: coupons, checkout retries, signatures, capture and webh
         return {
           ok: true,
           json: async () => ({ id: "order_Test123", amount, currency: "INR" }),
+        };
+      }
+      if (String(url).endsWith("/payments/pay_Test123/capture")) {
+        captureCalls++;
+        assert.equal(options.method, "POST");
+        assert.deepEqual(JSON.parse(options.body), { amount, currency: "INR" });
+        if (!captureAvailable)
+          return {
+            ok: false,
+            status: 409,
+            json: async () => ({ error: { code: "CAPTURE_PENDING" } }),
+          };
+        gatewayStatus = "captured";
+        return {
+          ok: true,
+          json: async () => ({
+            id: "pay_Test123",
+            order_id: "order_Test123",
+            amount,
+            currency: "INR",
+            status: "captured",
+          }),
         };
       }
       if (String(url).endsWith("/payments/pay_Test123"))
@@ -364,7 +397,24 @@ test("isolated database: coupons, checkout retries, signatures, capture and webh
         }),
       /not captured/
     );
-    gatewayStatus = "captured";
+    await assert.rejects(
+      () =>
+        ensureCapturedPayment({
+          id: "pay_Test123",
+          order_id: "order_Test123",
+          amount: amount + 1,
+          currency: "INR",
+          status: "authorized",
+        }),
+      /amount/
+    );
+    captureAvailable = true;
+    await pool.query(
+      "UPDATE payments SET updated_at=NOW()-INTERVAL '31 seconds'"
+    );
+    assert.equal((await reconcilePendingPaymentsService()).checked, 1);
+    assert.equal(gatewayStatus, "captured");
+    assert.equal(captureCalls, 2);
     assert.equal(
       (await reconcilePaymentService(1, online.checkoutNumber)).paymentStatus,
       "PAID"

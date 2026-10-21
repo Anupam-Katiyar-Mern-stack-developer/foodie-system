@@ -1,4 +1,7 @@
-import { getDeliveryDashboardService } from "../../services/delivery.service.js";
+import {
+  getDeliveryDashboardService,
+  getDeliveryEarningsService,
+} from "../../services/delivery.service.js";
 
 export const getDeliveryDashboard = async (req, res, next) => {
   try {
@@ -20,6 +23,20 @@ export const getDeliveryDashboard = async (req, res, next) => {
       success: true,
       message: "Delivery dashboard fetched successfully",
       data: dashboard,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getDeliveryEarnings = async (req, res, next) => {
+  try {
+    res.json({
+      success: true,
+      data: await getDeliveryEarningsService({
+        ...req.query,
+        deliveryAgentId: req.deliveryAgent.deliveryAgentId,
+      }),
     });
   } catch (error) {
     next(error);

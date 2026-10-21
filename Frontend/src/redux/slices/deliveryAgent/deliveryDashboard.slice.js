@@ -1,8 +1,19 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-import { getDeliveryDashboard } from "../../thunks/deliveryAgent/deliveryDashboard.thunk";
+import {
+  getDeliveryDashboard,
+  getDeliveryEarnings,
+} from "../../thunks/deliveryAgent/deliveryDashboard.thunk";
 
 const initialState = {
+  earnings: {
+    entries: [],
+    summary: {},
+    weekly: [],
+    pagination: {},
+    loading: false,
+    error: null,
+  },
   isOnline: false,
 
   stats: {
@@ -33,6 +44,27 @@ const deliveryDashboardSlice = createSlice({
   },
 
   extraReducers: (builder) => {
+    builder
+      .addCase(getDeliveryEarnings.pending, (state, action) => {
+        state.earnings.loading = true;
+        state.earnings.error = null;
+        state.earnings.requestId = action.meta.requestId;
+      })
+      .addCase(getDeliveryEarnings.fulfilled, (state, action) => {
+        if (state.earnings.requestId !== action.meta.requestId) return;
+        state.earnings = {
+          ...action.payload,
+          loading: false,
+          error: null,
+          requestId: action.meta.requestId,
+        };
+      })
+      .addCase(getDeliveryEarnings.rejected, (state, action) => {
+        if (state.earnings.requestId !== action.meta.requestId) return;
+        state.earnings.loading = false;
+        if (!action.meta.aborted) state.earnings.error = action.payload;
+      });
+
     builder
       // =========================
       // GET DASHBOARD
