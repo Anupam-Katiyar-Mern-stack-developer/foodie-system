@@ -8,7 +8,7 @@ import { restaurantRejectedTemplate } from "../templates/restaurant/restaurantRe
 export const getAdminProfileService = async (adminId) => {
   const { rows } = await pool.query(
     `SELECT id, name, email, role FROM admins WHERE id = $1 AND is_blocked = FALSE`,
-    [adminId],
+    [adminId]
   );
   if (!rows[0])
     throw Object.assign(new Error("Admin account unavailable"), {
@@ -24,18 +24,26 @@ export const updateAdminProfileService = async ({
   currentPassword,
   newPassword,
 }) => {
-  if (!name?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || "")) {
+  if (
+    typeof name !== "string" ||
+    !name.trim() ||
+    name.trim().length > 100 ||
+    typeof email !== "string" ||
+    email.trim().length > 150 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  ) {
     throw Object.assign(new Error("Valid name and email are required"), {
       statusCode: 400,
     });
   }
   const { rows } = await pool.query(
     "SELECT * FROM admins WHERE id = $1 AND is_blocked = FALSE",
-    [adminId],
+    [adminId]
   );
   const admin = rows[0];
   if (
     !admin ||
+    typeof currentPassword !== "string" ||
     !currentPassword ||
     !(await bcrypt.compare(currentPassword, admin.password))
   ) {
@@ -60,7 +68,7 @@ export const updateAdminProfileService = async ({
     const result = await pool.query(
       `UPDATE admins SET name=$1, email=$2, password=$3, updated_at=CURRENT_TIMESTAMP
        WHERE id=$4 RETURNING id, name, email, role`,
-      [name.trim(), email.trim().toLowerCase(), password, adminId],
+      [name.trim(), email.trim().toLowerCase(), password, adminId]
     );
     return result.rows[0];
   } catch (error) {
@@ -111,8 +119,11 @@ const adminLists = {
     from: "foods f JOIN restaurants r ON r.id=f.restaurant_id JOIN categories c ON c.id=f.category_id",
     fields: `f.slug, f.name, f.description, f.price, f.discount_price AS "discountPrice", f.image,
       f.is_veg AS "isVeg", f.is_available AS "isAvailable", f.preparation_time AS "preparationTime",
-      f.created_at AS "createdAt", c.name AS "categoryName", r.restaurant_name AS "restaurantName"`,
-    search: "concat_ws(' ',f.name,r.restaurant_name,c.name)", status: null, date: "f.created_at",
+      f.created_at AS "createdAt", f.updated_at AS "updatedAt", c.name AS "categoryName",
+      c.slug AS "categorySlug", r.restaurant_name AS "restaurantName", r.slug AS "restaurantSlug"`,
+    search: "concat_ws(' ',f.name,r.restaurant_name,c.name)",
+    status: null,
+    date: "f.created_at",
   },
   restaurants: {
     from: "restaurants r",
@@ -160,7 +171,7 @@ export const getAdminListService = async (resource, query) => {
   const page = Math.max(1, Math.trunc(Number(query.page) || 1));
   const limit = Math.min(
     100,
-    Math.max(1, Math.trunc(Number(query.limit) || 15)),
+    Math.max(1, Math.trunc(Number(query.limit) || 15))
   );
   const values = [`%${String(query.search || "").slice(0, 150)}%`];
   let where = `${config.search} ILIKE $1`;
@@ -170,12 +181,14 @@ export const getAdminListService = async (resource, query) => {
   }
   const count = await pool.query(
     `SELECT COUNT(*)::int AS total FROM ${config.from} WHERE ${where}`,
-    values,
+    values
   );
   const result = await pool.query(
-    `SELECT ${config.fields} FROM ${config.from} WHERE ${where} ORDER BY ${config.date} DESC
+    `SELECT ${config.fields} FROM ${config.from} WHERE ${where} ORDER BY ${
+      config.date
+    } DESC
      LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
-    [...values, limit, (page - 1) * limit],
+    [...values, limit, (page - 1) * limit]
   );
   const total = count.rows[0].total;
   return {
@@ -201,7 +214,7 @@ export const loginAdminService = async ({ email, password }) => {
       WHERE email = $1
       LIMIT 1
     `,
-    [normalizedEmail],
+    [normalizedEmail]
   );
 
   if (result.rows.length === 0) {
@@ -237,7 +250,7 @@ export const loginAdminService = async ({ email, password }) => {
     process.env.JWT_SECRET,
     {
       expiresIn: "7d",
-    },
+    }
   );
 
   delete admin.password;
@@ -271,7 +284,7 @@ export const getPendingRestaurantsService = async () => {
       FROM restaurants
       WHERE approval_status = 'PENDING'
       ORDER BY created_at ASC
-    `,
+    `
   );
 
   return result.rows;
@@ -300,7 +313,7 @@ export const approveRestaurantService = async ({ adminId, restaurantSlug }) => {
         approval_status AS "approvalStatus",
         reviewed_at AS "reviewedAt"
         `,
-    [adminId, restaurantSlug],
+    [adminId, restaurantSlug]
   );
 
   if (result.rows.length === 0) {
@@ -365,7 +378,7 @@ export const rejectRestaurantService = async ({
         rejection_reason AS "rejectionReason",
         reviewed_at AS "reviewedAt"
     `,
-    [adminId, reason.trim(), restaurantSlug],
+    [adminId, reason.trim(), restaurantSlug]
   );
 
   if (result.rows.length === 0) {

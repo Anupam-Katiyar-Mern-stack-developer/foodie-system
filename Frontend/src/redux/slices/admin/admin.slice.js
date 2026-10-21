@@ -33,7 +33,7 @@ const initialState = {
       "foods",
       "orders",
       "users",
-    ].map((key) => [key, resourceState()]),
+    ].map((key) => [key, resourceState()])
   ),
 };
 
@@ -47,7 +47,7 @@ const adminSlice = createSlice({
       state.profile = null;
       state.sessionStatus = "signedOut";
       state.resources = Object.fromEntries(
-        Object.keys(state.resources).map((key) => [key, resourceState()]),
+        Object.keys(state.resources).map((key) => [key, resourceState()])
       );
     },
   },

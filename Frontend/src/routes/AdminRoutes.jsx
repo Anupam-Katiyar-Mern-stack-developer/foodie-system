@@ -9,21 +9,43 @@ import AdminRecords from "../pages/admin/Records/AdminRecords";
 import AdminSettings from "../pages/admin/Settings/AdminSettings";
 
 export default function AdminRoutes() {
-  return <Routes>
-    <Route path="login" element={<AdminLogin />} />
-    <Route element={<AdminProtectedRoute />}>
-      <Route element={<AdminLayout />}>
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="restaurants" element={<AdminPartners key="restaurants" kind="restaurants" />} />
-        <Route path="delivery-agents" element={<AdminPartners key="delivery-agents" kind="delivery-agents" />} />
-        <Route path="categories" element={<AdminCategories />} />
-        <Route path="foods" element={<AdminRecords key="foods" resource="foods" />} />
-        <Route path="orders" element={<AdminRecords key="orders" resource="orders" />} />
-        <Route path="users" element={<AdminRecords key="users" resource="users" />} />
-        <Route path="settings" element={<AdminSettings />} />
-        <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+  return (
+    <Routes>
+      <Route path="login" element={<AdminLogin />} />
+      <Route element={<AdminProtectedRoute />}>
+        <Route element={<AdminLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route
+            path="restaurants"
+            element={<AdminPartners key="restaurants" kind="restaurants" />}
+          />
+          <Route
+            path="delivery-agents"
+            element={
+              <AdminPartners key="delivery-agents" kind="delivery-agents" />
+            }
+          />
+          <Route path="categories" element={<AdminCategories />} />
+          <Route
+            path="foods"
+            element={<AdminRecords key="foods" resource="foods" />}
+          />
+          <Route
+            path="orders"
+            element={<AdminRecords key="orders" resource="orders" />}
+          />
+          <Route
+            path="users"
+            element={<AdminRecords key="users" resource="users" />}
+          />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route
+            path="*"
+            element={<Navigate to="/admin/dashboard" replace />}
+          />
+        </Route>
       </Route>
-    </Route>
-  </Routes>;
+    </Routes>
+  );
 }
