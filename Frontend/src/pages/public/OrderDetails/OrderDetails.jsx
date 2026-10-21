@@ -39,6 +39,10 @@ import {
     STORAGE_KEYS,
 } from "../../../constants/storageKeys";
 
+import DeliveryTrackingMap, {
+    getPoint,
+} from "../../../components/public/LiveTrackingMap/DeliveryTrackingMap";
+
 const LIVE_TRACKING_STATUSES = [
     ORDER_STATUS.DELIVERY_ASSIGNED,
     ORDER_STATUS.PICKED_UP,
@@ -136,26 +140,30 @@ const OrderDetails = () => {
         let joinedOnce = false;
 
         const joinOrderRoom = () => {
-            socket.emit(
+            socket.timeout(5000).emit(
                 "order:join",
                 { orderNumber },
-                (response) => {
-                    if (!response?.success) {
+                (error, response) => {
+                    if (error || !response?.success) {
                         console.error(
                             "ORDER ROOM JOIN ERROR:",
-                            response?.message,
+                            error?.message || response?.message,
                         );
+                        return;
                     }
+
+                    console.log(
+                        "ORDER ROOM JOINED:",
+                        orderNumber,
+                        socket.id,
+                    );
+
+                    // Join ke dauran ya disconnect mein missed status recover karo.
+                    setLiveStatus(null);
+                    setLiveDeliveryAgent(null);
+                    dispatch(getMyOrders());
                 },
             );
-
-            // Reconnect ke baad missed event ho sakta hai.
-            // REST API se latest source-of-truth reload.
-            if (joinedOnce) {
-                dispatch(getMyOrders());
-            }
-
-            joinedOnce = true;
         };
 
         const handleStatusUpdate = (data) => {
@@ -636,12 +644,13 @@ const OrderDetails = () => {
 
                             {agentLocation ? (
                                 <>
-                                    <iframe
-                                        key={`${agentLocation.latitude}-${agentLocation.longitude}`}
-                                        title="Delivery partner live location"
-                                        src={mapUrl}
-                                        loading="lazy"
-                                        className="h-[320px] w-full border-0 sm:h-[380px]"
+                                    <DeliveryTrackingMap
+                                        agent={getPoint(
+                                            agentLocation?.latitude,
+                                            agentLocation?.longitude,
+                                        )}
+                                        destination={getPoint(order.latitude, order.longitude)}
+                                        destinationLabel="Your delivery address"
                                     />
 
                                     <div className="grid gap-3 border-t border-slate-100 p-4 text-xs sm:grid-cols-3 sm:p-5">
