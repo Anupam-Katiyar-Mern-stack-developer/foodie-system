@@ -132,8 +132,8 @@ export const updateAddressService = async ({
   city,
   state,
   pincode,
-  latitude,
-  longitude,
+  latitude: coordinates.latitude,
+longitude: coordinates.longitude,
   isDefault,
 }) => {
   const client = await pool.connect();
@@ -215,6 +215,7 @@ export const updateAddressService = async ({
     );
 
     await client.query("COMMIT");
+    return result.rows[0];
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
