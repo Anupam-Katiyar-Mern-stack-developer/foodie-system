@@ -96,9 +96,11 @@ export default function DeliveryTrackingMap({
             <div className="border-b bg-orange-50 p-4">
                 <p className="font-bold">{destinationLabel}</p>
                 <p className="text-sm text-slate-600">
-                    {km == null
-                        ? "Waiting for agent GPS..."
-                        : `${km.toFixed(2)} km away • straight-line distance`}
+                    {!agent
+                        ? "Delivery agent GPS location missing"
+                        : !destination
+                            ? "Customer/destination coordinates missing"
+                            : `${km.toFixed(2)} km away • straight-line distance`}
                 </p>
             </div>
 

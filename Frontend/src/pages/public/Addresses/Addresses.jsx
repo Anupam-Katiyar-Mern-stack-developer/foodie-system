@@ -78,6 +78,43 @@ const Addresses = () => {
     // LOCAL UI STATE
     // =========================
 
+    const [addressPoint, setAddressPoint] = useState(null);
+    const [gpsLoading, setGpsLoading] = useState(false);
+    const [gpsError, setGpsError] = useState("");
+
+    const captureAddressLocation = () => {
+        if (!navigator.geolocation) {
+            setGpsError("This device does not support location.");
+            return;
+        }
+
+        setGpsLoading(true);
+        setGpsError("");
+
+        navigator.geolocation.getCurrentPosition(
+            ({ coords }) => {
+                setAddressPoint(
+                    address.latitude != null && address.longitude != null
+                        ? {
+                            latitude: Number(address.latitude),
+                            longitude: Number(address.longitude),
+                        }
+                        : null,
+                );
+                setGpsError("");
+            },
+            (error) => {
+                setGpsError(error.message || "Enable location permission.");
+                setGpsLoading(false);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0,
+            },
+        );
+    };
+
     const [
         formOpen,
         setFormOpen,
@@ -105,8 +142,6 @@ const Addresses = () => {
 
         setFormOpen(true);
     };
-
-
     // =========================
     // EDIT
     // =========================
@@ -128,7 +163,6 @@ const Addresses = () => {
 
     const closeForm = () => {
         setFormOpen(false);
-
         setEditingAddress(null);
     };
 
@@ -144,21 +178,28 @@ const Addresses = () => {
                 values
             );
 
+            if (!addressPoint) {
+                setGpsError("Select the delivery address location first.");
+                return;
+            }
+
+            const payload = {
+                ...values,
+                latitude: addressPoint.latitude,
+                longitude: addressPoint.longitude,
+            };
+
             try {
                 if (editingAddress) {
                     await dispatch(
                         updateAddress({
-                            addressId:
-                                editingAddress.id,
-
-                            payload: values,
+                            addressId: editingAddress.id,
+                            payload,
                         })
                     ).unwrap();
                 } else {
                     await dispatch(
-                        createAddress(
-                            values
-                        )
+                        createAddress(payload)
                     ).unwrap();
                 }
 
@@ -585,6 +626,32 @@ const Addresses = () => {
                         : "Enter the address where you want your order delivered."
                 }
             >
+                <div className="mb-4 space-y-2">
+                    <Button
+                        type="button"
+                        onClick={captureAddressLocation}
+                        disabled={gpsLoading}
+                    >
+                        {gpsLoading
+                            ? "Fetching location..."
+                            : "Use current location for this address"}
+                    </Button>
+
+                    <p className="text-sm text-slate-500">
+                        Use this only when you are at the delivery address.
+                    </p>
+
+                    {addressPoint && (
+                        <p className="text-sm text-green-700">
+                            Location selected: {addressPoint.latitude.toFixed(6)},{" "}
+                            {addressPoint.longitude.toFixed(6)}
+                        </p>
+                    )}
+
+                    {gpsError && (
+                        <p className="text-sm text-red-600">{gpsError}</p>
+                    )}
+                </div>
                 <CommonForm
                     key={
                         editingAddress?.id ||

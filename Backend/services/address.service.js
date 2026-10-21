@@ -8,8 +8,8 @@ export const createAddressService = async ({
   city,
   state,
   pincode,
-  latitude,
-  longitude,
+  latitude: coordinates.latitude,
+longitude: coordinates.longitude,
   isDefault,
 }) => {
   const client = await pool.connect();
