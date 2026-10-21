@@ -24,13 +24,7 @@ export const createAddress = async (req, res, next) => {
       });
     }
 
-    const coordinates = await geocodeAddress({
-      addressLine,
-      landmark,
-      city,
-      state,
-      pincode,
-    });
+   
 
     const address = await createAddressService({
       userId,
@@ -40,8 +34,8 @@ export const createAddress = async (req, res, next) => {
       city,
       state,
       pincode,
-      latitude: coordinates.latitude,
-      longitude: coordinates.longitude,
+      latitude,
+      longitude,
       isDefault,
     });
 

@@ -14,97 +14,144 @@ export const geocodeAddress = async ({
   const apiKey = process.env.GEOAPIFY_API_KEY;
 
   if (!apiKey) {
-    const error = new Error("Geocoding API key is not configured");
+    const error = new Error("Geoapify API key missing");
     error.statusCode = 500;
     throw error;
   }
 
-  const text = [addressLine, landmark, city, state, pincode, "India"]
-    .map((value) => String(value ?? "").trim())
-    .filter(Boolean)
-    .join(", ");
+  const clean = (value) => String(value ?? "").trim();
 
-  const url = new URL("https://api.geoapify.com/v1/geocode/search");
+  const pin = clean(pincode);
+  const fullAddress = clean(addressLine);
 
-  url.searchParams.set("text", text);
-  url.searchParams.set("format", "json");
-  url.searchParams.set("filter", "countrycode:in");
-  url.searchParams.set("limit", "1");
-  url.searchParams.set("apiKey", apiKey);
+  // House number remove karke locality search
+  // Example: C-639, Barra 8 -> Barra 8
+  // Assumes house number is first comma-separated part
+  const parts = fullAddress
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
 
-  let response;
+  const locality = parts.length > 1 ? parts.slice(1).join(", ") : fullAddress;
 
-  try {
-    response = await fetch(url, {
-      signal: AbortSignal.timeout(10000),
-    });
-  } catch {
-    const error = new Error("Address lookup failed. Please try again.");
-    error.statusCode = 503;
-    throw error;
-  }
-
-  if (!response.ok) {
-    console.error("Geoapify HTTP status:", response.status);
-
-    const reasons = {
-      400: "Geocoding request ke parameters invalid hain",
-      401: "API authentication failed; key check karo",
-      403: "Access denied; key aur IP/origin restrictions check karo",
-      429: "Request limit/quota exceed hui hai",
-    };
-
-    const reason =
-      reasons[response.status] || "Geocoding provider request failed";
-
-    const error = new Error(`Geoapify HTTP ${response.status}: ${reason}`);
-
-    error.statusCode = 502;
-    throw error;
-  }
-
-  const data = await response.json();
-  const result = data.results?.[0];
-
-  console.log("Address match diagnostic:", {
-    matchFound: Boolean(result),
-    resultType: result?.result_type ?? null,
-    savedPincode: String(pincode).trim(),
-    matchedPincode: result?.postcode ?? null,
-    latitudePresent: result?.lat != null,
-    longitudePresent: result?.lon != null,
-  });
-
-  const latitude = Number(result?.lat);
-  const longitude = Number(result?.lon);
-
-  const coarseResults = [
-    "country",
-    "state",
-    "county",
-    "city",
-    "postcode",
-    "district",
-    "suburb",
+  const queries = [
+    [fullAddress, landmark, city, state, pin, "India"],
+    [locality, city, state, pin, "India"],
+    [locality, city, state, "India"],
+    [city, state, pin, "India"],
   ];
 
-  if (
-    result?.lat == null ||
-    result?.lon == null ||
-    !Number.isFinite(latitude) ||
-    !Number.isFinite(longitude) ||
-    Math.abs(latitude) > 90 ||
-    Math.abs(longitude) > 180 ||
-    coarseResults.includes(result?.result_type) ||
-    (result?.postcode &&
-      String(result.postcode).trim() !== String(pincode).trim())
-  ) {
+  const candidates = [];
+
+  for (const queryParts of queries) {
+    const text = queryParts.map(clean).filter(Boolean).join(", ");
+
+    const url = new URL("https://api.geoapify.com/v1/geocode/search");
+
+    url.searchParams.set("text", text);
+    url.searchParams.set("format", "json");
+    url.searchParams.set("filter", "countrycode:in");
+    url.searchParams.set("limit", "5");
+    url.searchParams.set("apiKey", apiKey);
+
+    let response;
+
+    try {
+      response = await fetch(url, {
+        signal: AbortSignal.timeout(10000),
+      });
+    } catch {
+      const error = new Error("Geoapify request failed");
+      error.statusCode = 503;
+      throw error;
+    }
+
+    if (!response.ok) {
+      const error = new Error(`Geoapify HTTP ${response.status}`);
+      error.statusCode = 502;
+      throw error;
+    }
+
+    const data = await response.json();
+
+    for (const result of data.results ?? []) {
+      const latitude = Number(result.lat);
+      const longitude = Number(result.lon);
+
+      if (
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude) ||
+        Math.abs(latitude) > 90 ||
+        Math.abs(longitude) > 180
+      ) {
+        continue;
+      }
+
+      // Reject known incorrect pincodes
+      if (result.postcode && clean(result.postcode) !== pin) {
+        continue;
+      }
+
+      const coarseTypes = [
+        "country",
+        "state",
+        "county",
+        "city",
+        "postcode",
+        "district",
+        "suburb",
+      ];
+
+      const isCoarse = coarseTypes.includes(result.result_type);
+
+      const hasMatchingPostcode = clean(result.postcode) === pin;
+
+      const confidence = Number(result.rank?.confidence) || 0;
+
+      candidates.push({
+        latitude,
+        longitude,
+        formattedAddress: result.formatted,
+        resultType: result.result_type,
+        confidence,
+        isCoarse,
+        hasMatchingPostcode,
+        query: text,
+      });
+    }
+  }
+
+  if (!candidates.length) {
     const error = new Error(
-      "Exact enough location nahi mili. Address mein street/area aur sahi pincode add karo.",
+      "Address location nahi mili. Map par pin select karo.",
     );
     error.statusCode = 422;
     throw error;
   }
 
-  return { latitude, longitude };
+  // Prefer more specific results and matching postcode
+  candidates.sort((a, b) => {
+    const score = (item) =>
+      (item.isCoarse ? 0 : 10) +
+      (item.hasMatchingPostcode ? 5 : 0) +
+      item.confidence;
+
+    return score(b) - score(a);
+  });
+
+  const best = candidates[0];
+
+  console.log("Geoapify best match:", best);
+
+  return {
+    latitude: best.latitude,
+    longitude: best.longitude,
+    formattedAddress: best.formattedAddress,
+    resultType: best.resultType,
+    confidence: best.confidence,
+
+    // Critical: Never treat approximate results as
+    // verified house coordinates.
+    requiresPinConfirmation: true,
+  };
 };
