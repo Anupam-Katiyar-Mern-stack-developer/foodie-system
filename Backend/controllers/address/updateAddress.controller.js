@@ -1,4 +1,4 @@
-import { success } from "zod";
+
 import { updateAddressService } from "../../services/address.service.js";
 import { geocodeAddress } from "../../utils/geocodeAddress.js";
 
@@ -35,8 +35,8 @@ export const updateAddress = async (req, res, next) => {
       city,
       state,
       pincode,
-      latitude,
-      longitude,
+      latitude: coordinates.latitude,
+      longitude: coordinates.longitude,
       isDefault,
     });
 
