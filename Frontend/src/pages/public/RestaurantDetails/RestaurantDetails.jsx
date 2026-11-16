@@ -22,7 +22,7 @@ import {
     FaUtensils,
 } from "react-icons/fa";
 
-import Container from "../../../components/common/Container/Container";
+import Container from "../../../components/common/container/Container";
 import EmptyState from "../../../components/common/EmptyState/EmptyState";
 import ErrorState from "../../../components/common/ErrorState/ErrorState";
 import Skeleton from "../../../components/common/Skeleton/Skeleton";
