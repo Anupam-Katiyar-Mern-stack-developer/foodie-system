@@ -105,25 +105,14 @@ export default function AdminLayout() {
         ))}
       </nav>
       <div className="mt-auto pt-8">
-        <div className="mb-4 rounded-2xl border border-orange-100 bg-orange-50/60 p-4">
-          <ShieldCheck
-            className="mb-2 h-5 w-5 text-orange-600"
-            aria-hidden="true"
-          />
-          <p className="text-sm font-bold text-slate-900">
-            A better delivery, together.
-          </p>
-          <p className="mt-1 text-xs leading-5 text-slate-600">
-            Review partners and keep your food community moving.
-          </p>
-        </div>
+       
         <Button
           fullWidth
           variant="ghost"
           leftIcon={LogOut}
           onClick={() => setLogoutOpen(true)}
         >
-          Sign out
+          <span className="text-red-500">Sign out</span>
         </Button>
       </div>
     </div>
