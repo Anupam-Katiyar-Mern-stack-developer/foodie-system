@@ -15,7 +15,7 @@ import {
     FaTimes,
 } from "react-icons/fa";
 
-import Container from "../../../components/common/container/Container";
+import Container from "../../../components/common/Container/Container";
 import PageHeader from "../../../components/common/PageHeader/PageHeader";
 import EmptyState from "../../../components/common/EmptyState/EmptyState";
 import ErrorState from "../../../components/common/ErrorState/ErrorState";
