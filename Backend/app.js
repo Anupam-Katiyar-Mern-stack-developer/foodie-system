@@ -39,7 +39,7 @@ app.use(cors());
 app.use(helmet());
 app.use(morgan("dev"));
 
-app.get("/", (req, res) => {
+app.get("/health", (req, res) => {
   res.json({
     success: true,
     message: "Foodie API is running",
